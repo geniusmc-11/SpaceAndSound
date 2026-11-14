@@ -2,6 +2,7 @@
 import { RouterView } from 'vue-router';
 import Footer from './components/Footer.vue';
 import Header from './components/header.vue';
+import Conclusion from './components/conclusion:v.vue';
 </script>
 
 <template>
@@ -11,6 +12,7 @@ import Header from './components/header.vue';
     </div>
     <main class="flex-1">
       <RouterView />
+      <Conclusion />
     </main>
     <Footer />
   </div>
