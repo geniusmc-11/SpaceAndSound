@@ -1,19 +1,17 @@
 /**
- * Motor de Sonificación Modular (useSonifier.js)
+ * Motor de Sonificación Modular (useSonifier.js) — Opción B (Secuencia de Fotogramas + Imágenes Directas)
  * Categoría NASA Space Apps: "The Earth Information Jukebox"
  *
  * RENDIMIENTO CRÍTICO:
  * - El <canvas> oculto usa { willReadFrequently: true }.
- * - El arreglo de píxeles (pixelBuffer), el puntero scanX y todas las instancias
- *   de Tone.js / Web Audio viven FUERA de ref() y reactive() para jamás saturar
- *   el sistema de reactividad de Vue durante el barrido en tiempo real.
+ * - Los arreglos de píxeles por fotograma (frameBuffers / pixelBuffer), el puntero scanX,
+ *   el índice de fotograma actual y todas las instancias de Tone.js viven FUERA de ref() y reactive().
  */
 
 import { ref } from 'vue'
 import * as Tone from 'tone'
-import { renderNasaDatasetToCanvas } from '@/game/NasaDatasetGenerator'
+import { loadImageElement } from '@/game/NasaDatasetGenerator'
 
-// Escalas musicales cuantizadas (notación científica para Tone.js)
 const SCALES = {
   grafica: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
   maritimo: ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5'],
@@ -39,11 +37,18 @@ const SCALES = {
 // ============================================================================
 let hiddenCanvas = null
 let hiddenCtx = null
-let pixelBuffer = null // Uint8ClampedArray completo de la imagen
+let frameBuffers = [] // Array<Uint8ClampedArray> precargado para Opción B
+let pixelBuffer = null // Apuntador al fotograma activo en reproducción
+let currentFrameIndex = 0
+let currentFrameIntervalMs = 1900
+let loadedDiscId = null
+let loadGeneration = 0
+
 let canvasWidth = 256
 let canvasHeight = 128
-let scanX = 0 // Puntero horizontal actual (0 .. canvasWidth - 1)
+let scanX = 0
 let scanTimerId = null
+let frameTimerId = null
 let audioInitialized = false
 
 // Instancias de Tone.js (estrictamente fuera de Vue Reactivity)
@@ -55,13 +60,13 @@ let padPolySynth = null
 let filterNode = null
 let reverbNode = null
 
-// Suscriptores de frame para actualizar la línea láser vertical y telemetría DOM sin re-renderizar Vue
+// Suscriptores de frame y barrido láser sin re-renderizar Vue
 const scanListeners = new Set()
+const frameListeners = new Set()
 
-// Estado reactivo mínimo únicamente para botones de la UI (Play/Pause y modo activo)
 const isRunning = ref(false)
-const activeMode = ref('grafica')
-const activeRarity = ref('comun')
+const activeMode = ref('huracan')
+const activeRarity = ref('epico')
 
 function ensureHiddenCanvas() {
   if (!hiddenCanvas && typeof document !== 'undefined') {
@@ -121,14 +126,10 @@ async function ensureAudioGraph() {
     audioInitialized = true
     return true
   } catch {
-    // En entornos de test (JSDOM) o sin gesto de usuario previo, evitamos romper la ejecución
     return false
   }
 }
 
-/**
- * Lee un píxel del buffer plano no reactivo en la coordenada (x, y)
- */
 function getPixelAt(x, y) {
   if (!pixelBuffer) return { r: 0, g: 0, b: 0 }
   const clampedX = Math.max(0, Math.min(canvasWidth - 1, x))
@@ -141,17 +142,9 @@ function getPixelAt(x, y) {
   }
 }
 
-/**
- * Escalamiento por Rareza:
- * - comun: 1 voz simple
- * - raro: Añade armonía + Reverb
- * - epico: Lectura dual + filtros dinámicos
- * - legendario: Todas las capas + síntesis de voz (window.speechSynthesis) al iniciar
- */
 function applyRarityScaling(rarity, primaryNote, harmonyNote, normLuminance, mirrorNote) {
   if (!audioInitialized || !leadSynth) return
 
-  // Ajustar Reverb y Filtro según rareza
   if (reverbNode) {
     reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.42 : 0.58
   }
@@ -163,12 +156,10 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normLuminance, mir
     filterNode.frequency.value = 2400
   }
 
-  // Voz 1 (Presente en todas las rarezas: comun, raro, epico, legendario)
   if (primaryNote) {
     leadSynth.triggerAttackRelease(primaryNote, '16n')
   }
 
-  // Voz 2: Armonía + Reverb (raro, epico, legendario)
   if (
     (rarity === 'raro' || rarity === 'epico' || rarity === 'legendario') &&
     harmonyNote &&
@@ -177,20 +168,12 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normLuminance, mir
     harmonySynth.triggerAttackRelease(harmonyNote, '8n')
   }
 
-  // Voz 3: Lectura espectral dual (epico, legendario)
   if ((rarity === 'epico' || rarity === 'legendario') && mirrorNote && pluckSynth) {
     pluckSynth.triggerAttackRelease(mirrorNote, '16n')
   }
 }
 
-/**
- * PATRÓN ESTRATEGIA: 4 Modos Cuantizados a Escalas Musicales
- */
 const SONIFICATION_STRATEGIES = {
-  /**
-   * 1. grafica (Series de tiempo):
-   * Barrido de izquierda a derecha; el eje Y con píxeles brillantes controla el pitch.
-   */
   grafica(colX, rarity) {
     let brightestY = Math.floor(canvasHeight / 2)
     let maxLuma = -1
@@ -210,7 +193,6 @@ const SONIFICATION_STRATEGIES = {
     const primaryNote = scale[noteIdx]
     const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
 
-    // Lectura dual (columna espejo para épico/legendario)
     const mirrorX = canvasWidth - 1 - colX
     const { g: mg, b: mb } = getPixelAt(mirrorX, brightestY)
     const mirrorIdx = Math.min(scale.length - 1, Math.floor(((mg + mb) / 510) * scale.length))
@@ -226,11 +208,6 @@ const SONIFICATION_STRATEGIES = {
     }
   },
 
-  /**
-   * 2. maritimo (Nivel del mar):
-   * Síntesis dual; detecta la línea guía blanca (R,G,B > 225) para controlar un bajo/drone continuo,
-   * y el área azul/cian para disparar notas melódicas (mayor intensidad si supera la línea blanca).
-   */
   maritimo(colX, rarity) {
     let whiteLineY = Math.floor(canvasHeight * 0.5)
     let highestBlueY = canvasHeight
@@ -248,7 +225,6 @@ const SONIFICATION_STRATEGIES = {
       }
     }
 
-    // Bajo/drone continuo controlado por la altura de la línea guía blanca
     const droneNorm = 1 - whiteLineY / canvasHeight
     const scale = SCALES.maritimo
     const bassNote = droneNorm > 0.52 ? 'D2' : 'A1'
@@ -256,7 +232,6 @@ const SONIFICATION_STRATEGIES = {
       bassDrone.triggerAttackRelease(bassNote, '8n')
     }
 
-    // Nota melódica del nivel del mar azul/cian
     const seaNorm = 1 - highestBlueY / canvasHeight
     const noteIdx = Math.min(scale.length - 1, Math.max(0, Math.floor(seaNorm * scale.length)))
     const primaryNote = scale[noteIdx]
@@ -266,7 +241,6 @@ const SONIFICATION_STRATEGIES = {
       : scale[Math.min(scale.length - 1, noteIdx + 2)]
 
     if (audioInitialized && leadSynth) {
-      // Mayor intensidad (+4dB) cuando el área azul/cian supera la línea blanca
       leadSynth.volume.value = surpassesWhiteGuide ? -6 : -12
     }
 
@@ -289,11 +263,6 @@ const SONIFICATION_STRATEGIES = {
     }
   },
 
-  /**
-   * 3. espacial (Nebulosas/Estrellas):
-   * Puntos ultra brillantes (R+G+B > 690) disparan notas agudas tipo pluck/arpa;
-   * nubes difusas disparan acordes con Reverb (graves para gases rojos/IR, agudos para azules/UV).
-   */
   espacial(colX, rarity) {
     let starY = -1
     let redEnergy = 0
@@ -313,7 +282,6 @@ const SONIFICATION_STRATEGIES = {
     const highScale = SCALES.espacialHigh
     let primaryNote = 'G5'
 
-    // Si hay punto ultra brillante (R+G+B > 690) -> Pluck/arpa aguda
     if (starY !== -1) {
       const starNorm = 1 - starY / canvasHeight
       const idx = Math.min(highScale.length - 1, Math.floor(starNorm * highScale.length))
@@ -323,7 +291,6 @@ const SONIFICATION_STRATEGIES = {
       }
     }
 
-    // Nubes difusas -> Acordes con Reverb (Graves para rojo/IR, Agudos para azul/UV)
     const isInfraredDominant = redEnergy > blueEnergy
     const chordPool = isInfraredDominant ? SCALES.espacialIR : SCALES.espacialUV
     const chord = chordPool[colX % chordPool.length]
@@ -350,11 +317,6 @@ const SONIFICATION_STRATEGIES = {
     }
   },
 
-  /**
-   * 4. huracan (Mapas de calor):
-   * Evalúa la proporción de colores cálidos vs. fríos en la columna escaneada
-   * para modular la tensión armónica y el ritmo.
-   */
   huracan(colX, rarity) {
     let warmCount = 0
     let coldCount = 0
@@ -369,7 +331,7 @@ const SONIFICATION_STRATEGIES = {
     }
 
     const total = Math.max(1, warmCount + coldCount)
-    const warmRatio = warmCount / total // 0.0 (frío) .. 1.0 (cálido extremo)
+    const warmRatio = warmCount / total
     const isHighTension = warmRatio > 0.52
     const activeScale = isHighTension ? SCALES.huracanTense : SCALES.huracanCalm
 
@@ -378,7 +340,7 @@ const SONIFICATION_STRATEGIES = {
       Math.floor(warmRatio * (activeScale.length - 1))
     )
     const primaryNote = activeScale[idx]
-    const harmonyOffset = isHighTension ? 1 : 2 // Segunda menor tensa vs tercera/quinta consonante
+    const harmonyOffset = isHighTension ? 1 : 2
     const harmonyNote =
       activeScale[Math.min(activeScale.length - 1, idx + harmonyOffset)]
     const mirrorNote = activeScale[(idx + 4) % activeScale.length]
@@ -397,9 +359,6 @@ const SONIFICATION_STRATEGIES = {
   },
 }
 
-/**
- * Narración por síntesis de voz para discos de rareza Legendaria
- */
 function speakLegendaryMetadata(disc) {
   if (!disc || disc.rarity !== 'legendario') return
   if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
@@ -407,7 +366,7 @@ function speakLegendaryMetadata(disc) {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(
       disc.narration ||
-        `Archivo Legendario de la NASA: ${disc.title}. Instrumento ${disc.instrument}.`
+        `Archivo NASA: ${disc.title}. Instrumento ${disc.instrument}.`
     )
     utterance.lang = 'es-ES'
     utterance.rate = 1.02
@@ -418,41 +377,116 @@ function speakLegendaryMetadata(disc) {
   }
 }
 
+function notifyFrameListeners() {
+  const total = frameBuffers.length || 1
+  frameListeners.forEach((cb) => {
+    cb({
+      frameIndex: currentFrameIndex,
+      frameCount: total,
+    })
+  })
+}
+
 export function useSonifier() {
   /**
-   * Carga un disco NASA en el canvas oculto ({ willReadFrequently: true })
-   * y extrae su arreglo de píxeles fuera de la reactividad de Vue.
+   * Precarga todos los fotogramas de un disco (Opción B: secuencia de pocos fotogramas
+   * o imagen directa de 1 fotograma) en buffers Uint8ClampedArray fuera de Vue reactivity.
    */
-  function loadDisc(disc) {
+  async function loadDisc(disc) {
     if (!disc) return
     const ctx = ensureHiddenCanvas()
-    activeMode.value = disc.category || 'grafica'
-    activeRarity.value = disc.rarity || 'comun'
-    scanX = 0
+    activeMode.value = disc.category || 'huracan'
+    activeRarity.value = disc.rarity || 'epico'
+    currentFrameIntervalMs = disc.frameIntervalMs || 1900
 
-    if (ctx && hiddenCanvas) {
-      renderNasaDatasetToCanvas(hiddenCanvas, disc)
-      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight)
-      pixelBuffer = imageData.data
+    const isSameDisc = loadedDiscId === disc.id && frameBuffers.length > 0
+    if (isSameDisc) {
+      notifyFrameListeners()
+      return
+    }
+
+    loadedDiscId = disc.id
+    const myGen = ++loadGeneration
+    scanX = 0
+    currentFrameIndex = 0
+    frameBuffers = []
+    pixelBuffer = null
+
+    const sources =
+      Array.isArray(disc.frames) && disc.frames.length > 0
+        ? disc.frames
+        : disc.imageUrl
+          ? [disc.imageUrl]
+          : []
+
+    if (!ctx || !hiddenCanvas || sources.length === 0) {
+      notifyFrameListeners()
+      return
+    }
+
+    // Cargar primer fotograma de inmediato para arrancar la sonificación sin espera
+    const firstImg = await loadImageElement(sources[0])
+    if (myGen !== loadGeneration) return
+    if (firstImg) {
+      ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+      ctx.drawImage(firstImg, 0, 0, canvasWidth, canvasHeight)
+      try {
+        const firstData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
+        frameBuffers[0] = firstData
+        pixelBuffer = firstData
+      } catch {
+        // Canvas contaminado por CORS si se usó URL externa sin permiso
+      }
+    }
+    notifyFrameListeners()
+
+    // Decodificar el resto de fotogramas en segundo plano para Opción B
+    for (let i = 1; i < sources.length; i++) {
+      const img = await loadImageElement(sources[i])
+      if (myGen !== loadGeneration) return
+      if (img) {
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
+        try {
+          frameBuffers[i] = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
+        } catch {
+          // Ignorar fotograma si falla lectura
+        }
+      }
+    }
+    notifyFrameListeners()
+  }
+
+  function setFrameIndex(idx) {
+    if (frameBuffers.length === 0) return
+    const safeIdx = ((idx % frameBuffers.length) + frameBuffers.length) % frameBuffers.length
+    currentFrameIndex = safeIdx
+    if (frameBuffers[safeIdx]) {
+      pixelBuffer = frameBuffers[safeIdx]
+    }
+    notifyFrameListeners()
+  }
+
+  function setMode(mode) {
+    if (SONIFICATION_STRATEGIES[mode]) {
+      activeMode.value = mode
     }
   }
 
-  /**
-   * Ejecuta un paso de escaneo en la columna actual scanX y avanza el láser.
-   */
   function stepScan() {
     if (!pixelBuffer) return null
     const strategy =
-      SONIFICATION_STRATEGIES[activeMode.value] || SONIFICATION_STRATEGIES.grafica
+      SONIFICATION_STRATEGIES[activeMode.value] || SONIFICATION_STRATEGIES.huracan
     const telemetry = strategy(scanX, activeRarity.value)
     const normalizedX = scanX / Math.max(1, canvasWidth - 1)
 
-    // Notificar a suscriptores DOM (ej. línea láser en NasaPlayer.vue) sin usar refs reactivos
     scanListeners.forEach((listener) => {
       listener({
         scanX,
         canvasWidth,
         normalizedX,
+        frameIndex: currentFrameIndex,
+        frameCount: frameBuffers.length || 1,
         telemetry,
       })
     })
@@ -463,7 +497,7 @@ export function useSonifier() {
 
   async function start(disc = null) {
     if (disc) {
-      loadDisc(disc)
+      await loadDisc(disc)
       if (disc.rarity === 'legendario') {
         speakLegendaryMetadata(disc)
       }
@@ -477,7 +511,6 @@ export function useSonifier() {
       if (!isRunning.value) return
       const result = stepScan()
 
-      // En modo 'huracan', el ritmo se acelera dinámicamente con el calor de la columna
       let intervalMs = 95
       if (activeMode.value === 'huracan' && result && typeof result.warmRatio === 'number') {
         intervalMs = Math.max(48, Math.floor(125 - result.warmRatio * 68))
@@ -487,6 +520,14 @@ export function useSonifier() {
     }
 
     runLoop()
+
+    // Avance automático de fotogramas para discos Opción B (> 1 fotograma)
+    if (frameBuffers.length > 1 || (disc?.frames && disc.frames.length > 1)) {
+      frameTimerId = setInterval(() => {
+        if (!isRunning.value || frameBuffers.length <= 1) return
+        setFrameIndex(currentFrameIndex + 1)
+      }, currentFrameIntervalMs)
+    }
   }
 
   function stop() {
@@ -494,6 +535,10 @@ export function useSonifier() {
     if (scanTimerId) {
       clearTimeout(scanTimerId)
       scanTimerId = null
+    }
+    if (frameTimerId) {
+      clearInterval(frameTimerId)
+      frameTimerId = null
     }
   }
 
@@ -505,9 +550,21 @@ export function useSonifier() {
     return scanX
   }
 
+  function getFrameState() {
+    return {
+      frameIndex: currentFrameIndex,
+      frameCount: frameBuffers.length || 1,
+    }
+  }
+
   function onScanStep(callback) {
     scanListeners.add(callback)
     return () => scanListeners.delete(callback)
+  }
+
+  function onFrameChange(callback) {
+    frameListeners.add(callback)
+    return () => frameListeners.delete(callback)
   }
 
   return {
@@ -519,7 +576,11 @@ export function useSonifier() {
     stop,
     stepScan,
     setScanPosition,
+    setFrameIndex,
+    setMode,
     getScanX,
+    getFrameState,
     onScanStep,
+    onFrameChange,
   }
 }

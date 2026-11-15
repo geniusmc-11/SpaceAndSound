@@ -354,15 +354,15 @@ function defeatEnemyEntity(enemy) {
   }
   triggerDeathExplosionGif(enemy.sprite.position.clone())
 
-  // Generar el disco cerca del jugador o en la posición del enemigo derrotado
+  // Generar el disco en la posición del enemigo derrotado para verlo flotar en 3D
   const dropPos = {
-    x: gameStore.playerGrid.x,
-    z: gameStore.playerGrid.z,
+    x: enemy.gridX,
+    z: enemy.gridZ,
   }
   const spawnedDisc = gameStore.registerEnemyKill(dropPos)
   syncDiscMeshesWithStore()
 
-  // Si el disco cae en la casilla del jugador, recogerlo o permitir recolección inmediata
+  // Recoger automáticamente si el jugador ya está junto al disco
   if (spawnedDisc) {
     checkAutoCollectNearbyDiscs()
   }

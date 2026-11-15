@@ -1,6 +1,10 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { NASA_CATEGORIES, RARITY_CONFIG, NASA_CATALOG } from '@/game/NasaDatasetGenerator'
+import {
+  NASA_CATEGORIES,
+  RARITY_CONFIG,
+  CURATED_NASA_DISCS,
+} from '@/game/NasaDatasetGenerator'
 
 // Constantes configurables del sistema de juego y loot
 export const KILLS_PER_DROP = 2
@@ -10,15 +14,8 @@ export const SHOOT_COST = 1
 export const DASH_COST = 3
 export const DASH_DISTANCE = 2
 
-export { NASA_CATEGORIES, RARITY_CONFIG }
+export { NASA_CATEGORIES, RARITY_CONFIG, CURATED_NASA_DISCS }
 
-/**
- * Selección determinista/ponderada de rareza:
- * - comun: 50% (0.00 - 0.50)
- * - raro: 30% (0.50 - 0.80)
- * - epico: 15% (0.80 - 0.95)
- * - legendario: 5% (0.95 - 1.00)
- */
 export function rollDiscRarity(rand = Math.random()) {
   if (rand < 0.5) return 'comun'
   if (rand < 0.8) return 'raro'
@@ -44,17 +41,17 @@ export const useGameStore = defineStore('game', () => {
     yaw: 0, // Radianes (0 mira hacia -Z)
   })
 
-  // --- Progreso de Combate y Loot ---
+  // --- Progreso de Combate y Catálogo Curado (Sin generación aleatoria) ---
   const kills = ref(0)
   const killsSinceLastDrop = ref(0)
+  const catalogDiscs = ref(CURATED_NASA_DISCS.map((d) => ({ ...d })))
   const pendingDrops = ref([]) // Discos holográficos 3D activos en la escena
-  const collectedDiscs = ref([]) // Bóveda de discos recolectados
+  const collectedDiscs = ref([]) // Bóveda de discos recolectados o añadidos
 
   // --- Navegación y Layout Horizontal (Eje X) ---
-  // Bloqueado inicialmente: solo se muestra la sección central (índice 1)
   const layoutUnlocked = ref(false)
   const activeSection = ref(1) // 0: Bóveda (Izq), 1: Juego 3D (Centro), 2: Reproductor NASA (Der)
-  const navMode = ref(false) // Permite alternar foco de teclado A/D para el carrusel
+  const navMode = ref(false)
 
   // --- Reproductor y Mini-Player Flotante ---
   const currentDisc = ref(null)
@@ -67,7 +64,9 @@ export const useGameStore = defineStore('game', () => {
   const trappingEnemyId = ref(null)
 
   // --- Mensajes de Telemetría HUD ---
-  const statusMessage = ref('SISTEMA EN LÍNEA // RECOGE TU PRIMER DISCO NASA PARA DESBLOQUEAR LA NAVE')
+  const statusMessage = ref(
+    'SISTEMA EN LÍNEA // DERROTA 2 ENEMIGOS PARA OBTENER NASA SVS #5153'
+  )
 
   // --- Getters ---
   const canShoot = computed(
@@ -92,7 +91,6 @@ export const useGameStore = defineStore('game', () => {
 
   /**
    * Dash (Esquivar): Desplaza 2 bloques hacia atrás instantáneamente y consume 3 cuadritos de energía.
-   * @param {Function} [isCellWalkable] Callback opcional (x, z) => boolean para validar colisiones del mapa
    */
   function dash(isCellWalkable) {
     if (energy.value < DASH_COST || isGameOver.value || qteActive.value) {
@@ -102,7 +100,6 @@ export const useGameStore = defineStore('game', () => {
 
     energy.value = Math.max(0, energy.value - DASH_COST)
 
-    // Vector hacia atrás respecto a la dirección actual de la cámara
     const backX = -Math.round(-Math.sin(playerGrid.value.yaw))
     const backZ = -Math.round(-Math.cos(playerGrid.value.yaw))
     const stepX = backX !== 0 ? backX : -playerGrid.value.dirX
@@ -159,7 +156,6 @@ export const useGameStore = defineStore('game', () => {
     if (isGameOver.value || qteActive.value) return playerGrid.value.yaw
     const nextYaw = playerGrid.value.yaw + deltaYaw
     playerGrid.value.yaw = nextYaw
-    // Actualizar vector discreto de grilla según orientación de la cámara
     const dx = -Math.sin(nextYaw)
     const dz = -Math.cos(nextYaw)
     if (Math.abs(dx) > Math.abs(dz)) {
@@ -177,7 +173,6 @@ export const useGameStore = defineStore('game', () => {
 
     const fwdX = playerGrid.value.dirX
     const fwdZ = playerGrid.value.dirZ
-    // Vector lateral derecho: (-fwdZ, fwdX)
     const rightX = -fwdZ
     const rightZ = fwdX
 
@@ -198,26 +193,26 @@ export const useGameStore = defineStore('game', () => {
     playerGrid.value.z = z
   }
 
-  // --- Generación y Recolección de Discos NASA ---
-  function generateDiscDrop(position = { x: 0, z: -2 }, rng = Math.random) {
-    const categoryIndex = Math.floor(rng() * NASA_CATEGORIES.length)
-    const category = NASA_CATEGORIES[categoryIndex] || 'espacial'
-    const rarity = rollDiscRarity(rng())
-    const rarityMeta = RARITY_CONFIG[rarity]
-    const catalogPool = NASA_CATALOG[category] || NASA_CATALOG.espacial
-    const template = catalogPool[Math.floor(rng() * catalogPool.length)]
+  // --- Catálogo Curado y Recolección de Discos NASA (Sin generación aleatoria) ---
+  function spawnCatalogDiscDrop(position = { x: 0, z: -2 }) {
+    // Buscar un disco curado que aún no esté pendiente ni en la bóveda
+    const nextDisc = catalogDiscs.value.find(
+      (candidate) =>
+        !pendingDrops.value.some((p) => p.id === candidate.id) &&
+        !collectedDiscs.value.some((c) => c.id === candidate.id)
+    )
 
-    const disc = {
-      id: `nasa-disc-${Date.now()}-${Math.floor(rng() * 100000)}`,
-      title: template.title,
-      instrument: template.instrument,
-      date: template.date,
-      narration: `${template.narration} Rareza ${rarityMeta.label}.`,
-      category,
-      rarity,
+    if (!nextDisc) {
+      statusMessage.value =
+        'CATÁLOGO NASA COMPLETADO // AÑADE VIDEOS O IMÁGENES EN LA BÓVEDA (◄ A)'
+      return null
+    }
+
+    const rarityMeta = RARITY_CONFIG[nextDisc.rarity] || RARITY_CONFIG.epico
+    const droppedDisc = {
+      ...nextDisc,
       colorHex: rarityMeta.hex,
       threeColor: rarityMeta.threeColor,
-      seed: Math.floor(rng() * 900) + 100,
       position: {
         x: position?.x ?? playerGrid.value.x,
         y: 0.45,
@@ -226,35 +221,32 @@ export const useGameStore = defineStore('game', () => {
       collectedAt: null,
     }
 
-    pendingDrops.value.push(disc)
-    statusMessage.value = `¡DROP HOLOGRÁFICO GENERADO! [${category.toUpperCase()} // ${rarityMeta.label.toUpperCase()}]`
-    return disc
+    pendingDrops.value.push(droppedDisc)
+    statusMessage.value = `¡DISCO NASA DESPLEGADO! ${droppedDisc.title.toUpperCase()}`
+    return droppedDisc
   }
 
   /**
-   * Registra la baja de un enemigo y verifica la regla KILLS_PER_DROP (por defecto cada 2 bajas).
+   * Registra la baja de un enemigo y verifica la regla KILLS_PER_DROP (cada 2 bajas).
+   * Ya NO genera discos procedurales aleatorios; entrega únicamente el catálogo configurado (SVS #5153).
    */
-  function registerEnemyKill(position = null, rng = Math.random) {
+  function registerEnemyKill(position = null) {
     kills.value += 1
     killsSinceLastDrop.value += 1
 
     if (killsSinceLastDrop.value >= KILLS_PER_DROP) {
       killsSinceLastDrop.value = 0
-      return generateDiscDrop(
-        position || { x: playerGrid.value.x, z: playerGrid.value.z },
-        rng
+      return spawnCatalogDiscDrop(
+        position || { x: playerGrid.value.x, z: playerGrid.value.z }
       )
     }
 
-    statusMessage.value = `ENEMIGO ELIMINADO (${killsSinceLastDrop.value}/${KILLS_PER_DROP} PARA DROP DE DISCO NASA)`
+    statusMessage.value = `ENEMIGO ELIMINADO (${killsSinceLastDrop.value}/${KILLS_PER_DROP} PARA DISCO NASA SVS #5153)`
     return null
   }
 
   /**
-   * Recoge un disco holográfico 3D:
-   * - Lo añade a collectedDiscs
-   * - Si es el PRIMER disco, desbloquea dinámicamente el layout horizontal (layoutUnlocked = true)
-   * - Activa el Mini-Player flotante con el disco recogido
+   * Recoge un disco holográfico 3D de la escena.
    */
   function collectDisc(discOrId) {
     let disc = null
@@ -278,7 +270,6 @@ export const useGameStore = defineStore('game', () => {
       collectedDiscs.value.unshift(disc)
     }
 
-    // Desbloqueo dinámico del carrusel al recoger el primer disco
     const wasLocked = !layoutUnlocked.value
     if (wasLocked) {
       layoutUnlocked.value = true
@@ -287,10 +278,50 @@ export const useGameStore = defineStore('game', () => {
     currentDisc.value = disc
     isPlayingAudio.value = true
     statusMessage.value = wasLocked
-      ? `¡PRIMER DISCO RECOLECTADO! BÓVEDA (◄ A) Y REPRODUCTOR NASA (D ►) DESBLOQUEADOS`
-      : `DISCO CARGADO: ${disc.title.toUpperCase()} (${disc.rarity.toUpperCase()})`
+      ? `¡DISCO NASA SVS #5153 RECOLECTADO! BÓVEDA (◄ A) Y REPRODUCTOR (D ►) DESBLOQUEADOS`
+      : `DISCO CARGADO: ${disc.title.toUpperCase()}`
 
     return disc
+  }
+
+  /**
+   * Añade un disco personalizado (Video convertido a fotogramas Opción B o Imagen directa)
+   * directamente a la Bóveda y desbloquea la navegación si estaba bloqueada.
+   */
+  function addCustomDisc(disc, openInPlayer = true) {
+    if (!disc) return null
+    const rarityMeta = RARITY_CONFIG[disc.rarity] || RARITY_CONFIG.raro
+    const normalized = {
+      ...disc,
+      colorHex: disc.colorHex || rarityMeta.hex,
+      threeColor: disc.threeColor || rarityMeta.threeColor,
+      collectedAt: disc.collectedAt || new Date().toISOString(),
+    }
+
+    if (!collectedDiscs.value.some((d) => d.id === normalized.id)) {
+      collectedDiscs.value.unshift(normalized)
+    }
+
+    if (!layoutUnlocked.value) {
+      layoutUnlocked.value = true
+    }
+
+    if (openInPlayer) {
+      currentDisc.value = normalized
+      isPlayingAudio.value = true
+    }
+
+    statusMessage.value = `NUEVO DISCO AÑADIDO: ${normalized.title.toUpperCase()}`
+    return normalized
+  }
+
+  function setDiscCategory(discId, category) {
+    if (!NASA_CATEGORIES.includes(category)) return
+    const target = collectedDiscs.value.find((d) => d.id === discId)
+    if (target) target.category = category
+    if (currentDisc.value?.id === discId) {
+      currentDisc.value = { ...currentDisc.value, category }
+    }
   }
 
   function selectDiscForPlayer(disc) {
@@ -313,7 +344,8 @@ export const useGameStore = defineStore('game', () => {
     qteProgress.value = 0
     qteTarget.value = requiredPresses
     trappingEnemyId.value = enemyId
-    statusMessage.value = '¡ATRAPADO POR ACECHADOR DE TECHO! PRESIONA RÁPIDO [ESPACIO] PARA LIBERARTE'
+    statusMessage.value =
+      '¡ATRAPADO POR ACECHADOR DE TECHO! PRESIONA RÁPIDO [ESPACIO] PARA LIBERARTE'
   }
 
   function pressSpaceQTE(enemyPosition = null) {
@@ -370,6 +402,7 @@ export const useGameStore = defineStore('game', () => {
     playerGrid,
     kills,
     killsSinceLastDrop,
+    catalogDiscs,
     pendingDrops,
     collectedDiscs,
     layoutUnlocked,
@@ -394,9 +427,11 @@ export const useGameStore = defineStore('game', () => {
     rotateCamera,
     movePlayer,
     setPlayerGridPosition,
-    generateDiscDrop,
+    spawnCatalogDiscDrop,
     registerEnemyKill,
     collectDisc,
+    addCustomDisc,
+    setDiscCategory,
     selectDiscForPlayer,
     toggleAudioPlayback,
     startStalkerQTE,

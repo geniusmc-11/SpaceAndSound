@@ -1,7 +1,14 @@
 /**
- * Generador de Metadatos y Visualizaciones Procedurales de la NASA
+ * Catálogo Real de la NASA y Renderizador de Fotogramas (Opción B + Imágenes Directas)
  * Categoría NASA Space Apps: "The Earth Information Jukebox"
  * Lenguaje: JavaScript puro (ES6+)
+ *
+ * NOTA TÉCNICA (SVS #5153):
+ * Obtenido mediante la API oficial de NASA SVS (https://svs.gsfc.nasa.gov/api/5153).
+ * Dado que el servidor de SVS restringe CORS (access-control-allow-origin) a su propio dominio
+ * autorizado, el video oficial de 31s (MC03_stage4_GMAO_CO_2048x1024_en.mp4) fue extraído en
+ * 16 fotogramas locales (/public/nasa/svs-5153/frame_01.jpg .. frame_16.jpg) para permitir
+ * la lectura directa de píxeles con ctx.getImageData() sin bloqueo CORS.
  */
 
 export const NASA_CATEGORIES = ['espacial', 'maritimo', 'grafica', 'huracan']
@@ -49,215 +56,110 @@ export const RARITY_CONFIG = {
   },
 }
 
-export const NASA_CATALOG = {
-  espacial: [
-    {
-      title: 'JWST Carina Nebula IR-UV',
-      instrument: 'NIRCam / MIRI Deep Field',
-      date: '2025-07-12',
-      narration:
-        'Archivo NASA JWST: Pilares de gas infrarrojo y cúmulos estelares ultravioleta en la Nebulosa de Carina.',
-    },
-    {
-      title: 'Hubble Vela Supernova Remnant',
-      instrument: 'WFC3 Spectral Imager',
-      date: '2024-11-03',
-      narration:
-        'Archivo NASA Hubble: Filamentos de choque ionizados y estrellas de neutrones de alta energía.',
-    },
-  ],
-  maritimo: [
-    {
-      title: 'SWOT Global Sea Surface Height',
-      instrument: 'KaRIn Radar Interferometer',
-      date: '2026-02-19',
-      narration:
-        'Archivo NASA SWOT: Anomalías del nivel del mar y corrientes abisales del Atlántico Norte.',
-    },
-    {
-      title: 'PACE Ocean Chlorophyll & Tide',
-      instrument: 'OCI Hyperspectral Radiometer',
-      date: '2025-09-28',
-      narration:
-        'Archivo NASA PACE: Elevación oceánica costera comparada con la línea base histórica global.',
-    },
-  ],
-  grafica: [
-    {
-      title: 'GISS Global Temp Anomaly Series',
-      instrument: 'GISTEMP v4 Telemetry',
-      date: '2026-01-15',
-      narration:
-        'Archivo NASA GISS: Serie temporal de anomalías térmicas globales y radiación solar.',
-    },
-    {
-      title: 'OCO-3 Atmospheric CO2 Curve',
-      instrument: 'ISS Spectrophotometer',
-      date: '2025-12-01',
-      narration:
-        'Archivo NASA OCO-3: Curva espectral de concentración de dióxido de carbono troposférico.',
-    },
-  ],
-  huracan: [
-    {
-      title: 'GOES-18 Hurricane Milton Thermal Eye',
-      instrument: 'ABI Band 13 Clean IR',
-      date: '2024-10-08',
-      narration:
-        'Archivo NASA GOES: Mapa de calor infrarrojo del vórtice ciclónico y bandas convectivas extremas.',
-    },
-    {
-      title: 'TROPICS Cyclone Rapid Intensification',
-      instrument: 'CubeSat Microwave Radiometer',
-      date: '2025-08-22',
-      narration:
-        'Archivo NASA TROPICS: Distribución térmica de núcleo cálido frente a frentes fríos periféricos.',
-    },
-  ],
+const SVS_5153_FRAMES = Array.from({ length: 16 }, (_, idx) => {
+  const num = String(idx + 1).padStart(2, '0')
+  return `/nasa/svs-5153/frame_${num}.jpg`
+})
+
+/**
+ * Catálogo curado de discos NASA (Sin generación aleatoria/procedural).
+ * Contiene únicamente NASA SVS #5153 como disco oficial inicial.
+ */
+export const CURATED_NASA_DISCS = [
+  {
+    id: 'nasa-svs-5153',
+    svsId: 5153,
+    svsUrl: 'https://svs.gsfc.nasa.gov/5153/',
+    svsApiUrl: 'https://svs.gsfc.nasa.gov/api/5153',
+    sourceVideoUrl:
+      'https://svs.gsfc.nasa.gov/vis/a000000/a005100/a005153/MC03_stage4_GMAO_CO_2048x1024_en.mp4',
+    sourceMethod: 'api-frames',
+    mediaType: 'frames',
+    title: 'NASA SVS #5153: Carbon Monoxide (CO)',
+    instrument: 'NASA GEOS-CF Model (GMAO)',
+    date: '2023-09-26',
+    narration:
+      'Visualización científica NASA SVS 5153: Concentración global de monóxido de carbono cerca de la superficie estimada por el modelo GEOS-CF.',
+    category: 'huracan',
+    rarity: 'epico',
+    durationSec: 31,
+    frameIntervalMs: 1900,
+    frames: SVS_5153_FRAMES,
+    imageUrl: SVS_5153_FRAMES[0],
+  },
+]
+
+// Caché de imágenes decodificadas fuera de la reactividad de Vue
+const loadedImageCache = new Map()
+
+/**
+ * Carga una imagen (URL local o DataURL) con soporte CORS anónimo cuando es externa.
+ */
+export function loadImageElement(src) {
+  if (!src || typeof Image === 'undefined') {
+    return Promise.resolve(null)
+  }
+
+  const cached = loadedImageCache.get(src)
+  if (cached && cached.complete && cached.naturalWidth > 0) {
+    return Promise.resolve(cached)
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image()
+    if (/^https?:\/\//i.test(src)) {
+      img.crossOrigin = 'anonymous'
+    }
+    img.onload = () => {
+      loadedImageCache.set(src, img)
+      resolve(img)
+    }
+    img.onerror = () => {
+      resolve(null)
+    }
+    img.src = src
+  })
 }
 
 /**
- * Dibuja en un <canvas> 2D el dataset científico de la NASA según la categoría y semilla del disco.
- * Cumple exactamente con los umbrales RGB que lee useSonifier.js:
- * - grafica: curva brillante en Y de izquierda a derecha.
- * - maritimo: línea guía blanca (R,G,B > 225) + masa de agua azul/cian que sube y baja.
- * - espacial: estrellas ultra brillantes (R+G+B > 690) + nubes difusas rojas (IR) y azules (UV).
- * - huracan: columnas con proporción variable de píxeles cálidos (rojos/naranjas) vs. fríos (azules).
+ * Dibuja el fotograma indicado de un disco (secuencia Opción B o imagen directa)
+ * en un <canvas> 2D.
  */
-export function renderNasaDatasetToCanvas(canvas, disc) {
-  if (!canvas || !disc) return
+export async function renderDiscFrameToCanvas(canvas, disc, frameIndex = 0) {
+  if (!canvas || !disc) return false
   const ctx = canvas.getContext('2d', { willReadFrequently: true })
-  if (!ctx) return
+  if (!ctx) return false
 
   const width = canvas.width || 256
   const height = canvas.height || 128
-  const seed = Number(disc.seed || 42)
-  const category = disc.category || 'grafica'
 
-  // Fondo oscuro profundo
-  ctx.fillStyle = '#04070f'
-  ctx.fillRect(0, 0, width, height)
+  const framesList =
+    Array.isArray(disc.frames) && disc.frames.length > 0
+      ? disc.frames
+      : disc.imageUrl
+        ? [disc.imageUrl]
+        : []
 
-  // Rejilla sutil de fondo
-  ctx.strokeStyle = 'rgba(30, 58, 95, 0.22)'
-  ctx.lineWidth = 1
-  for (let gx = 0; gx < width; gx += 32) {
-    ctx.beginPath()
-    ctx.moveTo(gx, 0)
-    ctx.lineTo(gx, height)
-    ctx.stroke()
-  }
-  for (let gy = 0; gy < height; gy += 32) {
-    ctx.beginPath()
-    ctx.moveTo(0, gy)
-    ctx.lineTo(width, gy)
-    ctx.stroke()
+  if (framesList.length === 0) {
+    ctx.fillStyle = '#04070f'
+    ctx.fillRect(0, 0, width, height)
+    return false
   }
 
-  if (category === 'grafica') {
-    // Serie de tiempo brillante cuantizable en eje Y
-    for (let x = 0; x < width; x++) {
-      const t = x / width
-      const wave1 = Math.sin(t * Math.PI * 4 + seed) * 0.28
-      const wave2 = Math.cos(t * Math.PI * 9 - seed * 0.5) * 0.14
-      const trend = (t - 0.5) * 0.25
-      const normY = Math.max(0.1, Math.min(0.9, 0.5 - (wave1 + wave2 + trend)))
-      const y = Math.floor(normY * (height - 1))
+  const safeIdx = Math.max(0, Math.min(framesList.length - 1, frameIndex))
+  const src = framesList[safeIdx]
+  const img = await loadImageElement(src)
 
-      // Estela inferior suave
-      ctx.fillStyle = 'rgba(16, 185, 129, 0.18)'
-      ctx.fillRect(x, y, 1, height - y)
-
-      // Píxel brillante principal (alta luminancia para lectura de pitch en eje Y)
-      ctx.fillStyle = 'rgb(245, 255, 180)'
-      ctx.fillRect(x, Math.max(0, y - 1), 1, 3)
-    }
-  } else if (category === 'maritimo') {
-    // Síntesis dual: Línea guía blanca (R,G,B > 225) + área azul/cian
-    for (let x = 0; x < width; x++) {
-      const t = x / width
-      // Línea guía blanca de referencia (oscila suavemente en la mitad del canvas)
-      const whiteY = Math.floor(
-        height * 0.52 + Math.sin(t * Math.PI * 2 + seed) * (height * 0.1)
-      )
-
-      // Nivel del mar azul/cian (a veces supera la línea blanca: seaY < whiteY)
-      const tideOffset =
-        Math.sin(t * Math.PI * 5 + seed * 1.3) * (height * 0.24) +
-        Math.cos(t * Math.PI * 11) * (height * 0.08)
-      const seaY = Math.max(8, Math.min(height - 8, Math.floor(height * 0.5 - tideOffset)))
-
-      // Rellenar columna de agua azul/cian desde seaY hasta el fondo
-      for (let y = seaY; y < height; y++) {
-        const isAboveGuide = y < whiteY
-        ctx.fillStyle = isAboveGuide ? 'rgb(30, 220, 255)' : 'rgb(15, 135, 215)'
-        ctx.fillRect(x, y, 1, 1)
-      }
-
-      // Dibujar la línea guía blanca encima (R,G,B > 225 garantizado: 250, 252, 255)
-      ctx.fillStyle = 'rgb(250, 252, 255)'
-      ctx.fillRect(x, Math.max(0, whiteY - 1), 1, 2)
-    }
-  } else if (category === 'espacial') {
-    // Nubes difusas rojas (IR) y azules (UV) + estrellas ultra brillantes (R+G+B > 690)
-    for (let x = 0; x < width; x++) {
-      const t = x / width
-      const redCloudCenter = height * (0.62 + 0.2 * Math.sin(t * Math.PI * 3 + seed))
-      const blueCloudCenter = height * (0.35 + 0.2 * Math.cos(t * Math.PI * 4 - seed))
-
-      for (let y = 0; y < height; y += 2) {
-        const distRed = Math.abs(y - redCloudCenter)
-        const distBlue = Math.abs(y - blueCloudCenter)
-
-        if (distRed < 24) {
-          const intensity = Math.floor(195 * (1 - distRed / 24))
-          ctx.fillStyle = `rgb(${intensity}, ${Math.floor(intensity * 0.28)}, ${Math.floor(intensity * 0.2)})`
-          ctx.fillRect(x, y, 1, 2)
-        } else if (distBlue < 22) {
-          const intensity = Math.floor(200 * (1 - distBlue / 22))
-          ctx.fillStyle = `rgb(${Math.floor(intensity * 0.22)}, ${Math.floor(intensity * 0.55)}, ${intensity})`
-          ctx.fillRect(x, y, 1, 2)
-        }
-      }
-    }
-
-    // Estrellas ultra brillantes (R+G+B > 690, ej. 250+250+245 = 745)
-    const starCount = 38
-    for (let i = 0; i < starCount; i++) {
-      const sx = Math.floor(((i * 73 + seed * 19) % (width - 6)) + 3)
-      const sy = Math.floor(((i * 41 + seed * 31) % (height - 6)) + 3)
-      ctx.fillStyle = 'rgb(252, 250, 245)'
-      ctx.fillRect(sx, sy, 2, 2)
-    }
-  } else if (category === 'huracan') {
-    // Mapa de calor: proporción de píxeles cálidos vs. fríos por columna
-    const centerX = width * 0.5 + Math.sin(seed) * (width * 0.12)
-    const centerY = height * 0.5
-
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y += 2) {
-        const dx = (x - centerX) / (width * 0.45)
-        const dy = (y - centerY) / (height * 0.45)
-        const radius = Math.sqrt(dx * dx + dy * dy)
-        const angle = Math.atan2(dy, dx)
-        const spiral = Math.sin(radius * 10 - angle * 3 + seed)
-
-        if (radius < 0.14) {
-          // Ojo del huracán (frío/calmo)
-          ctx.fillStyle = 'rgb(25, 165, 235)'
-        } else if (radius < 0.58 && spiral > -0.25) {
-          // Pared del ojo y bandas convectivas cálidas (R alto, B bajo)
-          const heat = Math.min(255, Math.floor(200 + spiral * 55))
-          ctx.fillStyle = `rgb(${heat}, ${Math.floor(heat * 0.42)}, 25)`
-        } else if (spiral > 0.35) {
-          // Bandas templadas/cálidas secundarias
-          ctx.fillStyle = 'rgb(225, 120, 35)'
-        } else {
-          // Masa periférica fría (azul/violeta)
-          ctx.fillStyle = 'rgb(30, 110, 220)'
-        }
-        ctx.fillRect(x, y, 1, 2)
-      }
-    }
+  if (!img) {
+    ctx.fillStyle = '#04070f'
+    ctx.fillRect(0, 0, width, height)
+    return false
   }
+
+  ctx.clearRect(0, 0, width, height)
+  ctx.drawImage(img, 0, 0, width, height)
+  return true
 }
+
+// Alias retrocompatible
+export const renderNasaDatasetToCanvas = renderDiscFrameToCanvas

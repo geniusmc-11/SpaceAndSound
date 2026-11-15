@@ -1,26 +1,27 @@
 <script setup>
-import { watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 import { useGameStore, RARITY_CONFIG } from '@/stores/useGameStore'
-import { renderNasaDatasetToCanvas } from '@/game/NasaDatasetGenerator'
+import { renderDiscFrameToCanvas } from '@/game/NasaDatasetGenerator'
 import { useSonifier } from '@/composables/useSonifier'
+import MediaUploaderModal from '@/components/MediaUploaderModal.vue'
 
 const emit = defineEmits(['navigate-to-player', 'navigate-to-game'])
 const gameStore = useGameStore()
 const sonifier = useSonifier()
 
-// Mapa de referencias a los <canvas> miniatura de cada tarjeta
+const showUploader = ref(false)
 const canvasRefs = new Map()
 
 function setThumbnailCanvas(el, disc) {
   if (el && disc) {
     canvasRefs.set(disc.id, { el, disc })
-    renderNasaDatasetToCanvas(el, disc)
+    renderDiscFrameToCanvas(el, disc, 0)
   }
 }
 
 function redrawAllThumbnails() {
   canvasRefs.forEach(({ el, disc }) => {
-    renderNasaDatasetToCanvas(el, disc)
+    renderDiscFrameToCanvas(el, disc, 0)
   })
 }
 
@@ -40,6 +41,15 @@ function handleSelectDisc(disc) {
   gameStore.selectDiscForPlayer(disc)
   sonifier.start(disc)
   emit('navigate-to-player', disc)
+}
+
+function handleMediaAdded(disc) {
+  showUploader.value = false
+  if (disc) {
+    gameStore.selectDiscForPlayer(disc)
+    sonifier.start(disc)
+    emit('navigate-to-player', disc)
+  }
 }
 
 function getRarityMeta(rarity) {
@@ -63,14 +73,23 @@ function getRarityMeta(rarity) {
           </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
-          BÓVEDA DE DISCOS HOLOGRÁFICOS NASA
+          BÓVEDA DE DISCOS NASA &amp; MULTIMEDIA
         </h1>
         <p class="text-xs text-slate-400">
-          Haz clic en cualquier disco para cargarlo en el Motor de Sonificación y abrir el Reproductor NASA (Sección Derecha ►).
+          Haz clic en un disco para sonificarlo o añade nuevos videos (convertidos a fotogramas Opción B) e imágenes directas.
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          data-testid="open-media-uploader-btn"
+          class="border-2 border-emerald-400 bg-emerald-950 px-3 py-1.5 text-xs font-black uppercase text-emerald-200 shadow-[3px_3px_0px_#000] hover:bg-emerald-800"
+          @click="showUploader = true"
+        >
+          + AÑADIR VIDEO / IMAGEN
+        </button>
+
         <button
           type="button"
           class="border-2 border-sky-400 bg-sky-950 px-3 py-1.5 text-xs font-bold uppercase text-sky-200 shadow-[3px_3px_0px_#000] hover:bg-sky-800"
@@ -81,7 +100,7 @@ function getRarityMeta(rarity) {
       </div>
     </header>
 
-    <!-- Estado vacío (por si se inspecciona antes) -->
+    <!-- Estado vacío -->
     <div
       v-if="gameStore.collectedDiscs.length === 0"
       class="my-auto flex flex-col items-center justify-center border-2 border-dashed border-slate-700 p-10 text-center"
@@ -90,11 +109,11 @@ function getRarityMeta(rarity) {
         AÚN NO HAY DISCOS EN LA BÓVEDA
       </p>
       <p class="mt-1 text-xs text-slate-500">
-        Derrota {{ 2 }} enemigos en la nave para generar un Disco Holográfico 3D.
+        Derrota 2 enemigos en la nave para obtener NASA SVS #5153 o añade un video/imagen manualmente.
       </p>
     </div>
 
-    <!-- Cuadrícula (Grid en Tailwind) con los discos recolectados -->
+    <!-- Cuadrícula de Discos -->
     <div
       v-else
       class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -109,12 +128,11 @@ function getRarityMeta(rarity) {
         ]"
         @click="handleSelectDisc(disc)"
       >
-        <!-- Miniatura Procedural de la NASA en Canvas (32-bit Pixelated) -->
         <div class="relative mb-3 overflow-hidden border border-slate-700 bg-black">
           <canvas
             :ref="(el) => setThumbnailCanvas(el, disc)"
-            width="160"
-            height="84"
+            width="256"
+            height="128"
             class="pixelated h-28 w-full object-cover"
           ></canvas>
 
@@ -130,9 +148,18 @@ function getRarityMeta(rarity) {
           >
             {{ disc.category }}
           </div>
+
+          <div
+            class="absolute right-1.5 bottom-1.5 border border-amber-400/60 bg-black/85 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300"
+          >
+            {{
+              disc.frames && disc.frames.length > 1
+                ? `🎬 ${disc.frames.length} FOTOGRAMAS`
+                : '🖼️ IMAGEN'
+            }}
+          </div>
         </div>
 
-        <!-- Metadatos del Disco -->
         <h2 class="truncate text-sm font-bold text-slate-100 group-hover:text-sky-300">
           {{ disc.title }}
         </h2>
@@ -147,11 +174,21 @@ function getRarityMeta(rarity) {
           <span class="text-[10px] font-bold uppercase text-amber-300">
             ▶ SONIFICAR DATOS
           </span>
-          <span class="text-[10px] text-slate-500">
-            SEED #{{ disc.seed }}
+          <span v-if="disc.svsId" class="text-[10px] text-sky-400">
+            SVS #{{ disc.svsId }}
+          </span>
+          <span v-else class="text-[10px] text-slate-500">
+            {{ disc.durationSec ? `${disc.durationSec}s` : 'CUSTOM' }}
           </span>
         </div>
       </article>
     </div>
+
+    <!-- Modal Importador Video (Opción B) / Imagen Directa -->
+    <MediaUploaderModal
+      v-if="showUploader"
+      @close="showUploader = false"
+      @added="handleMediaAdded"
+    />
   </section>
 </template>
