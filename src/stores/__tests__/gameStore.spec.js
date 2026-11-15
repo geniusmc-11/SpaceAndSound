@@ -19,8 +19,21 @@ import {
   rgbToHsl,
   mapRgbPixelToNormalizedValue,
 } from '@/game/ColorbarMapper'
-import { synthesizeNormalizedMapValue } from '@/composables/useSonifier'
+import {
+  synthesizeNormalizedMapValue,
+  synthesizePlanetarySamples,
+  isBlackPixel,
+} from '@/composables/useSonifier'
 import { EnemyFactory } from '@/game/EnemyFactory'
+import {
+  PLAYER_BULLET_SPEED,
+  ENEMY_BULLET_SPEED,
+  SHIP_FOG_DENSITY,
+  SHIP_CAMERA_FAR,
+  isControlConsoleCell,
+  findBulletHitEnemy,
+  getIntelligentWindowSpecs,
+} from '@/game/SpaceshipEnvironment'
 import App from '@/App.vue'
 import DiscVault from '@/components/DiscVault.vue'
 
@@ -247,5 +260,67 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     const badge = wrapper.find('[data-testid="vault-progress-badge"]')
     expect(badge.exists()).toBe(true)
     expect(badge.text()).toContain('DISCOS: 1 / 20')
+  })
+
+  it('corrige la colisión de balas lentas para no matar al disparar a otro lado, bloquea el punto de control y coloca ventanas inteligentes', () => {
+    expect(PLAYER_BULLET_SPEED).toBeLessThanOrEqual(8)
+    expect(ENEMY_BULLET_SPEED).toBeLessThanOrEqual(5)
+    expect(SHIP_FOG_DENSITY).toBeGreaterThanOrEqual(0.25)
+    expect(SHIP_CAMERA_FAR).toBeLessThanOrEqual(20)
+
+    const shooter = EnemyFactory.createEnemy('shooter', 0, -3)
+    const stalker = EnemyFactory.createEnemy('stalker', -1, -2)
+
+    // Bala disparada lejos de los enemigos no impacta ninguno
+    expect(findBulletHitEnemy({ x: 3.5, y: 0.8, z: -4 }, [shooter, stalker])).toBeNull()
+    // Bala horizontal a altura del pecho no mata al acechador en el techo (y = 2.0)
+    expect(findBulletHitEnemy({ x: -2.0, y: 0.8, z: -4 }, [shooter, stalker])).toBeNull()
+    // Bala directa sobre el francotirador sí impacta
+    expect(findBulletHitEnemy({ x: 0, y: 0.75, z: -6 }, [shooter, stalker])).toBe(shooter)
+
+    // Punto de control de la nave bloqueado como objeto sólido en (0, -6)
+    expect(isControlConsoleCell(0, -6)).toBe(true)
+    const store = useGameStore()
+    store.setPlayerGridPosition(0, -5)
+    const walkedIntoConsole = store.movePlayer(1, 0, (gx, gz) => !isControlConsoleCell(gx, gz))
+    expect(walkedIntoConsole).toBe(false)
+
+    // Ventanas colocadas inteligentemente en casco lateral y flanqueando el puente
+    const windows = getIntelligentWindowSpecs(-4, 4, -8, 2.0)
+    expect(windows.length).toBe(8)
+    expect(windows.some((w) => w.wall === 'north' && w.x === 0)).toBe(false)
+  })
+
+  it('implementa tipo "planetario" silencioso en píxeles negros y genera 2 melodías (principal + theremin)', () => {
+    expect(NASA_CATEGORIES).toContain('planetario')
+    expect(isBlackPixel(0, 0, 0)).toBe(true)
+    expect(isBlackPixel(8, 10, 12)).toBe(true)
+    expect(isBlackPixel(180, 90, 40)).toBe(false)
+
+    // Píxeles negros en modo planetario NO producen sonido ni theremin
+    const blackResult = synthesizePlanetarySamples(
+      [
+        { yNorm: 0.2, r: 0, g: 0, b: 0 },
+        { yNorm: 0.6, r: 5, g: 5, b: 8 },
+      ],
+      'comun'
+    )
+    expect(blackResult.mode).toBe('planetario')
+    expect(blackResult.silent).toBe(true)
+    expect(blackResult.primaryNote).toBe('SILENCIO')
+    expect(blackResult.thereminNote).toBeNull()
+
+    // Píxeles planetarios iluminados generan Melodía 1 + Melodía 2 (bajo tipo Theremin)
+    const litResult = synthesizePlanetarySamples(
+      [
+        { yNorm: 0.2, r: 0, g: 0, b: 0 },
+        { yNorm: 0.75, r: 220, g: 120, b: 40 },
+      ],
+      'comun'
+    )
+    expect(litResult.mode).toBe('planetario')
+    expect(litResult.silent).toBe(false)
+    expect(litResult.primaryNote).not.toBe('SILENCIO')
+    expect(litResult.thereminNote).toBeTruthy()
   })
 })

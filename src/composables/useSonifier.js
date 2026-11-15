@@ -6,7 +6,9 @@
  * - Opción B: Secuencia de fotogramas precargados en Uint8ClampedArray fuera de Vue reactivity.
  * - Modo 'maps': Desacoplado vía ColorbarMapper (RGB -> HSL -> flotante [0.0..1.0]).
  * - Modo 'espacial' 8D: Audio orbital 360° con Tone.Panner3D (HRTF), PingPongDelay y FM Shimmer brillante.
- * - Segundo Sonido de Fondo desde rareza 'raro' en adelante: Cama ambiental 'maritimo' (oleaje LFO) o 'espacial' (drone 8D).
+ * - Modo 'planetario': Sonificación planetaria con silencio estricto en píxeles negros.
+ * - 2 Melodías en paralelo: Melodía Principal + Bajo tipo Theremin con portamento y LFO vibrato para profundidad.
+ * - Ruido de fondo en TODOS los discos + Segundo Sonido de Fondo temático ('maritimo'/'espacial') desde 'raro'.
  * - Modo Hover Legendario: Repasar los píxeles de la imagen/fotogramas con el cursor genera sonido en tiempo real.
  */
 
@@ -34,7 +36,10 @@ const SCALES = {
   ],
   huracanCalm: ['C3', 'G3', 'D4', 'E4', 'G4', 'A4', 'C5'],
   huracanTense: ['C3', 'Db3', 'E3', 'F#3', 'G3', 'Ab3', 'B3', 'C4', 'Db4', 'E4', 'F#4', 'Bb4'],
+  planetario: ['C3', 'D3', 'E3', 'F#3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F#4', 'G4', 'A4', 'C5'],
 }
+
+const THEREMIN_BASS_SCALE = ['C2', 'D2', 'E2', 'G2', 'A2', 'C3', 'D3', 'E3']
 
 // ============================================================================
 // VARIABLES NO REACTIVAS (Fuera de ref() / reactive() por rendimiento crítico)
@@ -73,12 +78,22 @@ let reverbNode = null
 let pingPongDelay = null
 let spatial8DPanner = null
 
-// Segundo sonido de fondo (activo desde 'raro' en adelante: 'maritimo' o 'espacial')
+// Segundo sonido de fondo (cama base en TODOS los discos + capa temática en 'raro'+)
+let baseAmbientNoise = null
+let baseAmbientFilter = null
+let baseAmbientGain = null
 let oceanNoise = null
 let oceanAutoFilter = null
 let oceanGain = null
 let spaceBgDrone = null
 let spaceBgActive = false
+
+// Melodía 2: Bajo tipo Theremin con portamento continuo y vibrato LFO
+let thereminBass = null
+let thereminFilter = null
+let thereminVibratoLFO = null
+let thereminActive = false
+let lastThereminNote = 'C2'
 
 const scanListeners = new Set()
 const frameListeners = new Set()
@@ -187,7 +202,43 @@ async function ensureAudioGraph() {
       volume: -14,
     }).connect(spatial8DPanner)
 
-    // --- Segundo Sonido de Fondo (para discos 'raro', 'epico', 'legendario') ---
+    // --- Melodía 2: Bajo tipo Theremin con portamento y vibrato LFO para profundidad ---
+    thereminFilter = new Tone.Filter({
+      frequency: 420,
+      type: 'lowpass',
+      rolloff: -12,
+    }).connect(reverbNode)
+
+    thereminBass = new Tone.Synth({
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.14, decay: 0.2, sustain: 0.78, release: 0.45 },
+      portamento: 0.24,
+      volume: -13,
+    }).connect(thereminFilter)
+
+    thereminVibratoLFO = new Tone.LFO({
+      frequency: 5.2,
+      min: -16,
+      max: 16,
+    })
+      .connect(thereminBass.detune)
+      .start()
+
+    // --- Ruido de fondo base para TODOS los discos ---
+    baseAmbientGain = new Tone.Gain(0.0).toDestination()
+    baseAmbientFilter = new Tone.AutoFilter({
+      frequency: 0.08,
+      baseFrequency: 110,
+      octaves: 1.8,
+      depth: 0.6,
+    })
+      .connect(baseAmbientGain)
+      .start()
+
+    baseAmbientNoise = new Tone.Noise('brown').connect(baseAmbientFilter)
+    baseAmbientNoise.volume.value = -24
+
+    // --- Segundo Sonido de Fondo temático (para discos 'raro', 'epico', 'legendario') ---
     oceanGain = new Tone.Gain(0.0).toDestination()
     oceanAutoFilter = new Tone.AutoFilter({
       frequency: 0.14,
@@ -219,14 +270,27 @@ function resolveAmbientStyle(disc) {
     return disc.ambientStyle
   }
   const cat = disc?.category || activeMode.value
-  if (cat === 'espacial' || cat === 'grafica') return 'espacial'
+  if (cat === 'espacial' || cat === 'grafica' || cat === 'planetario') return 'espacial'
   return 'maritimo'
 }
 
 function startSecondaryAmbientBed(rarity, style) {
   stopSecondaryAmbientBed()
   if (!audioInitialized) return
-  // El segundo sonido de fondo solo se activa desde 'raro' en adelante
+
+  // Ruido de fondo atmosférico presente en TODOS los discos (incluyendo 'comun')
+  if (baseAmbientNoise && baseAmbientGain) {
+    try {
+      if (baseAmbientNoise.state !== 'started') {
+        baseAmbientNoise.start()
+      }
+      baseAmbientGain.gain.rampTo(0.24, 0.7)
+    } catch {
+      // Ignorar en entornos sin Web Audio completo
+    }
+  }
+
+  // Capa adicional temática desde 'raro' en adelante
   if (rarity !== 'raro' && rarity !== 'epico' && rarity !== 'legendario') return
 
   if (style === 'maritimo' && oceanNoise && oceanGain) {
@@ -249,6 +313,20 @@ function startSecondaryAmbientBed(rarity, style) {
 }
 
 function stopSecondaryAmbientBed() {
+  if (baseAmbientGain) {
+    try {
+      baseAmbientGain.gain.rampTo(0.0, 0.25)
+    } catch {
+      // noop
+    }
+  }
+  if (baseAmbientNoise) {
+    try {
+      if (baseAmbientNoise.state === 'started') baseAmbientNoise.stop()
+    } catch {
+      // noop
+    }
+  }
   if (oceanGain) {
     try {
       oceanGain.gain.rampTo(0.0, 0.25)
@@ -273,6 +351,46 @@ function stopSecondaryAmbientBed() {
   }
 }
 
+function triggerThereminBass(normValue = 0.5) {
+  const clamped = Math.max(0, Math.min(1, Number(normValue) || 0))
+  const bassIdx = Math.min(
+    THEREMIN_BASS_SCALE.length - 1,
+    Math.floor(clamped * THEREMIN_BASS_SCALE.length)
+  )
+  const bassNote = THEREMIN_BASS_SCALE[bassIdx]
+  lastThereminNote = bassNote
+
+  if (audioInitialized && thereminBass) {
+    try {
+      if (!thereminActive) {
+        thereminBass.triggerAttack(bassNote)
+        thereminActive = true
+      } else {
+        thereminBass.setNote(bassNote)
+      }
+    } catch {
+      // Fallback si la versión de Tone/mock requiere triggerAttackRelease
+      try {
+        thereminBass.triggerAttackRelease(bassNote, '8n')
+      } catch {
+        // noop
+      }
+    }
+  }
+  return bassNote
+}
+
+function silenceThereminBass() {
+  if (audioInitialized && thereminBass && thereminActive) {
+    try {
+      thereminBass.triggerRelease()
+    } catch {
+      // noop
+    }
+    thereminActive = false
+  }
+}
+
 function getPixelAt(x, y) {
   if (!pixelBuffer) return { r: 0, g: 0, b: 0 }
   const clampedX = Math.max(0, Math.min(canvasWidth - 1, x))
@@ -286,14 +404,19 @@ function getPixelAt(x, y) {
 }
 
 function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorNote) {
-  if (!audioInitialized || !leadSynth) return
+  // Melodía 2: Bajo tipo Theremin con portamento continuo para dar profundidad armónica
+  const thereminNote = triggerThereminBass(normValue)
+
+  if (!audioInitialized || !leadSynth) {
+    return thereminNote
+  }
 
   if (reverbNode) {
     reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.38 : 0.56
   }
 
   if (filterNode) {
-    if (activeMode.value === 'espacial') {
+    if (activeMode.value === 'espacial' || activeMode.value === 'planetario') {
       filterNode.frequency.value = 9500
     } else if (rarity === 'epico' || rarity === 'legendario') {
       const cutoff = 480 + Math.floor(Math.max(0, Math.min(1, normValue)) * 4200)
@@ -318,6 +441,79 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorN
   if ((rarity === 'epico' || rarity === 'legendario') && mirrorNote && pluckSynth) {
     pluckSynth.triggerAttackRelease(mirrorNote, '16n')
   }
+
+  return thereminNote
+}
+
+/**
+ * Detecta píxeles negros / espacio vacío (para modo 'planetario', donde NO deben sonar)
+ */
+export function isBlackPixel(r, g, b) {
+  const rr = Number(r) || 0
+  const gg = Number(g) || 0
+  const bb = Number(b) || 0
+  return rr + gg + bb <= 45 || (rr <= 18 && gg <= 18 && bb <= 18)
+}
+
+/**
+ * Síntesis pura para una columna o muestra de píxeles del modo 'planetario'.
+ * Silencio absoluto si todos los píxeles son negros; si hay luz planetaria, emite
+ * Melodía 1 (cristalina/planetaria) + Melodía 2 (bajo tipo Theremin).
+ */
+export function synthesizePlanetarySamples(samples, rarity = 'comun') {
+  const litPixels = Array.isArray(samples)
+    ? samples.filter((p) => p && !isBlackPixel(p.r, p.g, p.b))
+    : []
+
+  if (litPixels.length === 0) {
+    silenceThereminBass()
+    return {
+      mode: 'planetario',
+      silent: true,
+      primaryNote: 'SILENCIO',
+      thereminNote: null,
+      normValue: 0,
+      detail: 'ESPACIO NEGRO (SIN SONIDO)',
+    }
+  }
+
+  let brightest = litPixels[0]
+  let maxLuma = -1
+  let totalLuma = 0
+
+  for (const px of litPixels) {
+    const luma = (Number(px.r) || 0) + (Number(px.g) || 0) + (Number(px.b) || 0)
+    totalLuma += luma
+    if (luma > maxLuma) {
+      maxLuma = luma
+      brightest = px
+    }
+  }
+
+  const avgLumaNorm = Math.min(1, totalLuma / (litPixels.length * 765))
+  const heightNorm = Math.max(0, Math.min(1, Number(brightest.yNorm ?? 0.5)))
+  const scale = SCALES.planetario
+  const noteIdx = Math.min(scale.length - 1, Math.floor(heightNorm * scale.length))
+  const primaryNote = scale[noteIdx]
+  const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
+  const mirrorNote = scale[Math.min(scale.length - 1, noteIdx + 4)]
+
+  const thereminNote = applyRarityScaling(
+    rarity,
+    primaryNote,
+    harmonyNote,
+    avgLumaNorm,
+    mirrorNote
+  )
+
+  return {
+    mode: 'planetario',
+    silent: false,
+    primaryNote,
+    thereminNote,
+    normValue: Number(avgLumaNorm.toFixed(2)),
+    detail: `PLANETARIO ${primaryNote} + THEREMIN ${thereminNote}`,
+  }
 }
 
 /**
@@ -332,7 +528,7 @@ export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendar
   const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
   const mirrorNote = scale[Math.min(scale.length - 1, noteIdx + 4)]
 
-  applyRarityScaling(rarity, primaryNote, harmonyNote, v, mirrorNote)
+  const thereminNote = applyRarityScaling(rarity, primaryNote, harmonyNote, v, mirrorNote)
 
   if (audioInitialized && bassDrone && v > 0.72) {
     bassDrone.triggerAttackRelease('C2', '16n')
@@ -342,8 +538,9 @@ export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendar
     mode: 'maps',
     normalizedValue: Number(v.toFixed(3)),
     primaryNote,
+    thereminNote,
     normValue: Number(v.toFixed(2)),
-    detail: `COLORBAR ${activeMapProfileId}: ${(v * 100).toFixed(0)}% (${primaryNote})`,
+    detail: `COLORBAR ${activeMapProfileId}: ${(v * 100).toFixed(0)}% (${primaryNote} + ${thereminNote})`,
   }
 }
 
@@ -506,23 +703,48 @@ const SONIFICATION_STRATEGIES = {
 
     const normLuma = Math.min(1, (redEnergy + blueEnergy) / (canvasHeight * 120))
     const shimmerHigh = chord[chord.length - 1]
+    let thereminNote
     if (rarity !== 'comun') {
-      applyRarityScaling(rarity, chord[1] || chord[0], shimmerHigh, normLuma, primaryNote)
-    } else if (starY === -1 && audioInitialized && shimmerSynth && colX % 4 === 0) {
-      shimmerSynth.triggerAttackRelease(shimmerHigh, '16n')
+      thereminNote = applyRarityScaling(
+        rarity,
+        chord[1] || chord[0],
+        shimmerHigh,
+        normLuma,
+        primaryNote
+      )
+    } else {
+      thereminNote = triggerThereminBass(normLuma)
+      if (starY === -1 && audioInitialized && shimmerSynth && colX % 4 === 0) {
+        shimmerSynth.triggerAttackRelease(shimmerHigh, '16n')
+      }
     }
 
     return {
       mode: 'espacial',
       primaryNote: starY !== -1 ? primaryNote : chord.join('-'),
+      thereminNote,
       normValue: Number(normLuma.toFixed(2)),
       detail:
         starY !== -1
-          ? `8D DESTELLO ESTELAR (${primaryNote})`
+          ? `8D DESTELLO ESTELAR (${primaryNote} + THEREMIN ${thereminNote})`
           : isInfraredDominant
-            ? `8D NEBULOSA IR (${chord.join(' ')})`
-            : `8D NEBULOSA UV (${chord.join(' ')})`,
+            ? `8D NEBULOSA IR (${chord.join(' ')} + ${thereminNote})`
+            : `8D NEBULOSA UV (${chord.join(' ')} + ${thereminNote})`,
     }
+  },
+
+  planetario(colX, rarity) {
+    const samples = []
+    for (let y = 0; y < canvasHeight; y += 2) {
+      const { r, g, b } = getPixelAt(colX, y)
+      samples.push({
+        yNorm: 1 - y / Math.max(1, canvasHeight - 1),
+        r,
+        g,
+        b,
+      })
+    }
+    return synthesizePlanetarySamples(samples, rarity)
   },
 
   huracan(colX, rarity) {
@@ -718,24 +940,36 @@ export function useSonifier() {
       activeMapProfileId = mapId
       const cleanNormalized = mapRgbPixelToNormalizedValue(r, g, b, mapId)
       telemetry = synthesizeNormalizedMapValue(cleanNormalized, 'legendario')
+    } else if (mode === 'planetario') {
+      const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
+      telemetry = synthesizePlanetarySamples([{ yNorm, r, g, b }], 'legendario')
     } else if (mode === 'espacial') {
       const sum = r + g + b
       const highScale = SCALES.espacialHigh
       const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
       const noteIdx = Math.min(highScale.length - 1, Math.floor(yNorm * highScale.length))
       const primaryNote = highScale[noteIdx]
+      let thereminNote = lastThereminNote
       if (filterNode) filterNode.frequency.value = 9500
       if (sum > 480 && audioInitialized && shimmerSynth) {
         shimmerSynth.triggerAttackRelease(primaryNote, '16n')
+        thereminNote = triggerThereminBass(sum / 765)
       } else {
         const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
-        applyRarityScaling('legendario', primaryNote, chord[2], sum / 765, chord[3] || primaryNote)
+        thereminNote = applyRarityScaling(
+          'legendario',
+          primaryNote,
+          chord[2],
+          sum / 765,
+          chord[3] || primaryNote
+        )
       }
       telemetry = {
         mode: 'espacial',
         primaryNote,
+        thereminNote,
         normValue: Number((sum / 765).toFixed(2)),
-        detail: `8D HOVER ESTELAR (${px},${py}) -> ${primaryNote}`,
+        detail: `8D HOVER ESTELAR (${px},${py}) -> ${primaryNote} + ${thereminNote}`,
       }
     } else {
       const strategy = SONIFICATION_STRATEGIES[mode] || SONIFICATION_STRATEGIES.maps
@@ -843,6 +1077,7 @@ export function useSonifier() {
       clearInterval(orbitTimerId)
       orbitTimerId = null
     }
+    silenceThereminBass()
     stopSecondaryAmbientBed()
   }
 

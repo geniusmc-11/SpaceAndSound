@@ -6,7 +6,14 @@
 
 import { EXTRA_SVS_DISCS } from './NasaSvsCatalog'
 
-export const NASA_CATEGORIES = ['espacial', 'maritimo', 'grafica', 'huracan', 'maps']
+export const NASA_CATEGORIES = [
+  'espacial',
+  'maritimo',
+  'grafica',
+  'huracan',
+  'maps',
+  'planetario',
+]
 
 export const RARITY_CONFIG = {
   comun: {

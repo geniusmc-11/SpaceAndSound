@@ -10,6 +10,18 @@ import {
 } from '@/stores/useGameStore'
 import { EnemyFactory } from '@/game/EnemyFactory'
 import { createAnimatedGifSpriteMaterial, GIF_SPRITE_PATHS } from '@/game/GifSpriteLoader'
+import {
+  CONTROL_STATION_GRID,
+  PLAYER_BULLET_SPEED,
+  ENEMY_BULLET_SPEED,
+  SHIP_FOG_DENSITY,
+  SHIP_CAMERA_FAR,
+  isControlConsoleCell,
+  findBulletHitEnemy,
+  createSpaceshipFloorTileTexture,
+  buildControlConsoleObject,
+  buildIntelligentWindows,
+} from '@/game/SpaceshipEnvironment'
 import { useSpatialAudio } from '@/composables/useSpatialAudio'
 import MiniPlayer from './MiniPlayer.vue'
 
@@ -53,7 +65,9 @@ const smoothCam = {
 const activeEnemies = []
 const activeExplosions = []
 const activeProjectiles = []
+const activePlayerBullets = []
 const discMeshesById = new Map()
+let consoleLightRef = null
 
 // Control táctil eficiente para móviles (Touch Look + D-Pad)
 let touchLookId = null
@@ -61,6 +75,7 @@ let lastTouchX = 0
 let lastTouchY = 0
 
 function isCellWalkable(gx, gz) {
+  if (isControlConsoleCell(gx, gz)) return false
   return gx >= GRID_MIN_X && gx <= GRID_MAX_X && gz >= GRID_MIN_Z && gz <= GRID_MAX_Z
 }
 
@@ -96,30 +111,33 @@ function createPixelWallTexture(baseHex, accentHex) {
 }
 
 function buildSpaceshipEnvironment() {
-  // Niebla exponencial densa para visibilidad muy reducida
-  scene.fog = new THREE.FogExp2(0x050811, 0.16)
-  scene.background = new THREE.Color(0x050811)
+  // Niebla exponencial muy densa para visibilidad reducida (atmósfera de nave averiada)
+  scene.fog = new THREE.FogExp2(0x04070e, SHIP_FOG_DENSITY)
+  scene.background = new THREE.Color(0x04070e)
 
-  const ambientLight = new THREE.AmbientLight(0x334155, 0.75)
+  const ambientLight = new THREE.AmbientLight(0x283548, 0.38)
   scene.add(ambientLight)
 
-  const playerTorch = new THREE.PointLight(0x38bdf8, 2.2, 13, 1.5)
-  playerTorch.position.set(0, 1.2, 0)
+  const playerTorch = new THREE.PointLight(0x38bdf8, 1.65, 8.5, 1.8)
+  playerTorch.position.set(0, 1.15, 0)
   camera.add(playerTorch)
   scene.add(camera)
 
   const wallTex = createPixelWallTexture('#0b1324', '#1e293b')
-  const floorTex = createPixelWallTexture('#060b16', '#0f172a')
+  const floorTex = createSpaceshipFloorTileTexture(THREE)
   const ceilingTex = createPixelWallTexture('#090d1a', '#1e1b4b')
 
-  const widthWorld = (GRID_MAX_X - GRID_MIN_X + 2) * CELL_SIZE
-  const depthWorld = (GRID_MAX_Z - GRID_MIN_Z + 2) * CELL_SIZE
+  const cellsWide = GRID_MAX_X - GRID_MIN_X + 2
+  const cellsDeep = GRID_MAX_Z - GRID_MIN_Z + 2
+  const widthWorld = cellsWide * CELL_SIZE
+  const depthWorld = cellsDeep * CELL_SIZE
   const centerZ = ((GRID_MIN_Z + GRID_MAX_Z) / 2) * CELL_SIZE
 
-  floorTex.repeat.set(widthWorld / 2, depthWorld / 2)
+  // Losas alineadas 1:1 con cada bloque de la nave
+  floorTex.repeat.set(cellsWide, cellsDeep)
   ceilingTex.repeat.set(widthWorld / 2, depthWorld / 2)
 
-  // Suelo de rejilla metálica
+  // Suelo de losas metálicas estilo nave espacial
   const floorGeo = new THREE.PlaneGeometry(widthWorld, depthWorld)
   const floorMat = new THREE.MeshLambertMaterial({ map: floorTex })
   const floorMesh = new THREE.Mesh(floorGeo, floorMat)
@@ -155,6 +173,14 @@ function buildSpaceshipEnvironment() {
   const southWall = new THREE.Mesh(backWallGeo, wallMat)
   southWall.position.set(0, 1.4, (GRID_MAX_Z + 0.8) * CELL_SIZE)
   scene.add(southWall)
+
+  // Punto de controles de la nave como objeto 3D sólido en (0, -6)
+  const consoleObj = buildControlConsoleObject(THREE, CELL_SIZE)
+  consoleLightRef = consoleObj.light
+  scene.add(consoleObj.group)
+
+  // Ventanas espaciales ubicadas inteligentemente en casco lateral y puente norte
+  buildIntelligentWindows(THREE, scene, GRID_MIN_X, GRID_MAX_X, GRID_MIN_Z, CELL_SIZE)
 }
 
 /**
@@ -192,10 +218,10 @@ function respawnReplacementEnemy() {
   let gx = Math.floor(Math.random() * (GRID_MAX_X - GRID_MIN_X + 1)) + GRID_MIN_X
   let gz = Math.floor(Math.random() * (GRID_MAX_Z - GRID_MIN_Z + 1)) + GRID_MIN_Z
   if (
-    Math.abs(gx - gameStore.playerGrid.x) <= 1 &&
-    Math.abs(gz - gameStore.playerGrid.z) <= 1
+    isControlConsoleCell(gx, gz) ||
+    (Math.abs(gx - gameStore.playerGrid.x) <= 1 && Math.abs(gz - gameStore.playerGrid.z) <= 1)
   ) {
-    gz = Math.max(GRID_MIN_Z, gz - 3)
+    gz = gz === CONTROL_STATION_GRID.z ? GRID_MIN_Z : Math.max(GRID_MIN_Z, gz - 3)
   }
   const enemy = EnemyFactory.createEnemy(randomType, gx, gz, {
     showVisualPlaceholder: showVisualPlaceholders.value,
@@ -303,6 +329,7 @@ function checkAutoCollectNearbyDiscs() {
 
 /**
  * Acción de Disparo (-1 cuadrito de energía)
+ * Dispara un proyectil físico lento siguiendo exactamente la dirección de mira 3D (yaw + pitch).
  */
 function handleShootAction() {
   if (!gameStore.shoot()) return
@@ -312,38 +339,31 @@ function handleShootAction() {
     muzzleFlash.value = false
   }, 90)
 
-  // Evaluar impacto sobre el enemigo más cercano en el cono frontal de visión
-  const px = gameStore.playerGrid.x * CELL_SIZE
-  const pz = gameStore.playerGrid.z * CELL_SIZE
-  const lookDirX = -Math.sin(gameStore.playerGrid.yaw)
-  const lookDirZ = -Math.cos(gameStore.playerGrid.yaw)
+  if (!scene) return
 
-  let bestTarget = null
-  let bestDist = Infinity
+  const cosPitch = Math.cos(smoothCam.pitch)
+  const dirX = -Math.sin(smoothCam.yaw) * cosPitch
+  const dirY = Math.sin(smoothCam.pitch)
+  const dirZ = -Math.cos(smoothCam.yaw) * cosPitch
 
-  for (const enemy of activeEnemies) {
-    if (!enemy.alive) continue
-    const ex = enemy.gridX * CELL_SIZE
-    const ez = enemy.gridZ * CELL_SIZE
-    const dx = ex - px
-    const dz = ez - pz
-    const dist = Math.hypot(dx, dz)
+  const bulletGeo = new THREE.SphereGeometry(0.11, 6, 6)
+  const bulletMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+  const bulletMesh = new THREE.Mesh(bulletGeo, bulletMat)
+  bulletMesh.position.set(
+    smoothCam.x + dirX * 0.45,
+    smoothCam.y - 0.08 + dirY * 0.45,
+    smoothCam.z + dirZ * 0.45
+  )
+  scene.add(bulletMesh)
 
-    if (dist > 14) continue
-    const normX = dist > 0.001 ? dx / dist : lookDirX
-    const normZ = dist > 0.001 ? dz / dist : lookDirZ
-    const dot = normX * lookDirX + normZ * lookDirZ
-
-    // Permite acertar si está dentro del cono frontal o en la misma celda
-    if ((dot > 0.72 || dist < 1.5) && dist < bestDist) {
-      bestDist = dist
-      bestTarget = enemy
-    }
-  }
-
-  if (bestTarget) {
-    defeatEnemyEntity(bestTarget)
-  }
+  activePlayerBullets.push({
+    mesh: bulletMesh,
+    vx: dirX * PLAYER_BULLET_SPEED,
+    vy: dirY * PLAYER_BULLET_SPEED,
+    vz: dirZ * PLAYER_BULLET_SPEED,
+    traveled: 0,
+    maxDist: 16,
+  })
 }
 
 function defeatEnemyEntity(enemy) {
@@ -506,15 +526,23 @@ function updateEnemiesAndSpatialAudio(dtMs) {
             projMesh.position.set(enemy.gridX * CELL_SIZE, 0.8, enemy.gridZ * CELL_SIZE)
             scene.add(projMesh)
 
+            const startX = enemy.gridX * CELL_SIZE
+            const startZ = enemy.gridZ * CELL_SIZE
+            const endX = px * CELL_SIZE
+            const endZ = pz * CELL_SIZE
+            const distWorld = Math.max(1.0, Math.hypot(endX - startX, endZ - startZ))
+            const durationMs = (distWorld / ENEMY_BULLET_SPEED) * 1000
+
             activeProjectiles.push({
               mesh: projMesh,
               targetGridX: px,
               targetGridZ: pz,
               progress: 0,
-              startX: enemy.gridX * CELL_SIZE,
-              startZ: enemy.gridZ * CELL_SIZE,
-              endX: px * CELL_SIZE,
-              endZ: pz * CELL_SIZE,
+              durationMs,
+              startX,
+              startZ,
+              endX,
+              endZ,
             })
           }
         }
@@ -570,10 +598,58 @@ function updateEnemiesAndSpatialAudio(dtMs) {
 }
 
 function updateProjectilesAndExplosions(dtMs) {
-  // Actualizar proyectiles de francotirador
+  const dtSec = dtMs / 1000
+  const minWorldX = (GRID_MIN_X - 0.65) * CELL_SIZE
+  const maxWorldX = (GRID_MAX_X + 0.65) * CELL_SIZE
+  const minWorldZ = (GRID_MIN_Z - 0.65) * CELL_SIZE
+  const maxWorldZ = (GRID_MAX_Z + 0.65) * CELL_SIZE
+  const consoleWorldX = CONTROL_STATION_GRID.x * CELL_SIZE
+  const consoleWorldZ = CONTROL_STATION_GRID.z * CELL_SIZE
+
+  // Actualizar balas lentas del jugador y verificar colisión estricta 3D
+  for (let i = activePlayerBullets.length - 1; i >= 0; i--) {
+    const b = activePlayerBullets[i]
+    const stepX = b.vx * dtSec
+    const stepY = b.vy * dtSec
+    const stepZ = b.vz * dtSec
+
+    b.mesh.position.x += stepX
+    b.mesh.position.y += stepY
+    b.mesh.position.z += stepZ
+    b.traveled += Math.hypot(stepX, stepY, stepZ)
+
+    const pos = b.mesh.position
+    const hitConsole =
+      Math.abs(pos.x - consoleWorldX) <= 0.88 &&
+      Math.abs(pos.z - consoleWorldZ) <= 0.62 &&
+      pos.y <= 1.38
+    const outOfBounds =
+      pos.x < minWorldX ||
+      pos.x > maxWorldX ||
+      pos.z < minWorldZ ||
+      pos.z > maxWorldZ ||
+      pos.y <= 0.05 ||
+      pos.y >= 2.55 ||
+      b.traveled >= b.maxDist
+
+    if (hitConsole || outOfBounds) {
+      if (scene) scene.remove(b.mesh)
+      activePlayerBullets.splice(i, 1)
+      continue
+    }
+
+    const hitEnemy = findBulletHitEnemy(pos, activeEnemies)
+    if (hitEnemy) {
+      if (scene) scene.remove(b.mesh)
+      activePlayerBullets.splice(i, 1)
+      defeatEnemyEntity(hitEnemy)
+    }
+  }
+
+  // Actualizar proyectiles lentos de francotirador
   for (let i = activeProjectiles.length - 1; i >= 0; i--) {
     const p = activeProjectiles[i]
-    p.progress += dtMs / 950
+    p.progress += dtMs / (p.durationMs || 1800)
     if (p.progress >= 1) {
       if (scene) scene.remove(p.mesh)
       activeProjectiles.splice(i, 1)
@@ -625,6 +701,15 @@ function handleMoveStep(forward, strafe = 0) {
   const moved = gameStore.movePlayer(forward, strafe, isCellWalkable)
   if (moved) {
     checkAutoCollectNearbyDiscs()
+    const distConsole = Math.hypot(
+      gameStore.playerGrid.x - CONTROL_STATION_GRID.x,
+      gameStore.playerGrid.z - CONTROL_STATION_GRID.z
+    )
+    if (distConsole <= 1.5) {
+      audioCueBanner.value =
+        '🛰️ PUNTO DE CONTROL DE LA NAVE: TELEMETRÍA ACTIVA // RECUPERA ENERGÍA JUNTO AL PUENTE'
+      gameStore.rechargeEnergy(1)
+    }
   }
 }
 
@@ -776,7 +861,7 @@ onMounted(() => {
   try {
     // Resolución interna baja estilo PS1/Doom (320x200) escalada con image-rendering: pixelated
     scene = new THREE.Scene()
-    camera = new THREE.PerspectiveCamera(72, 320 / 200, 0.1, 32)
+    camera = new THREE.PerspectiveCamera(70, 320 / 200, 0.1, SHIP_CAMERA_FAR)
     camera.rotation.order = 'YXZ'
 
     renderer = new THREE.WebGLRenderer({
@@ -815,6 +900,11 @@ onMounted(() => {
         group.rotation.y += dtMs * 0.0025
         group.position.y = 0.65 + Math.sin(now * 0.004) * 0.12
       })
+
+      // Parpadeo tenue del monitor de control de la nave en la niebla
+      if (consoleLightRef) {
+        consoleLightRef.intensity = 1.05 + Math.sin(now * 0.006) * 0.25
+      }
 
       updateEnemiesAndSpatialAudio(dtMs)
       updateProjectilesAndExplosions(dtMs)

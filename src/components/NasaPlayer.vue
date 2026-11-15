@@ -123,7 +123,8 @@ onMounted(async () => {
         typeof telemetry.normalizedValue === 'number'
           ? ` [${Math.round(telemetry.normalizedValue * 100)}%]`
           : ''
-      scanNoteTextRef.value.textContent = `NOTA: ${telemetry.primaryNote}${extra}`
+      const thereminTag = telemetry.thereminNote ? ` // THEREMIN: ${telemetry.thereminNote}` : ''
+      scanNoteTextRef.value.textContent = `NOTA: ${telemetry.primaryNote}${thereminTag}${extra}`
     }
   })
 
@@ -216,10 +217,20 @@ function handleLegendaryHoverLeave() {
             🎧 AUDIO 8D ORBITAL
           </span>
           <span
-            v-if="currentDisc && currentDisc.rarity !== 'comun'"
+            v-if="currentDisc?.category === 'planetario'"
+            class="border border-indigo-400/80 bg-indigo-950/80 px-2 py-0.5 text-[10px] text-indigo-200"
+          >
+            🪐 PLANETARIO (SILENCIO EN NEGRO)
+          </span>
+          <span
+            v-if="currentDisc"
             class="border border-cyan-400/60 bg-cyan-950/70 px-2 py-0.5 text-[10px] text-cyan-200"
           >
-            🌊 FONDO: {{ currentDisc.ambientStyle || (currentDisc.category === 'espacial' || currentDisc.category === 'grafica' ? 'espacial' : 'maritimo') }}
+            🌊 FONDO + THEREMIN{{
+              currentDisc.rarity !== 'comun'
+                ? `: ${currentDisc.ambientStyle || (currentDisc.category === 'espacial' || currentDisc.category === 'grafica' || currentDisc.category === 'planetario' ? 'espacial' : 'maritimo')}`
+                : ': base'
+            }}
           </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
