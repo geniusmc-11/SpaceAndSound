@@ -14,6 +14,15 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    proxy: {
+      '/svs-api': {
+        target: 'https://svs.gsfc.nasa.gov/api',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/svs-api/, ''),
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

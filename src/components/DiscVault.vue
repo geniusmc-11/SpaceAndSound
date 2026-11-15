@@ -4,6 +4,7 @@ import { useGameStore, RARITY_CONFIG } from '@/stores/useGameStore'
 import { renderDiscFrameToCanvas } from '@/game/NasaDatasetGenerator'
 import { useSonifier } from '@/composables/useSonifier'
 import MediaUploaderModal from '@/components/MediaUploaderModal.vue'
+import PixelDiscSprite from '@/components/PixelDiscSprite.vue'
 
 const emit = defineEmits(['navigate-to-player', 'navigate-to-game'])
 const gameStore = useGameStore()
@@ -69,14 +70,14 @@ function getRarityMeta(rarity) {
         <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sky-400">
           <span>[SECCIÓN IZQUIERDA // ARCHIVO ORBITAL]</span>
           <span class="border border-sky-500/40 bg-sky-950/60 px-2 py-0.5 text-[10px]">
-            {{ gameStore.collectedDiscs.length }} DISCOS EN BÓVEDA
+            {{ gameStore.collectedDiscs.length }} PISTAS EN BÓVEDA
           </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
-          BÓVEDA DE DISCOS NASA &amp; MULTIMEDIA
+          BÓVEDA DE DISCOS // LOBBY TRACKS 32-BIT
         </h1>
         <p class="text-xs text-slate-400">
-          Haz clic en un disco para sonificarlo o añade nuevos videos (convertidos a fotogramas Opción B) e imágenes directas.
+          Selecciona un disco para reproducirlo en el Laboratorio NASA o añade tus propios videos (Opción B) e imágenes.
         </p>
       </div>
 
@@ -113,73 +114,97 @@ function getRarityMeta(rarity) {
       </p>
     </div>
 
-    <!-- Cuadrícula de Discos -->
+    <!-- Cuadrícula estilo "Lobby Tracks de Fortnite" (Funda Pixel Art + Disco Pixel Art sobresaliendo) -->
     <div
       v-else
-      class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       <article
         v-for="disc in gameStore.collectedDiscs"
         :key="disc.id"
-        class="group cursor-pointer border-2 bg-[#091122] p-3 transition-transform duration-150 hover:-translate-y-1"
-        :class="[
-          getRarityMeta(disc.rarity).borderClass,
-          gameStore.currentDisc?.id === disc.id ? 'ring-2 ring-white' : '',
-        ]"
+        class="group relative flex cursor-pointer flex-col pr-14 transition-transform duration-200 hover:-translate-y-1"
         @click="handleSelectDisc(disc)"
       >
-        <div class="relative mb-3 overflow-hidden border border-slate-700 bg-black">
-          <canvas
-            :ref="(el) => setThumbnailCanvas(el, disc)"
-            width="256"
-            height="128"
-            class="pixelated h-28 w-full object-cover"
-          ></canvas>
-
+        <!-- Contenedor Funda + Disco Sobresaliente -->
+        <div class="relative flex items-center">
+          <!-- Disco Pixel Art 32x32 que sobresale por detrás a la derecha -->
           <div
-            class="absolute top-1.5 left-1.5 border px-1.5 py-0.5 text-[10px] font-bold uppercase"
-            :class="getRarityMeta(disc.rarity).badgeClass"
+            class="absolute right-0 z-0 h-36 w-36 translate-x-10 transition-transform duration-300 ease-out group-hover:translate-x-14 sm:h-40 sm:w-40"
+            :class="
+              gameStore.currentDisc?.id === disc.id ? 'translate-x-14' : ''
+            "
           >
-            {{ getRarityMeta(disc.rarity).label }}
+            <PixelDiscSprite
+              :rarity="disc.rarity"
+              :spinning="
+                gameStore.currentDisc?.id === disc.id && gameStore.isPlayingAudio
+              "
+            />
           </div>
 
+          <!-- Funda / Portada Cuadrada en Pixel Art (Baja resolución escalada con pixelated) -->
           <div
-            class="absolute top-1.5 right-1.5 border border-sky-400/50 bg-[#050811]/90 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-300"
+            class="relative z-10 aspect-square w-full overflow-hidden border-2 bg-[#060b18] shadow-[6px_6px_0px_#000]"
+            :class="[
+              getRarityMeta(disc.rarity).borderClass,
+              gameStore.currentDisc?.id === disc.id ? 'ring-2 ring-white' : '',
+            ]"
           >
-            {{ disc.category }}
+            <!-- Portada Pixel Art (canvas 64x64 escalado con image-rendering: pixelated) -->
+            <canvas
+              :ref="(el) => setThumbnailCanvas(el, disc)"
+              width="64"
+              height="64"
+              class="pixelated h-full w-full object-cover"
+            ></canvas>
+
+            <!-- Scanlines retro sutiles sobre la portada -->
+            <div class="crt-scanlines pointer-events-none absolute inset-0 opacity-25"></div>
+
+            <!-- Etiqueta superior de Rareza + Tipo de Media -->
+            <div class="absolute top-2 right-2 left-2 flex items-center justify-between gap-1">
+              <span
+                class="border px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[2px_2px_0px_#000]"
+                :class="getRarityMeta(disc.rarity).badgeClass"
+              >
+                {{ getRarityMeta(disc.rarity).label }}
+              </span>
+
+              <span
+                class="border border-amber-400/70 bg-black/85 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300"
+              >
+                {{
+                  disc.frames && disc.frames.length > 1
+                    ? `🎬 ${disc.frames.length}F`
+                    : '🖼️ IMG'
+                }}
+              </span>
+            </div>
+
+            <!-- Banner inferior de la funda estilo Lobby Track -->
+            <div
+              class="absolute right-0 bottom-0 left-0 border-t-2 bg-[#040814]/92 px-2.5 py-2"
+              :style="{ borderTopColor: getRarityMeta(disc.rarity).hex }"
+            >
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-[9px] font-bold uppercase tracking-wider text-sky-400">
+                  {{ disc.svsId ? `NASA SVS #${disc.svsId}` : 'PISTA DE DATOS' }}
+                </span>
+                <span
+                  v-if="gameStore.currentDisc?.id === disc.id && gameStore.isPlayingAudio"
+                  class="animate-pulse text-[9px] font-black text-emerald-400"
+                >
+                  ▶ SONANDO
+                </span>
+              </div>
+              <h2 class="mt-0.5 truncate text-xs font-black uppercase text-white group-hover:text-sky-300">
+                {{ disc.title }}
+              </h2>
+              <p class="truncate text-[10px] text-slate-400">
+                {{ disc.instrument }}
+              </p>
+            </div>
           </div>
-
-          <div
-            class="absolute right-1.5 bottom-1.5 border border-amber-400/60 bg-black/85 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300"
-          >
-            {{
-              disc.frames && disc.frames.length > 1
-                ? `🎬 ${disc.frames.length} FOTOGRAMAS`
-                : '🖼️ IMAGEN'
-            }}
-          </div>
-        </div>
-
-        <h2 class="truncate text-sm font-bold text-slate-100 group-hover:text-sky-300">
-          {{ disc.title }}
-        </h2>
-        <p class="mt-0.5 truncate text-[11px] text-slate-400">
-          {{ disc.instrument }} • {{ disc.date }}
-        </p>
-        <p class="mt-1.5 line-clamp-2 text-[10px] text-slate-400">
-          {{ getRarityMeta(disc.rarity).description }}
-        </p>
-
-        <div class="mt-3 flex items-center justify-between border-t border-slate-800 pt-2">
-          <span class="text-[10px] font-bold uppercase text-amber-300">
-            ▶ SONIFICAR DATOS
-          </span>
-          <span v-if="disc.svsId" class="text-[10px] text-sky-400">
-            SVS #{{ disc.svsId }}
-          </span>
-          <span v-else class="text-[10px] text-slate-500">
-            {{ disc.durationSec ? `${disc.durationSec}s` : 'CUSTOM' }}
-          </span>
         </div>
       </article>
     </div>
