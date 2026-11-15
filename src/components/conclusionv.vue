@@ -16,7 +16,7 @@ const pilaresConclusion: PilarConclusion[] = [
   {
     id: 'inclusion',
     codigo: '',
-    titulo: 'Accesibilidad Sensorial Universal',
+    titulo: 'Universal Sensory Accessibility',
     descripcion:
       'Transformar datos visuales en paisajes sonoros elimina las barreras de la percepción óptica, permitiendo que personas con ceguera o baja visión experimenten la inmensidad del cosmos y la biodiversidad de distintos ecosistemas.'
   },
@@ -97,6 +97,100 @@ onUnmounted(() => {
     aria-labelledby="conclusion-title"
     class="relative overflow-hidden bg-[#101820] px-6 py-20 font-sans text-[#E7D5AC] sm:py-24"
   >
+    <!-- Campo estelar profundo (estrellas visibles con halos suaves que respetan la lectura) -->
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_28%_22%,rgba(0,0,0,0.45)_15%,black_75%)]"
+    >
+      <svg
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+        class="h-full w-full"
+      >
+        <!-- Capa 1: Estrellas beige de brillo medio-alto -->
+        <g class="star-twinkle-1 motion-reduce:animate-none" fill="#E7D5AC">
+          <circle cx="95" cy="78" r="1.7" opacity="0.9" />
+          <circle cx="95" cy="78" r="4.5" opacity="0.16" />
+
+          <circle cx="260" cy="145" r="1.3" opacity="0.75" />
+          <circle cx="445" cy="68" r="1.8" opacity="0.9" />
+          <circle cx="670" cy="112" r="1.4" opacity="0.8" />
+          <circle cx="890" cy="54" r="1.9" opacity="0.95" />
+          <circle cx="890" cy="54" r="5" opacity="0.18" />
+
+          <circle cx="1120" cy="128" r="1.5" opacity="0.85" />
+          <circle cx="1335" cy="84" r="2" opacity="0.95" />
+          <circle cx="1335" cy="84" r="5.5" opacity="0.2" />
+
+          <circle cx="140" cy="360" r="1.6" opacity="0.85" />
+          <circle cx="520" cy="325" r="1.5" opacity="0.8" />
+          <circle cx="980" cy="340" r="1.8" opacity="0.9" />
+          <circle cx="1290" cy="390" r="1.6" opacity="0.85" />
+
+          <circle cx="82" cy="640" r="1.9" opacity="0.9" />
+          <circle cx="82" cy="640" r="5" opacity="0.18" />
+
+          <circle cx="410" cy="615" r="1.5" opacity="0.8" />
+          <circle cx="780" cy="655" r="1.7" opacity="0.85" />
+          <circle cx="1165" cy="620" r="1.9" opacity="0.9" />
+          <circle cx="1375" cy="710" r="1.6" opacity="0.85" />
+          <circle cx="245" cy="835" r="1.8" opacity="0.9" />
+          <circle cx="920" cy="845" r="1.7" opacity="0.85" />
+        </g>
+
+        <!-- Capa 2: Estrellas secundarias desfasadas -->
+        <g class="star-twinkle-2 motion-reduce:animate-none" fill="#E7D5AC">
+          <circle cx="180" cy="230" r="1.2" opacity="0.7" />
+          <circle cx="355" cy="195" r="1.4" opacity="0.75" />
+          <circle cx="585" cy="185" r="1.2" opacity="0.65" />
+          <circle cx="795" cy="175" r="1.5" opacity="0.8" />
+          <circle cx="1015" cy="215" r="1.3" opacity="0.75" />
+          <circle cx="1225" cy="245" r="1.6" opacity="0.85" />
+
+          <circle cx="315" cy="475" r="1.4" opacity="0.75" />
+          <circle cx="715" cy="490" r="1.3" opacity="0.7" />
+          <circle cx="1085" cy="480" r="1.5" opacity="0.8" />
+
+          <circle cx="165" cy="755" r="1.4" opacity="0.75" />
+          <circle cx="560" cy="735" r="1.6" opacity="0.85" />
+          <circle cx="845" cy="760" r="1.3" opacity="0.7" />
+          <circle cx="1055" cy="785" r="1.5" opacity="0.8" />
+          <circle cx="1275" cy="830" r="1.7" opacity="0.85" />
+        </g>
+
+        <!-- Capa 3: Estrellas cálidas ámbar y destellos de 4 puntas -->
+        <g class="star-twinkle-3 motion-reduce:animate-none" fill="#D18C39">
+          <circle cx="320" cy="95" r="1.7" opacity="0.9" />
+          <circle cx="320" cy="95" r="4.5" opacity="0.2" />
+
+          <circle cx="1045" cy="82" r="1.8" opacity="0.9" />
+          <circle cx="1210" cy="165" r="1.5" opacity="0.8" />
+          <circle cx="70" cy="495" r="1.8" opacity="0.9" />
+          <circle cx="640" cy="605" r="1.6" opacity="0.85" />
+          <circle cx="1360" cy="545" r="1.9" opacity="0.95" />
+          <circle cx="1360" cy="545" r="5.5" opacity="0.22" />
+
+          <circle cx="475" cy="855" r="1.7" opacity="0.85" />
+          <circle cx="1135" cy="860" r="1.6" opacity="0.8" />
+
+          <!-- Destellos estelares de 4 puntas -->
+          <path
+            d="M1265 56 L1267.2 64.8 L1276 67 L1267.2 69.2 L1265 78 L1262.8 69.2 L1254 67 L1262.8 64.8 Z"
+            opacity="0.9"
+          />
+          <path
+            d="M115 715 L116.8 722.2 L124 724 L116.8 725.8 L115 733 L113.2 725.8 L106 724 L113.2 722.2 Z"
+            opacity="0.85"
+          />
+          <path
+            d="M955 595 L956.5 601 L962.5 602.5 L956.5 604 L955 610 L953.5 604 L947.5 602.5 L953.5 601 Z"
+            fill="#E7D5AC"
+            opacity="0.85"
+          />
+        </g>
+      </svg>
+    </div>
+
     <!-- Resplandores sutiles de fondo para dar profundidad al cristal -->
     <div
       aria-hidden="true"
@@ -104,7 +198,7 @@ onUnmounted(() => {
     ></div>
     <div
       aria-hidden="true"
-      class="pointer-events-none absolute right-1/4 bottom-12 h-64 w-64 translate-x-1/2 rounded-full bg-[#D18C39]/10 blur-3xl"
+      class="pointer-events-none absolute right-1/4 bottom-12 h-64 w-64 translate-x-1/2 rounded-full bg-[#D18C39]/12 blur-3xl"
     ></div>
 
     <div class="relative z-10 mx-auto flex max-w-[1040px] flex-col gap-14">
@@ -146,6 +240,7 @@ onUnmounted(() => {
           class="group rounded-2xl border border-[#31515A]/55 bg-[#1D303B]/25 p-7 backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D18C39] hover:bg-[#1D303B]/60 hover:shadow-[0_14px_32px_-10px_rgba(209,140,57,0.22)] focus-visible:-translate-y-1.5 focus-visible:border-[#D18C39] focus-visible:bg-[#1D303B]/60 focus-visible:ring-2 focus-visible:ring-[#D18C39] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none"
         >
           <span
+            v-if="pilar.codigo"
             aria-hidden="true"
             class="mb-3 block font-mono text-[0.7rem] font-semibold tracking-widest text-[#D18C39]/80 transition-colors duration-200 group-hover:text-[#D18C39]"
           >
@@ -257,3 +352,27 @@ onUnmounted(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.star-twinkle-1 {
+  animation: star-twinkle 4.2s ease-in-out infinite;
+}
+
+.star-twinkle-2 {
+  animation: star-twinkle 5.8s ease-in-out infinite 1.7s;
+}
+
+.star-twinkle-3 {
+  animation: star-twinkle 4.9s ease-in-out infinite 0.8s;
+}
+</style>

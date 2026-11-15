@@ -5,7 +5,7 @@ const projectLogoPath = '/images/avatar.png';
 
 <template>
   <div class="relative mx-auto w-[calc(100%-2rem)] max-w-[1040px]">
-    <!-- Resplandores ambientales detrás del cristal para refracción -->
+    <!-- Ambient glows behind the glass for refraction -->
     <div
       aria-hidden="true"
       class="pointer-events-none absolute -top-3 left-10 h-16 w-48 rounded-full bg-[#D18C39]/20 blur-2xl"
@@ -16,21 +16,20 @@ const projectLogoPath = '/images/avatar.png';
     ></div>
 
     <header
-      aria-label="Identidad del proyecto SpaceAndSound y del equipo SynapseTrinity"
+      aria-label="SpaceAndSound project and SynapseTrinity team identity"
       class="relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-4 py-3 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 sm:rounded-full sm:px-8"
     >
-      <!-- Micro-retícula técnica interna -->
+      <!-- Internal technical micro-grid -->
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#31515A1f_1px,transparent_1px),linear-gradient(to_bottom,#31515A1f_1px,transparent_1px)] bg-[size:20px_20px]"
       ></div>
 
-      <!-- Efecto discreto de onda acústica continua dentro del cristal -->
+      <!-- Subtle continuous acoustic wave inside the glass -->
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 overflow-hidden opacity-60 [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
       >
-        <!-- Onda primaria ámbar de baja amplitud -->
         <svg
           viewBox="0 0 1200 60"
           preserveAspectRatio="none"
@@ -45,7 +44,6 @@ const projectLogoPath = '/images/avatar.png';
           />
         </svg>
 
-        <!-- Onda secundaria armónica en azul acero -->
         <svg
           viewBox="0 0 1200 60"
           preserveAspectRatio="none"
@@ -61,13 +59,13 @@ const projectLogoPath = '/images/avatar.png';
         </svg>
       </div>
 
-      <!-- Reflejo especular diagonal de vidrio -->
+      <!-- Diagonal specular glass sheen -->
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 bg-gradient-to-br from-[#E7D5AC]/[0.09] via-transparent to-[#31515A]/[0.14]"
       ></div>
 
-      <!-- Remaches industriales laterales -->
+      <!-- Industrial side rivets -->
       <span
         aria-hidden="true"
         class="absolute top-1/2 left-3 hidden h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-[#31515A] bg-[#101820] sm:block"
@@ -77,7 +75,7 @@ const projectLogoPath = '/images/avatar.png';
         class="absolute top-1/2 right-3 hidden h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-[#31515A] bg-[#101820] sm:block"
       ></span>
 
-      <!-- Módulo izquierdo: Identidad del Proyecto -->
+      <!-- Left Module: Project Identity -->
       <div class="relative z-10 flex items-center gap-3">
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D18C39]/85 bg-[#101820]/75 p-0.5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.25),0_0_14px_rgba(209,140,57,0.28)] backdrop-blur-md"
@@ -85,7 +83,7 @@ const projectLogoPath = '/images/avatar.png';
           <img
             v-if="projectLogoPath"
             :src="projectLogoPath"
-            alt="Logo del proyecto SpaceAndSound"
+            alt="SpaceAndSound project logo"
             class="h-full w-full rounded-full object-cover"
           />
         </div>
@@ -107,12 +105,12 @@ const projectLogoPath = '/images/avatar.png';
           <span
             class="hidden font-mono text-[0.65rem] font-medium tracking-widest text-[#E7D5AC]/65 uppercase sm:inline"
           >
-            Rockola de Sonificación
+            Sonification Jukebox
           </span>
         </div>
       </div>
 
-      <!-- Módulo central: Telemetría acústica con micro-onda animada -->
+      <!-- Center Module: Acoustic Telemetry -->
       <div
         aria-hidden="true"
         class="relative z-10 hidden items-center gap-1 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 px-4 py-1.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md md:flex"
@@ -146,11 +144,11 @@ const projectLogoPath = '/images/avatar.png';
         <span
           class="ml-2 font-mono text-[0.65rem] font-semibold tracking-[0.2em] text-[#E7D5AC]/70 uppercase"
         >
-          Rockola
+          SYS // AUDIO-OPTIC
         </span>
       </div>
 
-      <!-- Módulo derecho: Identidad del Equipo -->
+      <!-- Right Module: Team Identity -->
       <div
         class="relative z-10 flex items-center gap-2.5 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70"
       >
@@ -158,7 +156,7 @@ const projectLogoPath = '/images/avatar.png';
           <span
             class="font-mono text-[0.58rem] font-bold tracking-widest text-[#D18C39] uppercase"
           >
-            Equipo
+            Team
           </span>
           <span class="text-xs font-extrabold tracking-wide text-[#E7D5AC] sm:text-sm">
             SynapseTrinity
@@ -171,7 +169,7 @@ const projectLogoPath = '/images/avatar.png';
           <img
             v-if="teamLogoPath"
             :src="teamLogoPath"
-            alt="Logo del equipo SynapseTrinity"
+            alt="SynapseTrinity team logo"
             class="h-full w-full object-cover"
           />
         </div>
