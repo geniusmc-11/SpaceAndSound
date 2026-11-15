@@ -38,7 +38,7 @@ const scrollToTop = () => {
           </span>
           <span class="hidden text-[#E7D5AC]/25 md:inline" aria-hidden="true">//</span>
           <span class="hidden text-[0.7rem] tracking-widest text-[#E7D5AC]/65 uppercase md:inline">
-            Sensory Jukebox v1.0
+            Jukebox
           </span>
         </div>
 

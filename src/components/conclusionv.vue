@@ -1,162 +1,257 @@
-<script setup>
-import { ref, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { ref, onUnmounted } from 'vue';
 
-const isPlayingChord = ref(false)
-let audioCtx = null
-let timeoutId = null
+interface PilarConclusion {
+  id: string;
+  codigo: string;
+  titulo: string;
+  descripcion: string;
+}
 
-const pilaresConclusion = [
+const isPlayingChord = ref<boolean>(false);
+let audioCtx: AudioContext | null = null;
+let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const pilaresConclusion: PilarConclusion[] = [
   {
     id: 'inclusion',
-    titulo: 'Universal Sensory Accessibility',
+    codigo: '',
+    titulo: 'Accesibilidad Sensorial Universal',
     descripcion:
-      'Transforming visual data into soundscapes removes the barriers of optical perception, enabling people with blindness or low vision to experience the vastness of the cosmos and the biodiversity of diverse ecosystems.',
+      'Transformar datos visuales en paisajes sonoros elimina las barreras de la percepción óptica, permitiendo que personas con ceguera o baja visión experimenten la inmensidad del cosmos y la biodiversidad de distintos ecosistemas.'
   },
   {
     id: 'sonificacion',
-    titulo: 'The Jukebox as a Data Bridge',
+    codigo: '',
+    titulo: 'La Rockola como Puente de Datos',
     descripcion:
-      'Reimagining the classic jukebox concept toward image sonification proves that art, science, and web engineering can turn pixels, light spectra, and textures into immersive auditory experiences.',
+      'Reinterpretar el concepto clásico de la rockola hacia la sonificación de imágenes demuestra que el arte, la ciencia y la ingeniería web pueden convertir píxeles, espectros de luz y texturas en experiencias auditivas inmersivas.'
   },
   {
     id: 'empatia',
-    titulo: 'Technology with Human Purpose',
+    codigo: '',
+    titulo: 'Tecnología con Propósito Humano',
     descripcion:
-      'The true value of digital innovation lies not only in its technical complexity, but in its ability to democratize wonder and connect all people with the universe around them.',
-  },
-]
+      'El verdadero valor de la innovación digital no radica únicamente en su complejidad técnica, sino en su capacidad para democratizar el asombro y conectar a todas las personas con el entorno que las rodea.'
+  }
+];
 
-const reproducirSintesisFinal = () => {
-  if (isPlayingChord.value) return
+const reproducirSintesisFinal = (): void => {
+  if (isPlayingChord.value) return;
 
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext
+  const AudioContextClass =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
-  if (!AudioContextClass) return
+  if (!AudioContextClass) return;
 
   if (!audioCtx) {
-    audioCtx = new AudioContextClass()
+    audioCtx = new AudioContextClass();
   }
 
   if (audioCtx.state === 'suspended') {
-    audioCtx.resume()
+    audioCtx.resume();
   }
 
-  isPlayingChord.value = true
-  const now = audioCtx.currentTime
-  const frecuencias = [261.63, 329.63, 392.0, 493.88, 587.33]
+  isPlayingChord.value = true;
+  const now = audioCtx.currentTime;
+  const frecuencias: number[] = [261.63, 329.63, 392.0, 493.88, 587.33];
 
   frecuencias.forEach((freq, index) => {
-    if (!audioCtx) return
+    if (!audioCtx) return;
 
-    const osc = audioCtx.createOscillator()
-    const gain = audioCtx.createGain()
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-    osc.type = index % 2 === 0 ? 'sine' : 'triangle'
-    osc.frequency.setValueAtTime(freq, now + index * 0.12)
+    osc.type = index % 2 === 0 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(freq, now + index * 0.12);
 
-    gain.gain.setValueAtTime(0.001, now + index * 0.12)
-    gain.gain.exponentialRampToValueAtTime(0.06, now + index * 0.12 + 0.4)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2)
+    gain.gain.setValueAtTime(0.001, now + index * 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.06, now + index * 0.12 + 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
 
-    osc.connect(gain)
-    gain.connect(audioCtx.destination)
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
 
-    osc.start(now + index * 0.12)
-    osc.stop(now + 3.3)
-  })
+    osc.start(now + index * 0.12);
+    osc.stop(now + 3.3);
+  });
 
   timeoutId = setTimeout(() => {
-    isPlayingChord.value = false
-  }, 3300)
-}
+    isPlayingChord.value = false;
+  }, 3300);
+};
 
 onUnmounted(() => {
   if (timeoutId) {
-    clearTimeout(timeoutId)
+    clearTimeout(timeoutId);
   }
   if (audioCtx && audioCtx.state !== 'closed') {
-    audioCtx.close()
+    audioCtx.close();
   }
-})
+});
 </script>
 
 <template>
   <section
     aria-labelledby="conclusion-title"
-    class="border-t border-[#31515A] bg-[#101820] px-6 py-[4.5rem] font-sans text-[#E7D5AC]"
+    class="relative overflow-hidden bg-[#101820] px-6 py-20 font-sans text-[#E7D5AC] sm:py-24"
   >
-    <div class="mx-auto flex max-w-[1040px] flex-col gap-11">
-      <div class="max-w-[780px]">
-        <span
+    <!-- Resplandores sutiles de fondo para dar profundidad al cristal -->
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute top-1/3 left-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-[#31515A]/20 blur-3xl"
+    ></div>
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute right-1/4 bottom-12 h-64 w-64 translate-x-1/2 rounded-full bg-[#D18C39]/10 blur-3xl"
+    ></div>
+
+    <div class="relative z-10 mx-auto flex max-w-[1040px] flex-col gap-14">
+      <!-- Encabezado editorial limpio (sin cajas ni etiquetas pesadas) -->
+      <div class="max-w-[760px]">
+        <div
           aria-hidden="true"
-          class="mb-4 inline-block rounded-full border border-[#31515A] bg-[#1D303B] px-3.5 py-1.5 text-xs font-bold tracking-widest text-[#D18C39] uppercase"
+          class="mb-3 flex flex-wrap items-center gap-2.5 font-mono text-xs tracking-widest uppercase"
         >
-          Project Finale
-        </span>
+          <span class="font-bold text-[#D18C39]">Cierre del Proyecto</span>
+          <span class="text-[#31515A]">/</span>
+          <span class="text-[#E7D5AC]/55">LOG // SONIFICACIÓN-FINAL</span>
+        </div>
+
         <h2
           id="conclusion-title"
-          class="mb-5 text-3xl leading-tight font-extrabold text-[#E7D5AC] sm:text-4xl lg:text-[2.65rem]"
+          class="mb-5 text-3xl leading-tight font-extrabold tracking-tight text-[#E7D5AC] sm:text-4xl lg:text-[2.55rem]"
         >
-          Conclusion: Listening to the Invisible
+          Conclusión: <span class="text-[#D18C39]">Escuchar lo Invisible</span>
         </h2>
-        <p class="text-lg leading-relaxed text-[#E7D5AC]/85">
-          This project demonstrates that the modern web can transcend the purely visual. By merging
-          the interactive nostalgia of a
-          <strong class="font-semibold text-[#D18C39]">jukebox</strong> with
-          <strong class="font-semibold text-[#D18C39]">image sonification</strong> algorithms, we
-          translate the silent beauty of outer space and Earth's ecosystems into a universal
-          language: sound.
+
+        <p class="text-base leading-relaxed text-[#E7D5AC]/80 sm:text-lg">
+          Este proyecto demuestra que la web moderna puede trascender lo puramente visual. Al
+          fusionar la nostalgia interactiva de una
+          <strong class="font-semibold text-[#D18C39]">rockola</strong> con algoritmos de
+          <strong class="font-semibold text-[#D18C39]">sonificación de imágenes</strong>, logramos
+          traducir la belleza silenciosa del espacio exterior y los ecosistemas terrestres en un
+          lenguaje universal: el sonido.
         </p>
       </div>
 
+      <!-- Cuadros de texto minimalistas con reactividad al pasar el cursor -->
       <div class="grid grid-cols-1 gap-6 md:grid-cols-3" role="list">
         <div
           v-for="pilar in pilaresConclusion"
           :key="pilar.id"
           role="listitem"
           tabindex="0"
-          class="rounded-2xl border border-[#31515A] bg-[#1D303B] p-7 transition-all duration-200 hover:-translate-y-1 hover:border-[#D18C39] hover:shadow-[0_12px_28px_-10px_rgba(209,140,57,0.25)] focus-visible:-translate-y-1 focus-visible:border-[#D18C39] focus-visible:ring-2 focus-visible:ring-[#D18C39] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none"
+          class="group rounded-2xl border border-[#31515A]/55 bg-[#1D303B]/25 p-7 backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D18C39] hover:bg-[#1D303B]/60 hover:shadow-[0_14px_32px_-10px_rgba(209,140,57,0.22)] focus-visible:-translate-y-1.5 focus-visible:border-[#D18C39] focus-visible:bg-[#1D303B]/60 focus-visible:ring-2 focus-visible:ring-[#D18C39] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none"
         >
-          <h3 class="mb-3 text-xl font-bold text-[#E7D5AC]">
+          <span
+            aria-hidden="true"
+            class="mb-3 block font-mono text-[0.7rem] font-semibold tracking-widest text-[#D18C39]/80 transition-colors duration-200 group-hover:text-[#D18C39]"
+          >
+            {{ pilar.codigo }}
+          </span>
+
+          <h3
+            class="mb-3 text-lg font-bold text-[#E7D5AC] transition-colors duration-200 group-hover:text-white sm:text-xl"
+          >
             {{ pilar.titulo }}
           </h3>
-          <p class="text-[0.98rem] leading-relaxed text-[#E7D5AC]/80">
+
+          <p
+            class="text-sm leading-relaxed text-[#E7D5AC]/75 transition-colors duration-200 group-hover:text-[#E7D5AC]/90 sm:text-[0.96rem]"
+          >
             {{ pilar.descripcion }}
           </p>
         </div>
       </div>
 
+      <!-- Zona de la frase (protagonista con acento ámbar y cristal) -->
       <div
-        class="rounded-r-xl border border-l-4 border-[#31515A] border-l-[#D18C39] bg-[#1D303B]/80 px-8 py-6"
+        class="rounded-2xl border border-[#31515A]/60 border-l-4 border-l-[#D18C39] bg-[#1D303B]/40 px-7 py-6 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-xl sm:px-9 sm:py-7"
       >
-        <p class="m-0 text-lg leading-relaxed text-[#E7D5AC] italic">
-          “When we design with those who perceive the world differently in mind, we don't just build
-          accessible software; we expand the senses of all humanity.”
+        <span
+          aria-hidden="true"
+          class="mb-2 block font-mono text-[0.68rem] font-semibold tracking-[0.2em] text-[#D18C39] uppercase"
+        >
+          Transmisión Final // Principio de Diseño
+        </span>
+        <p class="m-0 text-base leading-relaxed text-[#E7D5AC] italic sm:text-lg">
+          «Cuando diseñamos pensando en quienes perciben el mundo de formas distintas, no solo
+          construimos software accesible; expandimos los sentidos de toda la humanidad.»
         </p>
       </div>
 
-      <div class="flex items-center justify-start">
-        <button
-          type="button"
-          :disabled="isPlayingChord"
-          :aria-pressed="isPlayingChord"
-          aria-label="Play closing harmonic chord"
-          class="inline-flex cursor-pointer items-center gap-3 rounded-xl border border-[#31515A] bg-[#D18C39] px-6 py-3.5 text-base font-bold text-[#101820] transition-all duration-200 enabled:hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#E7D5AC] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none disabled:cursor-wait disabled:opacity-85"
-          @click="reproducirSintesisFinal"
-        >
-          <span
+      <!-- Zona del sonido (cápsula de cristal limpia sincronizada con el Header/Footer) -->
+      <div
+        class="flex flex-col items-start justify-between gap-5 rounded-2xl border border-[#31515A]/70 border-t-[#E7D5AC]/20 bg-[#1D303B]/40 p-5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.16),0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur-xl backdrop-saturate-150 sm:flex-row sm:items-center sm:rounded-full sm:px-7 sm:py-4"
+      >
+        <div class="flex items-center gap-4">
+          <!-- Mini disco giratorio -->
+          <div
             aria-hidden="true"
-            class="h-2.5 w-2.5 rounded-full bg-[#101820] transition-all duration-300"
-            :class="
-              isPlayingChord
-                ? 'scale-125 animate-pulse shadow-[0_0_10px_#101820]'
-                : 'opacity-75'
-            "
-          ></span>
-          {{ isPlayingChord ? 'Synthesizing soundscape...' : 'Listen to closing echo' }}
-        </button>
+            class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#31515A] bg-[#101820]/80 transition-colors duration-300"
+            :class="isPlayingChord ? 'animate-spin border-[#D18C39]' : ''"
+          >
+            <span class="h-7 w-7 rounded-full border border-[#E7D5AC]/15"></span>
+            <span class="absolute h-3 w-3 rounded-full bg-[#D18C39]"></span>
+            <span class="absolute h-1 w-1 rounded-full bg-[#101820]"></span>
+          </div>
+
+          <div class="flex flex-col">
+            <span class="font-mono text-xs font-bold tracking-wider text-[#D18C39] uppercase">
+              {{ isPlayingChord ? 'Señal Activa // 432-587 Hz' : 'Sintetizador en Espera' }}
+            </span>
+            <span class="text-xs text-[#E7D5AC]/75 sm:text-sm">
+              Acorde armónico espacial de cierre (Web Audio API)
+            </span>
+          </div>
+        </div>
+
+        <div class="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
+          <!-- Barras de frecuencia minimalistas -->
+          <div aria-hidden="true" class="flex h-5 items-end gap-1 px-1">
+            <span
+              class="w-1 rounded-full transition-all duration-300"
+              :class="isPlayingChord ? 'h-3.5 animate-pulse bg-[#D18C39]' : 'h-1.5 bg-[#31515A]'"
+            ></span>
+            <span
+              class="w-1 rounded-full transition-all duration-300"
+              :class="isPlayingChord ? 'h-5 animate-bounce bg-[#D18C39]' : 'h-2.5 bg-[#31515A]'"
+            ></span>
+            <span
+              class="w-1 rounded-full transition-all duration-300"
+              :class="isPlayingChord ? 'h-4 animate-pulse bg-[#E7D5AC]' : 'h-3 bg-[#31515A]'"
+            ></span>
+            <span
+              class="w-1 rounded-full transition-all duration-300"
+              :class="isPlayingChord ? 'h-5 animate-bounce bg-[#D18C39]' : 'h-2 bg-[#31515A]'"
+            ></span>
+            <span
+              class="w-1 rounded-full transition-all duration-300"
+              :class="isPlayingChord ? 'h-3 animate-pulse bg-[#D18C39]' : 'h-1.5 bg-[#31515A]'"
+            ></span>
+          </div>
+
+          <button
+            type="button"
+            :disabled="isPlayingChord"
+            :aria-pressed="isPlayingChord"
+            aria-label="Reproducir acorde armónico de cierre del proyecto"
+            class="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-[#E7D5AC]/20 bg-[#D18C39] px-6 py-3 text-sm font-extrabold tracking-wide text-[#101820] shadow-[0_0_20px_rgba(209,140,57,0.25)] transition-all duration-200 enabled:hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#E7D5AC] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none disabled:cursor-wait disabled:opacity-90"
+            @click="reproducirSintesisFinal"
+          >
+            <span
+              aria-hidden="true"
+              class="h-2 w-2 rounded-full bg-[#101820]"
+              :class="isPlayingChord ? 'animate-ping' : 'opacity-80'"
+            ></span>
+            {{ isPlayingChord ? 'Sintetizando paisaje...' : 'Escuchar eco de cierre' }}
+          </button>
+        </div>
+
         <span class="sr-only" aria-live="polite">
-          {{ isPlayingChord ? 'Playing spatial closing sound synthesis.' : '' }}
+          {{ isPlayingChord ? 'Reproduciendo síntesis sonora espacial de cierre.' : '' }}
         </span>
       </div>
     </div>
