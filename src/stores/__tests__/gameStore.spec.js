@@ -25,6 +25,11 @@ import {
   isBlackPixel,
 } from '@/composables/useSonifier'
 import { EnemyFactory } from '@/game/EnemyFactory'
+import { GIF_SPRITE_PATHS } from '@/game/GifSpriteLoader'
+import {
+  ENEMY_SOUND_PROFILES,
+  computeEnemyProximityIntensity,
+} from '@/composables/useSpatialAudio'
 import {
   PLAYER_BULLET_SPEED,
   ENEMY_BULLET_SPEED,
@@ -36,6 +41,7 @@ import {
 } from '@/game/SpaceshipEnvironment'
 import App from '@/App.vue'
 import DiscVault from '@/components/DiscVault.vue'
+import GameCanvas from '@/components/GameCanvas.vue'
 
 describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
   beforeEach(() => {
@@ -322,5 +328,40 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(litResult.silent).toBe(false)
     expect(litResult.primaryNote).not.toBe('SILENCIO')
     expect(litResult.thereminNote).toBeTruthy()
+  })
+
+  it('mapea los sprites GIF reales, mueve la cámara con el mouse sin clic y genera sonido único por enemigo en rango 3x3', async () => {
+    expect(GIF_SPRITE_PATHS.gravity).toBe('/sprites/colisionenemy.gif')
+    expect(GIF_SPRITE_PATHS.gravityArea).toBe('/sprites/AreaExplotionEnemy.gif')
+    expect(GIF_SPRITE_PATHS.explosion).toBe('/sprites/explotionenemy.gif')
+    expect(GIF_SPRITE_PATHS.bullet).toBe('/sprites/bullet2.gif')
+    expect(GIF_SPRITE_PATHS.bulletImpact).toBe('/sprites/bullet1.gif')
+    expect(GIF_SPRITE_PATHS.stalker).toBe('/sprites/nave.gif')
+    expect(GIF_SPRITE_PATHS.shooter).toBe('/sprites/naveenemy.gif')
+
+    // Perfiles acústicos distintos para cada enemigo principal
+    expect(ENEMY_SOUND_PROFILES.stalker.baseFreq).not.toBe(ENEMY_SOUND_PROFILES.shooter.baseFreq)
+    expect(ENEMY_SOUND_PROFILES.shooter.baseFreq).not.toBe(ENEMY_SOUND_PROFILES.gravity.baseFreq)
+
+    // Rango 3x3: fuera de 3 bloques es silencioso, dentro se intensifica al acercarse
+    const far = computeEnemyProximityIntensity({ x: 0, z: -5 }, { x: 0, z: 0 }, 3)
+    const edge = computeEnemyProximityIntensity({ x: 0, z: -3 }, { x: 0, z: 0 }, 3)
+    const near = computeEnemyProximityIntensity({ x: 0, z: -1 }, { x: 0, z: 0 }, 3)
+
+    expect(far.inRange).toBe(false)
+    expect(edge.inRange).toBe(true)
+    expect(near.inRange).toBe(true)
+    expect(near.intensity).toBeGreaterThan(edge.intensity)
+    expect(near.intervalMs).toBeLessThan(edge.intervalMs)
+
+    // Cámara sigue el mouse sin requerir clic (mousedown)
+    const store = useGameStore()
+    const wrapper = mount(GameCanvas)
+    const canvas = wrapper.find('canvas')
+    const initialYaw = store.playerGrid.yaw
+
+    await canvas.trigger('mouseenter', { clientX: 200, clientY: 150 })
+    await canvas.trigger('mousemove', { clientX: 260, clientY: 150 })
+    expect(store.playerGrid.yaw).not.toBe(initialYaw)
   })
 })

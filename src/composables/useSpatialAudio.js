@@ -55,6 +55,76 @@ function createSpatialPanner(ctx, sourcePos, listenerPos, listenerYaw = 0) {
   return panner
 }
 
+export const ENEMY_SOUND_PROFILES = {
+  stalker: {
+    waveform: 'triangle',
+    baseFreq: 340,
+    endFreq: 130,
+    durationSec: 0.14,
+  },
+  shooter: {
+    waveform: 'sawtooth',
+    baseFreq: 620,
+    endFreq: 960,
+    durationSec: 0.12,
+  },
+  gravity: {
+    waveform: 'sine',
+    baseFreq: 52,
+    endFreq: 96,
+    durationSec: 0.22,
+  },
+  crawler: {
+    waveform: 'square',
+    baseFreq: 185,
+    endFreq: 85,
+    durationSec: 0.09,
+  },
+  phaser: {
+    waveform: 'sine',
+    baseFreq: 420,
+    endFreq: 610,
+    durationSec: 0.16,
+  },
+}
+
+/**
+ * Calcula si un enemigo está dentro del rango de 3x3 (<= rangeBlocks) del jugador
+ * y devuelve la intensidad [0.15 .. 1.0] + cadencia (intervalMs) al acercarse.
+ */
+export function computeEnemyProximityIntensity(enemyGridPos, playerGridPos, rangeBlocks = 3) {
+  const ex = Number(enemyGridPos?.x) || 0
+  const ez = Number(enemyGridPos?.z) || 0
+  const px = Number(playerGridPos?.x) || 0
+  const pz = Number(playerGridPos?.z) || 0
+
+  const dx = ex - px
+  const dz = ez - pz
+  const chebyshev = Math.max(Math.abs(dx), Math.abs(dz))
+  const distanceBlocks = Math.hypot(dx, dz)
+
+  if (chebyshev > rangeBlocks) {
+    return {
+      inRange: false,
+      intensity: 0,
+      intervalMs: Infinity,
+      distanceBlocks,
+    }
+  }
+
+  const maxEuclid = Math.hypot(rangeBlocks, rangeBlocks)
+  const linear = Math.max(0, Math.min(1, 1 - distanceBlocks / Math.max(1, maxEuclid)))
+  const intensity = Number((0.15 + 0.85 * (linear * linear * 0.65 + linear * 0.35)).toFixed(3))
+  const intervalMs = Math.round(920 - intensity * 660)
+
+  return {
+    inRange: true,
+    intensity,
+    intervalMs,
+    distanceBlocks,
+  }
+}
+
 export function useSpatialAudio() {
   /**
    * 1. Acechador de Techo: pasos metálicos resonando 2 niveles arriba (y = +2)
@@ -188,10 +258,55 @@ export function useSpatialAudio() {
     osc.stop(now + 0.35)
   }
 
+  /**
+   * 4. Sonido único de proximidad por tipo de enemigo (rango 3x3) que se intensifica al acercarse
+   */
+  function playEnemyProximityCue(enemyType, enemyWorldPos, playerWorldPos, playerYaw, intensity = 0.5) {
+    const ctx = getContext()
+    if (!ctx) return
+    const now = ctx.currentTime
+    const clamped = Math.max(0.1, Math.min(1, Number(intensity) || 0.2))
+    const profile = ENEMY_SOUND_PROFILES[enemyType] || ENEMY_SOUND_PROFILES.shooter
+    const panner = createSpatialPanner(ctx, enemyWorldPos, playerWorldPos, playerYaw)
+
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = profile.waveform
+
+    const startHz = profile.baseFreq + clamped * profile.baseFreq * 0.65
+    const endHz = profile.endFreq + clamped * profile.endFreq * 0.5
+    osc.frequency.setValueAtTime(startHz, now)
+    osc.frequency.exponentialRampToValueAtTime(Math.max(25, endHz), now + profile.durationSec)
+
+    const peakGain = 0.06 + clamped * 0.34
+    gain.gain.setValueAtTime(peakGain, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + profile.durationSec + 0.02)
+
+    osc.connect(gain)
+    gain.connect(panner)
+    osc.start(now)
+    osc.stop(now + profile.durationSec + 0.03)
+
+    // Pulso secundario característico para enemigo explosivo 'gravity' (alarma pulsante)
+    if (enemyType === 'gravity') {
+      const warnOsc = ctx.createOscillator()
+      const warnGain = ctx.createGain()
+      warnOsc.type = 'square'
+      warnOsc.frequency.setValueAtTime(210 + clamped * 320, now)
+      warnGain.gain.setValueAtTime(0.03 + clamped * 0.16, now)
+      warnGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09)
+      warnOsc.connect(warnGain)
+      warnGain.connect(panner)
+      warnOsc.start(now)
+      warnOsc.stop(now + 0.1)
+    }
+  }
+
   return {
     playStalkerFootstep,
     playSniperShotApproaching,
     playGravityPullPulse,
+    playEnemyProximityCue,
     playPlayerShoot,
     playPlayerDash,
     playEnemyExplosion,

@@ -22,7 +22,10 @@ import {
   buildControlConsoleObject,
   buildIntelligentWindows,
 } from '@/game/SpaceshipEnvironment'
-import { useSpatialAudio } from '@/composables/useSpatialAudio'
+import {
+  useSpatialAudio,
+  computeEnemyProximityIntensity,
+} from '@/composables/useSpatialAudio'
 import MiniPlayer from './MiniPlayer.vue'
 
 const emit = defineEmits(['navigate-left', 'navigate-right'])
@@ -183,6 +186,35 @@ function buildSpaceshipEnvironment() {
   buildIntelligentWindows(THREE, scene, GRID_MIN_X, GRID_MAX_X, GRID_MIN_Z, CELL_SIZE)
 }
 
+function attachGravityAreaAura(enemy) {
+  if (!scene || !enemy || enemy.type !== 'gravity') return
+  const areaCtrl = createAnimatedGifSpriteMaterial(
+    'gravityArea',
+    GIF_SPRITE_PATHS.gravityArea,
+    { showVisualPlaceholder: showVisualPlaceholders.value }
+  )
+  const areaMat = new THREE.MeshBasicMaterial({
+    map: areaCtrl.texture,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  })
+  // Textura visible exactamente en un rango de 3x3 bloques (3 * CELL_SIZE = 6x6 unidades)
+  const areaGeo = new THREE.PlaneGeometry(CELL_SIZE * 3, CELL_SIZE * 3)
+  const areaMesh = new THREE.Mesh(areaGeo, areaMat)
+  areaMesh.rotation.x = -Math.PI / 2
+  areaMesh.position.set(enemy.gridX * CELL_SIZE, 0.03, enemy.gridZ * CELL_SIZE)
+  scene.add(areaMesh)
+
+  enemy.areaAura = {
+    mesh: areaMesh,
+    mat: areaMat,
+    geo: areaGeo,
+    ctrl: areaCtrl,
+  }
+}
+
 /**
  * Genera una oleada balanceada con los 3 tipos de enemigos guiados por audio espacial
  */
@@ -191,13 +223,19 @@ function spawnInitialWave() {
   activeEnemies.forEach((e) => {
     scene.remove(e.sprite)
     e.spriteCtrl.dispose()
+    if (e.areaAura) {
+      scene.remove(e.areaAura.mesh)
+      e.areaAura.geo.dispose()
+      e.areaAura.mat.dispose()
+      e.areaAura.ctrl.dispose()
+    }
   })
   activeEnemies.length = 0
 
   const initialSpawns = [
     { type: 'shooter', gx: 0, gz: -3 }, // Francotirador frente al jugador para prueba rápida
     { type: 'stalker', gx: -1, gz: -2 }, // Acechador de techo 2 niveles arriba
-    { type: 'gravity', gx: 1, gz: -4 }, // Anomalía gravitatoria
+    { type: 'gravity', gx: 1, gz: -4 }, // Anomalía gravitatoria explosiva (rango 3x3)
     { type: 'shooter', gx: -2, gz: -5 },
     { type: 'stalker', gx: 2, gz: -3 },
   ]
@@ -207,6 +245,7 @@ function spawnInitialWave() {
       showVisualPlaceholder: showVisualPlaceholders.value,
     })
     scene.add(enemy.sprite)
+    attachGravityAreaAura(enemy)
     activeEnemies.push(enemy)
   })
 }
@@ -227,30 +266,39 @@ function respawnReplacementEnemy() {
     showVisualPlaceholder: showVisualPlaceholders.value,
   })
   scene.add(enemy.sprite)
+  attachGravityAreaAura(enemy)
   activeEnemies.push(enemy)
 }
 
 /**
- * Dispara el GIF de explosión (death_explosion.gif con NearestFilter) al derrotar a un enemigo
+ * Crea un sprite animado temporal (.gif con NearestFilter) para explosiones, estelas o impactos de bala
  */
-function triggerDeathExplosionGif(worldPos) {
+function spawnAnimatedEffectSprite(typeKey, worldPos, scaleSize = 1.6, ttlMs = 500) {
   if (!scene) return
-  spatialAudio.playEnemyExplosion()
-  const explosionCtrl = createAnimatedGifSpriteMaterial(
-    'explosion',
-    GIF_SPRITE_PATHS.explosion,
+  const ctrl = createAnimatedGifSpriteMaterial(
+    typeKey,
+    GIF_SPRITE_PATHS[typeKey] || GIF_SPRITE_PATHS.explosion,
     { showVisualPlaceholder: showVisualPlaceholders.value }
   )
-  const sprite = new THREE.Sprite(explosionCtrl.material)
+  const sprite = new THREE.Sprite(ctrl.material)
   sprite.position.copy(worldPos)
-  sprite.scale.set(1.9, 1.9, 1)
+  sprite.scale.set(scaleSize, scaleSize, 1)
   scene.add(sprite)
 
   activeExplosions.push({
     sprite,
-    ctrl: explosionCtrl,
-    ttlMs: 550,
+    ctrl,
+    ttlMs,
   })
+}
+
+/**
+ * Dispara el GIF de explosión (explotionenemy.gif con NearestFilter) al derrotar a un enemigo
+ */
+function triggerDeathExplosionGif(worldPos) {
+  if (!scene) return
+  spatialAudio.playEnemyExplosion()
+  spawnAnimatedEffectSprite('explosion', worldPos, 1.9, 580)
 }
 
 /**
@@ -329,7 +377,7 @@ function checkAutoCollectNearbyDiscs() {
 
 /**
  * Acción de Disparo (-1 cuadrito de energía)
- * Dispara un proyectil físico lento siguiendo exactamente la dirección de mira 3D (yaw + pitch).
+ * Dispara un proyectil lento con sprite bullet2.gif siguiendo exactamente la dirección de mira 3D.
  */
 function handleShootAction() {
   if (!gameStore.shoot()) return
@@ -346,9 +394,11 @@ function handleShootAction() {
   const dirY = Math.sin(smoothCam.pitch)
   const dirZ = -Math.cos(smoothCam.yaw) * cosPitch
 
-  const bulletGeo = new THREE.SphereGeometry(0.11, 6, 6)
-  const bulletMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-  const bulletMesh = new THREE.Mesh(bulletGeo, bulletMat)
+  const bulletCtrl = createAnimatedGifSpriteMaterial('bullet', GIF_SPRITE_PATHS.bullet, {
+    showVisualPlaceholder: showVisualPlaceholders.value,
+  })
+  const bulletMesh = new THREE.Sprite(bulletCtrl.material)
+  bulletMesh.scale.set(0.55, 0.55, 1)
   bulletMesh.position.set(
     smoothCam.x + dirX * 0.45,
     smoothCam.y - 0.08 + dirY * 0.45,
@@ -358,6 +408,7 @@ function handleShootAction() {
 
   activePlayerBullets.push({
     mesh: bulletMesh,
+    ctrl: bulletCtrl,
     vx: dirX * PLAYER_BULLET_SPEED,
     vy: dirY * PLAYER_BULLET_SPEED,
     vz: dirZ * PLAYER_BULLET_SPEED,
@@ -371,6 +422,12 @@ function defeatEnemyEntity(enemy) {
   enemy.alive = false
   if (scene) {
     scene.remove(enemy.sprite)
+    if (enemy.areaAura) {
+      scene.remove(enemy.areaAura.mesh)
+      enemy.areaAura.geo.dispose()
+      enemy.areaAura.mat.dispose()
+      enemy.areaAura.ctrl.dispose()
+    }
   }
   triggerDeathExplosionGif(enemy.sprite.position.clone())
 
@@ -451,6 +508,28 @@ function updateEnemiesAndSpatialAudio(dtMs) {
 
     const distBlocks = Math.hypot(enemy.gridX - px, enemy.gridZ - pz)
 
+    // Sonido único por enemigo en rango 3x3 que se intensifica al acercarse
+    const prox = computeEnemyProximityIntensity(
+      { x: enemy.gridX, z: enemy.gridZ },
+      { x: px, z: pz },
+      3
+    )
+    if (prox.inRange) {
+      enemy.proximityTimerMs = (enemy.proximityTimerMs || 0) + dtMs
+      if (enemy.proximityTimerMs >= prox.intervalMs) {
+        enemy.proximityTimerMs = 0
+        spatialAudio.playEnemyProximityCue(
+          enemy.type,
+          { x: enemy.gridX * CELL_SIZE, y: enemy.worldY, z: enemy.gridZ * CELL_SIZE },
+          { x: px * CELL_SIZE, y: 0.85, z: pz * CELL_SIZE },
+          pyaw,
+          prox.intensity
+        )
+      }
+    } else {
+      enemy.proximityTimerMs = 0
+    }
+
     // ------------------------------------------------------------------------
     // 1. ACECHADOR DE TECHO (Trampa Superior - Nivel Y = +2)
     // ------------------------------------------------------------------------
@@ -518,11 +597,14 @@ function updateEnemiesAndSpatialAudio(dtMs) {
           )
           audioCueBanner.value = `🔊 ¡DISPARO DE FRANCOTIRADOR ACERCÁNDOSE DESDE (${enemy.gridX}, ${enemy.gridZ})!`
 
-          // Crear proyectil luminoso acercándose desde la niebla
+          // Crear proyectil luminoso acercándose desde la niebla usando bullet2.gif
           if (scene) {
-            const projGeo = new THREE.SphereGeometry(0.14, 6, 6)
-            const projMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e })
-            const projMesh = new THREE.Mesh(projGeo, projMat)
+            const projCtrl = createAnimatedGifSpriteMaterial('bullet', GIF_SPRITE_PATHS.bullet, {
+              showVisualPlaceholder: showVisualPlaceholders.value,
+            })
+            projCtrl.material.color.setHex(0xfb7185)
+            const projMesh = new THREE.Sprite(projCtrl.material)
+            projMesh.scale.set(0.65, 0.65, 1)
             projMesh.position.set(enemy.gridX * CELL_SIZE, 0.8, enemy.gridZ * CELL_SIZE)
             scene.add(projMesh)
 
@@ -535,6 +617,7 @@ function updateEnemiesAndSpatialAudio(dtMs) {
 
             activeProjectiles.push({
               mesh: projMesh,
+              ctrl: projCtrl,
               targetGridX: px,
               targetGridZ: pz,
               progress: 0,
@@ -573,6 +656,17 @@ function updateEnemiesAndSpatialAudio(dtMs) {
           }
 
           gameStore.setPlayerGridPosition(nextX, nextZ)
+          // Estela visual explotionenemy.gif cuando colisionenemy te atrae hacia sí
+          spawnAnimatedEffectSprite(
+            'explosion',
+            new THREE.Vector3(
+              ((enemy.gridX + nextX) * 0.5) * CELL_SIZE,
+              0.55,
+              ((enemy.gridZ + nextZ) * 0.5) * CELL_SIZE
+            ),
+            1.25,
+            520
+          )
           spatialAudio.playGravityPullPulse(
             { x: enemy.gridX, y: 0.8, z: enemy.gridZ },
             { x: nextX, y: 0.8, z: nextZ },
@@ -633,14 +727,21 @@ function updateProjectilesAndExplosions(dtMs) {
       b.traveled >= b.maxDist
 
     if (hitConsole || outOfBounds) {
+      // Al chocar con una pared o el punto de control, dispara bullet1.gif
+      if (hitConsole || b.traveled < b.maxDist) {
+        spawnAnimatedEffectSprite('bulletImpact', pos.clone(), 1.15, 380)
+      }
       if (scene) scene.remove(b.mesh)
+      b.ctrl?.dispose()
       activePlayerBullets.splice(i, 1)
       continue
     }
 
     const hitEnemy = findBulletHitEnemy(pos, activeEnemies)
     if (hitEnemy) {
+      spawnAnimatedEffectSprite('bulletImpact', pos.clone(), 1.15, 340)
       if (scene) scene.remove(b.mesh)
+      b.ctrl?.dispose()
       activePlayerBullets.splice(i, 1)
       defeatEnemyEntity(hitEnemy)
     }
@@ -652,6 +753,7 @@ function updateProjectilesAndExplosions(dtMs) {
     p.progress += dtMs / (p.durationMs || 1800)
     if (p.progress >= 1) {
       if (scene) scene.remove(p.mesh)
+      p.ctrl?.dispose()
       activeProjectiles.splice(i, 1)
       // Si el jugador no esquivó de esa casilla, recibe daño
       if (
@@ -803,28 +905,51 @@ function onCanvasTouchEnd() {
   touchLookId = null
 }
 
-// Giro con ratón al arrastrar sobre el canvas en escritorio
-let isMouseDragging = false
-function onCanvasMouseDown(e) {
-  if (e.button === 0) {
-    isMouseDragging = true
-    lastTouchX = e.clientX
-    lastTouchY = e.clientY
-  }
+// Giro libre de cámara con el movimiento del ratón (SIN necesidad de hacer clic)
+let lastMouseX = null
+let lastMouseY = null
+let mouseEdgeTurnVelocity = 0
+
+function onCanvasMouseEnter(e) {
+  lastMouseX = e.clientX
+  lastMouseY = e.clientY
 }
 
 function onCanvasMouseMove(e) {
-  if (!isMouseDragging) return
-  const dx = e.clientX - lastTouchX
-  const dy = e.clientY - lastTouchY
-  lastTouchX = e.clientX
-  lastTouchY = e.clientY
-  gameStore.rotateCamera(-dx * 0.006)
-  smoothCam.pitch = Math.max(-0.35, Math.min(0.45, smoothCam.pitch - dy * 0.003))
+  if (gameStore.activeSection !== 1 || gameStore.qteActive || gameStore.isGameOver) return
+
+  if (lastMouseX === null || lastMouseY === null) {
+    lastMouseX = e.clientX
+    lastMouseY = e.clientY
+    return
+  }
+
+  const dx = e.clientX - lastMouseX
+  const dy = e.clientY - lastMouseY
+  lastMouseX = e.clientX
+  lastMouseY = e.clientY
+
+  gameStore.rotateCamera(-dx * 0.0055)
+  smoothCam.pitch = Math.max(-0.42, Math.min(0.48, smoothCam.pitch - dy * 0.0032))
+
+  // Giro continuo suave si acercas el cursor al borde izquierdo/derecho de la pantalla
+  if (canvasRef.value) {
+    const rect = canvasRef.value.getBoundingClientRect()
+    const relX = (e.clientX - rect.left) / Math.max(1, rect.width)
+    if (relX < 0.08) {
+      mouseEdgeTurnVelocity = 0.0018
+    } else if (relX > 0.92) {
+      mouseEdgeTurnVelocity = -0.0018
+    } else {
+      mouseEdgeTurnVelocity = 0
+    }
+  }
 }
 
-function onCanvasMouseUp() {
-  isMouseDragging = false
+function onCanvasMouseLeave() {
+  lastMouseX = null
+  lastMouseY = null
+  mouseEdgeTurnVelocity = 0
 }
 
 const nearbyEnemySummary = computed(() => {
@@ -851,9 +976,14 @@ onMounted(() => {
   // Animación de frames .GIF (con NearestFilter) cada 220ms
   spriteAnimIntervalId = setInterval(() => {
     activeEnemies.forEach((e) => {
-      if (e.alive) e.spriteCtrl.stepAnimation()
+      if (e.alive) {
+        e.spriteCtrl.stepAnimation()
+        if (e.areaAura) e.areaAura.ctrl.stepAnimation()
+      }
     })
     activeExplosions.forEach((ex) => ex.ctrl.stepAnimation())
+    activePlayerBullets.forEach((b) => b.ctrl?.stepAnimation())
+    activeProjectiles.forEach((p) => p.ctrl?.stepAnimation())
   }, 220)
 
   if (!canvasRef.value) return
@@ -882,6 +1012,11 @@ onMounted(() => {
       const dtMs = Math.min(100, now - lastFrameTime)
       lastFrameTime = now
 
+      // Giro continuo suave en los bordes con el cursor sin requerir clic
+      if (mouseEdgeTurnVelocity !== 0 && gameStore.activeSection === 1) {
+        gameStore.rotateCamera(mouseEdgeTurnVelocity * dtMs)
+      }
+
       // Interpolación suave de posición y cámara (60fps en PC y Móvil)
       const targetX = gameStore.playerGrid.x * CELL_SIZE
       const targetZ = gameStore.playerGrid.z * CELL_SIZE
@@ -889,7 +1024,7 @@ onMounted(() => {
 
       smoothCam.x += (targetX - smoothCam.x) * lerpFactor
       smoothCam.z += (targetZ - smoothCam.z) * lerpFactor
-      smoothCam.yaw += (gameStore.playerGrid.yaw - smoothCam.yaw) * Math.min(1, dtMs * 0.018)
+      smoothCam.yaw += (gameStore.playerGrid.yaw - smoothCam.yaw) * Math.min(1, dtMs * 0.026)
 
       camera.position.set(smoothCam.x, smoothCam.y, smoothCam.z)
       camera.rotation.y = smoothCam.yaw
@@ -937,10 +1072,9 @@ onBeforeUnmount(() => {
       width="320"
       height="200"
       class="pixelated absolute inset-0 h-full w-full cursor-crosshair object-cover"
-      @mousedown="onCanvasMouseDown"
+      @mouseenter="onCanvasMouseEnter"
       @mousemove="onCanvasMouseMove"
-      @mouseup="onCanvasMouseUp"
-      @mouseleave="onCanvasMouseUp"
+      @mouseleave="onCanvasMouseLeave"
       @touchstart.passive="onCanvasTouchStart"
       @touchmove.passive="onCanvasTouchMove"
       @touchend.passive="onCanvasTouchEnd"

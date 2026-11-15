@@ -9,13 +9,16 @@
 import * as THREE from 'three'
 
 export const GIF_SPRITE_PATHS = {
-  stalker: '/sprites/enemy_stalker_spray.gif',
-  shooter: '/sprites/enemy_shooter_spray.gif',
-  gravity: '/sprites/enemy_gravity_spray.gif',
-  explosion: '/sprites/death_explosion.gif',
+  stalker: '/sprites/nave.gif',
+  shooter: '/sprites/naveenemy.gif',
+  gravity: '/sprites/colisionenemy.gif',
+  explosion: '/sprites/explotionenemy.gif',
+  gravityArea: '/sprites/AreaExplotionEnemy.gif',
+  bullet: '/sprites/bullet2.gif',
+  bulletImpact: '/sprites/bullet1.gif',
   // Slots extensibles para llegar a 5 subtipos de enemigos
-  crawler: '/sprites/enemy_crawler_spray.gif',
-  phaser: '/sprites/enemy_phaser_spray.gif',
+  crawler: '/sprites/nave.gif',
+  phaser: '/sprites/naveenemy.gif',
 }
 
 /**
@@ -166,10 +169,33 @@ export function createAnimatedGifSpriteMaterial(
             }
           }
           if (frames.length > 0) {
+            const w = Math.min(128, Math.max(16, frames[0].displayWidth || 32))
+            const h = Math.min(128, Math.max(16, frames[0].displayHeight || 32))
+            canvas.width = w
+            canvas.height = h
             decodedFrames = frames
             hasRealGifArtwork = true
+            stepAnimation()
+            return
           }
         }
+
+        // Fallback compatible si ImageDecoder no está disponible en el navegador
+        const blob = new Blob([buffer], { type: 'image/gif' })
+        const objectUrl = URL.createObjectURL(blob)
+        const img = new Image()
+        img.onload = () => {
+          if (img.naturalWidth > 4 && img.naturalHeight > 4) {
+            canvas.width = Math.min(128, Math.max(16, img.naturalWidth))
+            canvas.height = Math.min(128, Math.max(16, img.naturalHeight))
+            decodedFrames = [img]
+            hasRealGifArtwork = true
+            stepAnimation()
+          }
+          URL.revokeObjectURL(objectUrl)
+        }
+        img.onerror = () => URL.revokeObjectURL(objectUrl)
+        img.src = objectUrl
       })
       .catch(() => {
         // Mantiene el placeholder en blanco/32-bits si aún no existe el .gif artístico
@@ -177,9 +203,10 @@ export function createAnimatedGifSpriteMaterial(
   }
 
   function stepAnimation() {
-    frameIndex = (frameIndex + 1) % 16
+    frameIndex = (frameIndex + 1) % 64
     if (!ctx) return
 
+    ctx.imageSmoothingEnabled = false
     if (hasRealGifArtwork && decodedFrames.length > 0) {
       const frame = decodedFrames[frameIndex % decodedFrames.length]
       ctx.clearRect(0, 0, canvas.width, canvas.height)
