@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const teamLogoPath = '/images/logoSS.svg';
-const projectLogoPath = '/images/avatar.png';
+const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 </script>
 
 <template>
