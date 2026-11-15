@@ -209,6 +209,18 @@ function handleLegendaryHoverLeave() {
           >
             ✨ HOVER LEGENDARIO ACTIVO
           </span>
+          <span
+            v-if="currentDisc?.category === 'espacial'"
+            class="border border-purple-400/80 bg-purple-950/80 px-2 py-0.5 text-[10px] text-purple-200"
+          >
+            🎧 AUDIO 8D ORBITAL
+          </span>
+          <span
+            v-if="currentDisc && currentDisc.rarity !== 'comun'"
+            class="border border-cyan-400/60 bg-cyan-950/70 px-2 py-0.5 text-[10px] text-cyan-200"
+          >
+            🌊 FONDO: {{ currentDisc.ambientStyle || (currentDisc.category === 'espacial' || currentDisc.category === 'grafica' ? 'espacial' : 'maritimo') }}
+          </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
           REPRODUCTOR &amp; INFORME CIENTÍFICO NASA

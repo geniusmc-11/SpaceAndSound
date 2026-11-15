@@ -46,6 +46,87 @@ export const COLORBAR_PROFILES = {
       { value: 1.0, hsl: { h: 355, s: 0.92, l: 0.48 } }, // Muy alto (rojo intenso)
     ],
   },
+  '5154': {
+    id: '5154',
+    name: 'Óxidos de Nitrógeno NOx (SVS #5154)',
+    unit: 'ppbv',
+    stops: [
+      { value: 0.0, hsl: { h: 230, s: 0.60, l: 0.18 } },
+      { value: 0.25, hsl: { h: 195, s: 0.75, l: 0.42 } },
+      { value: 0.55, hsl: { h: 55, s: 0.92, l: 0.56 } },
+      { value: 0.8, hsl: { h: 22, s: 0.94, l: 0.52 } },
+      { value: 1.0, hsl: { h: 350, s: 0.90, l: 0.50 } },
+    ],
+  },
+  '5149': {
+    id: '5149',
+    name: 'Precipitación y Nubes GEOS-FP (SVS #5149)',
+    unit: 'mm/hr',
+    stops: [
+      { value: 0.0, hsl: { h: 215, s: 0.35, l: 0.20 } },
+      { value: 0.3, hsl: { h: 195, s: 0.70, l: 0.55 } },
+      { value: 0.55, hsl: { h: 140, s: 0.78, l: 0.48 } },
+      { value: 0.8, hsl: { h: 48, s: 0.94, l: 0.54 } },
+      { value: 1.0, hsl: { h: 315, s: 0.88, l: 0.52 } },
+    ],
+  },
+  '5152': {
+    id: '5152',
+    name: 'Ozono Cercano a la Superficie O3 (SVS #5152)',
+    unit: 'ppbv',
+    stops: [
+      { value: 0.0, hsl: { h: 220, s: 0.70, l: 0.32 } },
+      { value: 0.3, hsl: { h: 175, s: 0.75, l: 0.48 } },
+      { value: 0.55, hsl: { h: 65, s: 0.90, l: 0.54 } },
+      { value: 0.8, hsl: { h: 26, s: 0.94, l: 0.52 } },
+      { value: 1.0, hsl: { h: 355, s: 0.92, l: 0.46 } },
+    ],
+  },
+  '5150': {
+    id: '5150',
+    name: 'Humedad Cercana a la Superficie (SVS #5150)',
+    unit: 'g/kg',
+    stops: [
+      { value: 0.0, hsl: { h: 35, s: 0.55, l: 0.38 } }, // Seco (ocre/marrón)
+      { value: 0.3, hsl: { h: 55, s: 0.50, l: 0.60 } },
+      { value: 0.6, hsl: { h: 175, s: 0.75, l: 0.48 } }, // Húmedo (turquesa)
+      { value: 1.0, hsl: { h: 215, s: 0.88, l: 0.42 } }, // Muy húmedo (azul profundo)
+    ],
+  },
+  '5148': {
+    id: '5148',
+    name: 'Velocidad del Viento en Superficie (SVS #5148)',
+    unit: 'm/s',
+    stops: [
+      { value: 0.0, hsl: { h: 225, s: 0.55, l: 0.22 } },
+      { value: 0.3, hsl: { h: 190, s: 0.82, l: 0.48 } },
+      { value: 0.6, hsl: { h: 120, s: 0.78, l: 0.52 } },
+      { value: 0.85, hsl: { h: 42, s: 0.95, l: 0.55 } },
+      { value: 1.0, hsl: { h: 320, s: 0.88, l: 0.55 } },
+    ],
+  },
+  '4095': {
+    id: '4095',
+    name: 'Evaporación Potencial Norteamérica (SVS #4095)',
+    unit: 'mm',
+    stops: [
+      { value: 0.0, hsl: { h: 195, s: 0.75, l: 0.42 } },
+      { value: 0.35, hsl: { h: 120, s: 0.65, l: 0.52 } },
+      { value: 0.7, hsl: { h: 45, s: 0.92, l: 0.54 } },
+      { value: 1.0, hsl: { h: 6, s: 0.90, l: 0.45 } },
+    ],
+  },
+  '2900': {
+    id: '2900',
+    name: 'Monóxido de Carbono MOPITT 2000 (SVS #2900)',
+    unit: 'ppbv',
+    stops: [
+      { value: 0.0, hsl: { h: 235, s: 0.78, l: 0.35 } },
+      { value: 0.3, hsl: { h: 185, s: 0.82, l: 0.50 } },
+      { value: 0.6, hsl: { h: 55, s: 0.95, l: 0.55 } },
+      { value: 1.0, hsl: { h: 2, s: 0.94, l: 0.48 } },
+    ],
+  },
   default: {
     id: 'default',
     name: 'Escala Espectral Estándar',

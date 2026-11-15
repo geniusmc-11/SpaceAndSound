@@ -4,6 +4,8 @@
  * Lenguaje: JavaScript puro (ES6+)
  */
 
+import { EXTRA_SVS_DISCS } from './NasaSvsCatalog'
+
 export const NASA_CATEGORIES = ['espacial', 'maritimo', 'grafica', 'huracan', 'maps']
 
 export const RARITY_CONFIG = {
@@ -74,7 +76,7 @@ const SVS_5153_FALLBACK_TOPIC = {
 
 /**
  * Catálogo curado de discos NASA (Sin generación aleatoria/procedural).
- * Contiene únicamente NASA SVS #5153 como disco oficial inicial.
+ * Contiene los 20 datasets reales de NASA SVS (#5153 + 19 adicionales).
  */
 export const CURATED_NASA_DISCS = [
   {
@@ -94,6 +96,7 @@ export const CURATED_NASA_DISCS = [
       'Visualización científica NASA SVS 5153: Concentración global de monóxido de carbono cerca de la superficie estimada por el modelo GEOS-CF.',
     category: 'maps',
     mapProfileId: '5153',
+    ambientStyle: 'maritimo',
     rarity: 'legendario',
     durationSec: 31,
     frameIntervalMs: 1900,
@@ -101,6 +104,7 @@ export const CURATED_NASA_DISCS = [
     imageUrl: SVS_5153_FRAMES[0],
     topicInfo: SVS_5153_FALLBACK_TOPIC,
   },
+  ...EXTRA_SVS_DISCS,
 ]
 
 function stripHtmlToParagraphs(html) {

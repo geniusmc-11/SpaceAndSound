@@ -932,7 +932,7 @@ onBeforeUnmount(() => {
             BAJAS: {{ gameStore.kills }} (DROP CADA {{ KILLS_PER_DROP }})
           </span>
           <span class="text-emerald-300">
-            DISCOS: {{ gameStore.collectedDiscs.length }}
+            DISCOS: {{ gameStore.collectedOfficialCount }}/{{ gameStore.totalCatalogDiscs }}
           </span>
           <span class="text-slate-400">
             POS: ({{ gameStore.playerGrid.x }}, {{ gameStore.playerGrid.z }})

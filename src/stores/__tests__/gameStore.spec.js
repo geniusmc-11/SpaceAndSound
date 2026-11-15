@@ -22,19 +22,22 @@ import {
 import { synthesizeNormalizedMapValue } from '@/composables/useSonifier'
 import { EnemyFactory } from '@/game/EnemyFactory'
 import App from '@/App.vue'
+import DiscVault from '@/components/DiscVault.vue'
 
-describe('useGameStore - NASA Space Apps (SVS #5153 + Opción B)', () => {
+describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('inicializa con 2 corazones, 5 cuadritos de energía, layout bloqueado y únicamente NASA SVS #5153 en el catálogo', () => {
+  it('inicializa con 2 corazones, 5 cuadritos de energía, layout bloqueado y 20 discos oficiales NASA SVS en el catálogo', () => {
     const store = useGameStore()
     expect(store.health).toBe(MAX_HEALTH)
     expect(store.energy).toBe(MAX_ENERGY)
     expect(store.layoutUnlocked).toBe(false)
     expect(store.activeSection).toBe(1)
-    expect(CURATED_NASA_DISCS).toHaveLength(1)
+    expect(CURATED_NASA_DISCS).toHaveLength(20)
+    expect(store.totalCatalogDiscs).toBe(20)
+    expect(store.collectedOfficialCount).toBe(0)
     expect(store.catalogDiscs[0].id).toBe('nasa-svs-5153')
     expect(store.catalogDiscs[0].frames).toHaveLength(16)
   })
@@ -66,7 +69,7 @@ describe('useGameStore - NASA Space Apps (SVS #5153 + Opción B)', () => {
     expect(store.energy).toBe(2)
   })
 
-  it('despliega únicamente NASA SVS #5153 cada KILLS_PER_DROP (2) bajas y no genera discos aleatorios', () => {
+  it('despliega secuencialmente los 20 discos NASA SVS cada KILLS_PER_DROP (2) bajas y se agota al recolectar todos', () => {
     const store = useGameStore()
     expect(KILLS_PER_DROP).toBe(2)
     expect(store.pendingDrops.length).toBe(0)
@@ -82,10 +85,21 @@ describe('useGameStore - NASA Space Apps (SVS #5153 + Opción B)', () => {
     expect(drop2.frames).toHaveLength(16)
     expect(store.pendingDrops.length).toBe(1)
 
-    // Recoger SVS #5153
+    // Recoger SVS #5153 y verificar contador oficial
     store.collectDisc(drop2)
+    expect(store.collectedOfficialCount).toBe(1)
 
-    // Bajas adicionales no deben autogenerar discos aleatorios
+    // Recolectar los 19 discos restantes del catálogo oficial
+    for (let i = 1; i < 20; i++) {
+      store.registerEnemyKill({ x: 0, z: -2 })
+      const nextDrop = store.registerEnemyKill({ x: 0, z: -2 })
+      expect(nextDrop).not.toBeNull()
+      expect(nextDrop.id).toBe(CURATED_NASA_DISCS[i].id)
+      store.collectDisc(nextDrop)
+    }
+    expect(store.collectedOfficialCount).toBe(20)
+
+    // Bajas adicionales después de los 20 discos no deben autogenerar discos aleatorios
     store.registerEnemyKill({ x: 0, z: -2 })
     const dropAfterCatalogExhausted = store.registerEnemyKill({ x: 0, z: -2 })
     expect(dropAfterCatalogExhausted).toBeNull()
@@ -218,5 +232,20 @@ describe('useGameStore - NASA Space Apps (SVS #5153 + Opción B)', () => {
     expect(lowSynth.normalizedValue).toBeCloseTo(coldNorm, 2)
     expect(highSynth.normalizedValue).toBeCloseTo(hotNorm, 2)
     expect(lowSynth.primaryNote).not.toBe(highSynth.primaryNote)
+
+    // Verificar perfiles agregados para nuevos mapas SVS
+    for (const id of ['5154', '5149', '5152', '5150', '5148', '4095', '2900']) {
+      expect(COLORBAR_PROFILES[id].stops.length).toBeGreaterThanOrEqual(4)
+    }
+  })
+
+  it('muestra el progreso total del catálogo (recolectados / 20) en DiscVault', () => {
+    const store = useGameStore()
+    store.collectDisc(CURATED_NASA_DISCS[0])
+
+    const wrapper = mount(DiscVault)
+    const badge = wrapper.find('[data-testid="vault-progress-badge"]')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toContain('DISCOS: 1 / 20')
   })
 })

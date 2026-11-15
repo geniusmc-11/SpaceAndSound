@@ -5,7 +5,8 @@
  * Incluye:
  * - Opción B: Secuencia de fotogramas precargados en Uint8ClampedArray fuera de Vue reactivity.
  * - Modo 'maps': Desacoplado vía ColorbarMapper (RGB -> HSL -> flotante [0.0..1.0]).
- * - Modo 'espacial': Timbre brillante/cristalino (FMSynth + filtro abierto + octavas luminosas).
+ * - Modo 'espacial' 8D: Audio orbital 360° con Tone.Panner3D (HRTF), PingPongDelay y FM Shimmer brillante.
+ * - Segundo Sonido de Fondo desde rareza 'raro' en adelante: Cama ambiental 'maritimo' (oleaje LFO) o 'espacial' (drone 8D).
  * - Modo Hover Legendario: Repasar los píxeles de la imagen/fotogramas con el cursor genera sonido en tiempo real.
  */
 
@@ -18,7 +19,6 @@ const SCALES = {
   grafica: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
   maritimo: ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5'],
   maps: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
-  // Registros más altos y luminosos para estrellas/nebulosas (Lidio / Pentatónica aguda)
   espacialHigh: ['E5', 'F#5', 'G#5', 'B5', 'C#6', 'E6', 'F#6', 'G#6', 'B6', 'E7'],
   espacialIR: [
     ['C3', 'G3', 'D4', 'E4'],
@@ -46,6 +46,7 @@ let pixelBuffer = null
 let currentFrameIndex = 0
 let currentFrameIntervalMs = 1900
 let activeMapProfileId = 'default'
+let activeAmbientStyle = 'maritimo'
 let loadedDiscId = null
 let loadGeneration = 0
 
@@ -54,6 +55,8 @@ let canvasHeight = 128
 let scanX = 0
 let scanTimerId = null
 let frameTimerId = null
+let orbitTimerId = null
+let orbitAngle = 0
 let audioInitialized = false
 let lastHoverSoundAt = 0
 let hoverPausedAutoScan = false
@@ -67,6 +70,15 @@ let shimmerSynth = null
 let padPolySynth = null
 let filterNode = null
 let reverbNode = null
+let pingPongDelay = null
+let spatial8DPanner = null
+
+// Segundo sonido de fondo (activo desde 'raro' en adelante: 'maritimo' o 'espacial')
+let oceanNoise = null
+let oceanAutoFilter = null
+let oceanGain = null
+let spaceBgDrone = null
+let spaceBgActive = false
 
 const scanListeners = new Set()
 const frameListeners = new Set()
@@ -85,10 +97,37 @@ function ensureHiddenCanvas() {
   return hiddenCtx
 }
 
+function update8DOrbitPosition(angleRad) {
+  if (!spatial8DPanner) return
+  const radius = 2.6
+  const x = Math.cos(angleRad) * radius
+  const y = Math.sin(angleRad * 0.5) * 0.85
+  const z = Math.sin(angleRad) * radius
+  try {
+    spatial8DPanner.positionX.value = x
+    spatial8DPanner.positionY.value = y
+    spatial8DPanner.positionZ.value = z
+  } catch {
+    // Fallback si el entorno mock no expone AudioParam .value
+  }
+}
+
 async function ensureAudioGraph() {
   if (audioInitialized) return true
   try {
     await Tone.start()
+
+    // Nodo 8D HRTF orbital conectado a destino
+    spatial8DPanner = new Tone.Panner3D({
+      panningModel: 'HRTF',
+      distanceModel: 'inverse',
+      refDistance: 1.0,
+      rolloffFactor: 0.9,
+      positionX: 0,
+      positionY: 0,
+      positionZ: -2,
+    }).toDestination()
+
     filterNode = new Tone.Filter({
       frequency: 2800,
       type: 'lowpass',
@@ -96,9 +135,16 @@ async function ensureAudioGraph() {
     }).toDestination()
 
     reverbNode = new Tone.Reverb({
-      decay: 3.0,
-      wet: 0.35,
+      decay: 3.2,
+      wet: 0.36,
     }).connect(filterNode)
+
+    // Eco estéreo PingPong conectado al Panner 8D para envolvente espacial
+    pingPongDelay = new Tone.PingPongDelay({
+      delayTime: '8n',
+      feedback: 0.32,
+      wet: 0.28,
+    }).connect(spatial8DPanner)
 
     leadSynth = new Tone.Synth({
       oscillator: { type: 'triangle8' },
@@ -122,29 +168,108 @@ async function ensureAudioGraph() {
       oscillator: { type: 'triangle' },
       envelope: { attack: 0.002, decay: 0.22, sustain: 0.0, release: 0.25 },
       volume: -8,
-    }).connect(reverbNode)
+    }).connect(pingPongDelay)
 
-    // Sintetizador FM cristalino para destellos brillantes en estrellas/nebulosas y hover
+    // Sintetizador FM cristalino conectado al Panner 8D
     shimmerSynth = new Tone.FMSynth({
       harmonicity: 3.01,
-      modulationIndex: 4.5,
+      modulationIndex: 4.8,
       oscillator: { type: 'sine' },
       modulation: { type: 'triangle' },
       envelope: { attack: 0.003, decay: 0.25, sustain: 0.05, release: 0.45 },
       modulationEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.1, release: 0.3 },
-      volume: -11,
-    }).connect(reverbNode)
+      volume: -10,
+    }).connect(pingPongDelay)
 
     padPolySynth = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: 'sine' },
-      envelope: { attack: 0.05, decay: 0.3, sustain: 0.45, release: 0.7 },
+      envelope: { attack: 0.06, decay: 0.32, sustain: 0.45, release: 0.75 },
       volume: -14,
-    }).connect(reverbNode)
+    }).connect(spatial8DPanner)
+
+    // --- Segundo Sonido de Fondo (para discos 'raro', 'epico', 'legendario') ---
+    oceanGain = new Tone.Gain(0.0).toDestination()
+    oceanAutoFilter = new Tone.AutoFilter({
+      frequency: 0.14,
+      baseFrequency: 170,
+      octaves: 2.3,
+      depth: 0.85,
+    })
+      .connect(oceanGain)
+      .start()
+
+    oceanNoise = new Tone.Noise('pink').connect(oceanAutoFilter)
+    oceanNoise.volume.value = -22
+
+    spaceBgDrone = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'sine' },
+      envelope: { attack: 1.2, decay: 0.5, sustain: 0.85, release: 1.8 },
+      volume: -23,
+    }).connect(spatial8DPanner)
 
     audioInitialized = true
     return true
   } catch {
     return false
+  }
+}
+
+function resolveAmbientStyle(disc) {
+  if (disc?.ambientStyle === 'maritimo' || disc?.ambientStyle === 'espacial') {
+    return disc.ambientStyle
+  }
+  const cat = disc?.category || activeMode.value
+  if (cat === 'espacial' || cat === 'grafica') return 'espacial'
+  return 'maritimo'
+}
+
+function startSecondaryAmbientBed(rarity, style) {
+  stopSecondaryAmbientBed()
+  if (!audioInitialized) return
+  // El segundo sonido de fondo solo se activa desde 'raro' en adelante
+  if (rarity !== 'raro' && rarity !== 'epico' && rarity !== 'legendario') return
+
+  if (style === 'maritimo' && oceanNoise && oceanGain) {
+    try {
+      if (oceanNoise.state !== 'started') {
+        oceanNoise.start()
+      }
+      oceanGain.gain.rampTo(0.28, 0.8)
+    } catch {
+      // Ignorar en entornos sin Web Audio completo
+    }
+  } else if (style === 'espacial' && spaceBgDrone) {
+    try {
+      spaceBgDrone.triggerAttack(['C2', 'G2', 'D3'])
+      spaceBgActive = true
+    } catch {
+      // Ignorar en entornos sin Web Audio completo
+    }
+  }
+}
+
+function stopSecondaryAmbientBed() {
+  if (oceanGain) {
+    try {
+      oceanGain.gain.rampTo(0.0, 0.25)
+    } catch {
+      // noop
+    }
+  }
+  if (oceanNoise) {
+    try {
+      if (oceanNoise.state === 'started') oceanNoise.stop()
+    } catch {
+      // noop
+    }
+  }
+  if (spaceBgDrone && spaceBgActive) {
+    try {
+      spaceBgDrone.releaseAll()
+    } catch {
+      // noop
+    }
+    spaceBgActive = false
   }
 }
 
@@ -164,12 +289,11 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorN
   if (!audioInitialized || !leadSynth) return
 
   if (reverbNode) {
-    reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.38 : 0.54
+    reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.38 : 0.56
   }
 
   if (filterNode) {
     if (activeMode.value === 'espacial') {
-      // Filtro completamente abierto/brillante para estrellas y nebulosas
       filterNode.frequency.value = 9500
     } else if (rarity === 'epico' || rarity === 'legendario') {
       const cutoff = 480 + Math.floor(Math.max(0, Math.min(1, normValue)) * 4200)
@@ -224,11 +348,6 @@ export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendar
 }
 
 const SONIFICATION_STRATEGIES = {
-  /**
-   * Nuevo tipo 'maps':
-   * Lee píxeles con getImageData() -> convierte RGB a HSL -> calcula posición [0.0..1.0]
-   * en el perfil del mapa activo -> pasa únicamente ese flotante limpio al sintetizador.
-   */
   maps(colX, rarity) {
     let sumNormalized = 0
     let maxNormalized = 0
@@ -338,8 +457,7 @@ const SONIFICATION_STRATEGIES = {
   },
 
   /**
-   * Estrellas / Nebulosas (Timbre más brillante, cristalino y agudo):
-   * Usa FMSynth + filtro abierto (9.5kHz) + acordes Lidios/luminosos.
+   * Estrellas / Nebulosas 8D (Audio orbital HRTF + FMSynth cristalino + PingPongDelay):
    */
   espacial(colX, rarity) {
     let starY = -1
@@ -349,7 +467,7 @@ const SONIFICATION_STRATEGIES = {
     for (let y = 0; y < canvasHeight; y += 2) {
       const { r, g, b } = getPixelAt(colX, y)
       const sum = r + g + b
-      if (sum > 690 && starY === -1) {
+      if (sum > 660 && starY === -1) {
         starY = y
       } else if (sum > 90) {
         if (r > b * 1.25) redEnergy += r
@@ -400,10 +518,10 @@ const SONIFICATION_STRATEGIES = {
       normValue: Number(normLuma.toFixed(2)),
       detail:
         starY !== -1
-          ? `DESTELLO ESTELAR CRISTALINO (${primaryNote})`
+          ? `8D DESTELLO ESTELAR (${primaryNote})`
           : isInfraredDominant
-            ? `NEBULOSA IR LUMINOSA (${chord.join(' ')})`
-            : `NEBULOSA UV BRILLANTE (${chord.join(' ')})`,
+            ? `8D NEBULOSA IR (${chord.join(' ')})`
+            : `8D NEBULOSA UV (${chord.join(' ')})`,
     }
   },
 
@@ -484,6 +602,7 @@ export function useSonifier() {
     activeMode.value = disc.category || 'maps'
     activeRarity.value = disc.rarity || 'legendario'
     activeMapProfileId = String(disc.mapProfileId || disc.svsId || 'default')
+    activeAmbientStyle = resolveAmbientStyle(disc)
     currentFrameIntervalMs = disc.frameIntervalMs || 1900
 
     const isSameDisc = loadedDiscId === disc.id && frameBuffers.length > 0
@@ -535,7 +654,7 @@ export function useSonifier() {
         try {
           frameBuffers[i] = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
         } catch {
-          // Ignorar si falla lectura
+          // Ignorar fotograma si falla lectura
         }
       }
     }
@@ -562,11 +681,6 @@ export function useSonifier() {
     hoverPausedAutoScan = Boolean(active)
   }
 
-  /**
-   * MODO HOVER PARA DISCOS LEGENDARIOS:
-   * Lee el píxel exacto bajo el cursor (normX, normY en [0..1]) del fotograma actual
-   * y sintetiza el sonido directamente según la estrategia del disco.
-   */
   async function probeHoverPixel(normX, normY, disc = null) {
     if (disc) {
       if (disc.rarity !== 'legendario') return null
@@ -586,6 +700,8 @@ export function useSonifier() {
     lastHoverSoundAt = now
 
     await ensureAudioGraph()
+    orbitAngle = (orbitAngle + 0.22) % (Math.PI * 2)
+    update8DOrbitPosition(orbitAngle)
 
     const clampedNX = Math.max(0, Math.min(1, Number(normX) || 0))
     const clampedNY = Math.max(0, Math.min(1, Number(normY) || 0))
@@ -609,7 +725,7 @@ export function useSonifier() {
       const noteIdx = Math.min(highScale.length - 1, Math.floor(yNorm * highScale.length))
       const primaryNote = highScale[noteIdx]
       if (filterNode) filterNode.frequency.value = 9500
-      if (sum > 520 && audioInitialized && shimmerSynth) {
+      if (sum > 480 && audioInitialized && shimmerSynth) {
         shimmerSynth.triggerAttackRelease(primaryNote, '16n')
       } else {
         const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
@@ -619,7 +735,7 @@ export function useSonifier() {
         mode: 'espacial',
         primaryNote,
         normValue: Number((sum / 765).toFixed(2)),
-        detail: `HOVER ESTELAR (${px},${py}) -> ${primaryNote}`,
+        detail: `8D HOVER ESTELAR (${px},${py}) -> ${primaryNote}`,
       }
     } else {
       const strategy = SONIFICATION_STRATEGIES[mode] || SONIFICATION_STRATEGIES.maps
@@ -677,6 +793,16 @@ export function useSonifier() {
     stop()
     isRunning.value = true
 
+    // Activar órbita 8D continua (rotación suave de 360° alrededor del oyente)
+    orbitTimerId = setInterval(() => {
+      if (!isRunning.value) return
+      orbitAngle = (orbitAngle + 0.08) % (Math.PI * 2)
+      update8DOrbitPosition(orbitAngle)
+    }, 50)
+
+    // Activar segundo sonido de fondo ('maritimo' o 'espacial') desde rareza 'raro' en adelante
+    startSecondaryAmbientBed(activeRarity.value, activeAmbientStyle)
+
     const runLoop = () => {
       if (!isRunning.value) return
       let result = null
@@ -713,6 +839,11 @@ export function useSonifier() {
       clearInterval(frameTimerId)
       frameTimerId = null
     }
+    if (orbitTimerId) {
+      clearInterval(orbitTimerId)
+      orbitTimerId = null
+    }
+    stopSecondaryAmbientBed()
   }
 
   function setScanPosition(newX) {

@@ -78,6 +78,15 @@ export const useGameStore = defineStore('game', () => {
   const killsUntilNextDrop = computed(
     () => KILLS_PER_DROP - (killsSinceLastDrop.value % KILLS_PER_DROP)
   )
+  const totalCatalogDiscs = computed(() => catalogDiscs.value.length)
+  const collectedOfficialCount = computed(() => {
+    const officialIds = new Set(catalogDiscs.value.map((d) => d.id))
+    return collectedDiscs.value.filter((d) => officialIds.has(d.id)).length
+  })
+  const customDiscCount = computed(() => {
+    const officialIds = new Set(catalogDiscs.value.map((d) => d.id))
+    return collectedDiscs.value.filter((d) => !officialIds.has(d.id)).length
+  })
 
   // --- Acciones de Energía y Combate ---
   function shoot() {
@@ -419,6 +428,9 @@ export const useGameStore = defineStore('game', () => {
     canShoot,
     canDash,
     killsUntilNextDrop,
+    totalCatalogDiscs,
+    collectedOfficialCount,
+    customDiscCount,
     // Acciones
     shoot,
     dash,

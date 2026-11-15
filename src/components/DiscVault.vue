@@ -77,18 +77,42 @@ function handleVaultLegendaryHover(event, disc) {
       class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b-2 border-sky-500/50 pb-4"
     >
       <div>
-        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sky-400">
-          <span>[SECCIÓN IZQUIERDA // ARCHIVO ORBITAL]</span>
-          <span class="border border-sky-500/40 bg-sky-950/60 px-2 py-0.5 text-[10px]">
-            {{ gameStore.collectedDiscs.length }} PISTAS EN BÓVEDA
+        <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest text-sky-400">
+          <span>[SECCIÓN IZQUIERDA // GALERÍA ORBITAL]</span>
+          <span
+            data-testid="vault-progress-badge"
+            class="border border-amber-400/70 bg-amber-950/70 px-2 py-0.5 text-[11px] font-black text-amber-300"
+          >
+            DISCOS: {{ gameStore.collectedOfficialCount }} / {{ gameStore.totalCatalogDiscs }}
+          </span>
+          <span
+            v-if="gameStore.customDiscCount > 0"
+            class="border border-emerald-400/60 bg-emerald-950/60 px-2 py-0.5 text-[10px] text-emerald-300"
+          >
+            + {{ gameStore.customDiscCount }} EXTRA
           </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
           BÓVEDA DE DISCOS // LOBBY TRACKS 32-BIT
         </h1>
-        <p class="text-xs text-slate-400">
-          Selecciona un disco para reproducirlo en el Laboratorio NASA o añade tus propios videos (Opción B) e imágenes.
-        </p>
+        <!-- Barra de progreso de colección total -->
+        <div class="mt-1.5 flex items-center gap-3">
+          <div class="h-2.5 w-48 border border-sky-500/60 bg-slate-900 p-0.5">
+            <div
+              class="h-full bg-amber-400 transition-all duration-300"
+              :style="{
+                width: `${
+                  gameStore.totalCatalogDiscs > 0
+                    ? Math.round((gameStore.collectedOfficialCount / gameStore.totalCatalogDiscs) * 100)
+                    : 0
+                }%`,
+              }"
+            ></div>
+          </div>
+          <span class="text-[11px] font-bold text-slate-300">
+            {{ gameStore.collectedDiscs.length }} PISTAS DESBLOQUEADAS DE {{ gameStore.totalCatalogDiscs }} TOTALES
+          </span>
+        </div>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
@@ -124,24 +148,24 @@ function handleVaultLegendaryHover(event, disc) {
       </p>
     </div>
 
-    <!-- Cuadrícula estilo "Lobby Tracks de Fortnite" (Funda Pixel Art + Disco Pixel Art sobresaliendo) -->
+    <!-- Cuadrícula estilo "Lobby Tracks de Fortnite" (Funda Pixel Art + Disco Pixel Art grande sobresaliendo) -->
     <div
       v-else
-      class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
     >
       <article
         v-for="disc in gameStore.collectedDiscs"
         :key="disc.id"
-        class="group relative flex cursor-pointer flex-col pr-14 transition-transform duration-200 hover:-translate-y-1"
+        class="group relative flex cursor-pointer flex-col pr-20 transition-transform duration-200 hover:-translate-y-1 sm:pr-24"
         @click="handleSelectDisc(disc)"
       >
-        <!-- Contenedor Funda + Disco Sobresaliente -->
+        <!-- Contenedor Funda + Disco Sobresaliente más grande -->
         <div class="relative flex items-center">
-          <!-- Disco Pixel Art 32x32 que sobresale por detrás a la derecha -->
+          <!-- Disco Pixel Art 32x32 más grande que sobresale por detrás a la derecha -->
           <div
-            class="absolute right-0 z-0 h-36 w-36 translate-x-10 transition-transform duration-300 ease-out group-hover:translate-x-14 sm:h-40 sm:w-40"
+            class="absolute right-0 z-0 h-44 w-44 translate-x-14 transition-transform duration-300 ease-out group-hover:translate-x-20 sm:h-52 sm:w-52"
             :class="
-              gameStore.currentDisc?.id === disc.id ? 'translate-x-14' : ''
+              gameStore.currentDisc?.id === disc.id ? 'translate-x-20' : ''
             "
           >
             <PixelDiscSprite

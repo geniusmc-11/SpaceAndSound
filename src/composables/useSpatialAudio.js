@@ -27,7 +27,7 @@ function getContext() {
 
 function createSpatialPanner(ctx, sourcePos, listenerPos, listenerYaw = 0) {
   const panner = ctx.createPanner()
-  panner.panningModel = 'equalpower'
+  panner.panningModel = 'HRTF'
   panner.distanceModel = 'inverse'
   panner.refDistance = 1.2
   panner.maxDistance = 18
