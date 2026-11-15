@@ -11,8 +11,15 @@ import {
   DASH_COST,
   DASH_DISTANCE,
   CURATED_NASA_DISCS,
+  NASA_CATEGORIES,
 } from '@/stores/useGameStore'
 import { buildDiscRecord } from '@/game/MediaFrameConverter'
+import {
+  COLORBAR_PROFILES,
+  rgbToHsl,
+  mapRgbPixelToNormalizedValue,
+} from '@/game/ColorbarMapper'
+import { synthesizeNormalizedMapValue } from '@/composables/useSonifier'
 import { EnemyFactory } from '@/game/EnemyFactory'
 import App from '@/App.vue'
 
@@ -182,5 +189,34 @@ describe('useGameStore - NASA Space Apps (SVS #5153 + Opción B)', () => {
     expect(store.activeSection).toBe(1)
     expect(wrapper.find('[data-testid="edge-indicator-left"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="edge-indicator-right"]').exists()).toBe(true)
+  })
+
+  it('desacopla mapas tipo "maps" mediante perfiles de colorbar HSL y pasa solo un flotante limpio [0.0..1.0]', () => {
+    expect(NASA_CATEGORIES).toContain('maps')
+    expect(COLORBAR_PROFILES['5147'].stops.length).toBeGreaterThanOrEqual(4)
+    expect(COLORBAR_PROFILES['5151'].stops.length).toBeGreaterThanOrEqual(4)
+    expect(COLORBAR_PROFILES['5153'].stops.length).toBeGreaterThanOrEqual(4)
+
+    // Conversión RGB -> HSL
+    const hslBlue = rgbToHsl(16, 40, 210)
+    const hslRed = rgbToHsl(230, 24, 24)
+    expect(hslBlue.h).toBeGreaterThan(200)
+    expect(hslRed.h).toBeLessThan(15)
+
+    // Cálculo continuo en escala [0.0 .. 1.0] para mapa '5147' (Temperatura)
+    const coldNorm = mapRgbPixelToNormalizedValue(20, 60, 210, '5147')
+    const hotNorm = mapRgbPixelToNormalizedValue(225, 25, 20, '5147')
+    expect(coldNorm).toBeGreaterThanOrEqual(0)
+    expect(coldNorm).toBeLessThan(0.35)
+    expect(hotNorm).toBeGreaterThan(0.7)
+    expect(hotNorm).toBeLessThanOrEqual(1)
+
+    // Salida limpia al motor de síntesis (únicamente valor flotante 0.0 - 1.0)
+    const lowSynth = synthesizeNormalizedMapValue(coldNorm, 'legendario')
+    const highSynth = synthesizeNormalizedMapValue(hotNorm, 'legendario')
+    expect(lowSynth.mode).toBe('maps')
+    expect(lowSynth.normalizedValue).toBeCloseTo(coldNorm, 2)
+    expect(highSynth.normalizedValue).toBeCloseTo(hotNorm, 2)
+    expect(lowSynth.primaryNote).not.toBe(highSynth.primaryNote)
   })
 })

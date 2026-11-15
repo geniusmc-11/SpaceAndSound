@@ -11,6 +11,7 @@ const sonifier = useSonifier()
 
 const displayCanvasRef = ref(null)
 const laserLineRef = ref(null)
+const hoverDotRef = ref(null)
 const scanColumnTextRef = ref(null)
 const scanNoteTextRef = ref(null)
 
@@ -18,6 +19,7 @@ const activeFrameIndex = ref(0)
 const showUploader = ref(false)
 const topicInfo = ref(null)
 const isLoadingTopic = ref(false)
+const isHoverProbing = ref(false)
 
 let unsubscribeScan = null
 let unsubscribeFrame = null
@@ -106,15 +108,22 @@ onMounted(async () => {
     loadTopicDetails(currentDisc.value)
   }
 
-  unsubscribeScan = sonifier.onScanStep(({ scanX, canvasWidth, normalizedX, telemetry }) => {
+  unsubscribeScan = sonifier.onScanStep(({ scanX, canvasWidth, normalizedX, normalizedY, telemetry }) => {
     if (laserLineRef.value) {
       laserLineRef.value.style.left = `${(normalizedX * 100).toFixed(2)}%`
+    }
+    if (hoverDotRef.value && typeof normalizedY === 'number') {
+      hoverDotRef.value.style.top = `${(normalizedY * 100).toFixed(2)}%`
     }
     if (scanColumnTextRef.value) {
       scanColumnTextRef.value.textContent = `SCAN_X: ${String(scanX).padStart(3, '0')} / ${canvasWidth}`
     }
     if (scanNoteTextRef.value && telemetry) {
-      scanNoteTextRef.value.textContent = `NOTA: ${telemetry.primaryNote}`
+      const extra =
+        typeof telemetry.normalizedValue === 'number'
+          ? ` [${Math.round(telemetry.normalizedValue * 100)}%]`
+          : ''
+      scanNoteTextRef.value.textContent = `NOTA: ${telemetry.primaryNote}${extra}`
     }
   })
 
@@ -151,6 +160,30 @@ function handleCanvasSeek(event) {
   }
   sonifier.stepScan()
 }
+
+function handleLegendaryHoverMove(event) {
+  if (!currentDisc.value || currentDisc.value.rarity !== 'legendario' || !displayCanvasRef.value) {
+    return
+  }
+  const clientX = event.touches ? event.touches[0]?.clientX : event.clientX
+  const clientY = event.touches ? event.touches[0]?.clientY : event.clientY
+  if (typeof clientX !== 'number' || typeof clientY !== 'number') return
+
+  const rect = displayCanvasRef.value.getBoundingClientRect()
+  const normX = Math.max(0, Math.min(1, (clientX - rect.left) / Math.max(1, rect.width)))
+  const normY = Math.max(0, Math.min(1, (clientY - rect.top) / Math.max(1, rect.height)))
+
+  isHoverProbing.value = true
+  sonifier.setHoverActive(true)
+  sonifier.probeHoverPixel(normX, normY, currentDisc.value)
+}
+
+function handleLegendaryHoverLeave() {
+  if (isHoverProbing.value) {
+    isHoverProbing.value = false
+    sonifier.setHoverActive(false)
+  }
+}
 </script>
 
 <template>
@@ -169,6 +202,12 @@ function handleCanvasSeek(event) {
             class="border border-sky-500/60 bg-sky-950/70 px-2 py-0.5 text-[10px] text-sky-300"
           >
             OPCIÓN B: {{ totalFrames }} FOTOGRAMAS
+          </span>
+          <span
+            v-if="currentDisc?.rarity === 'legendario'"
+            class="border border-yellow-400/80 bg-yellow-950/80 px-2 py-0.5 text-[10px] text-yellow-300"
+          >
+            ✨ HOVER LEGENDARIO ACTIVO
           </span>
         </div>
         <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
@@ -220,8 +259,16 @@ function handleCanvasSeek(event) {
         <div
           class="relative flex-1 cursor-crosshair overflow-hidden border-2 bg-black min-h-[240px] md:min-h-[340px]"
           :class="rarityMeta.borderClass"
-          title="Haz clic para mover el láser scanX"
+          :title="
+            currentDisc.rarity === 'legendario'
+              ? 'Disco Legendario: pasa el cursor sobre los píxeles para sonificar en tiempo real'
+              : 'Haz clic para mover el láser scanX'
+          "
           @click="handleCanvasSeek"
+          @mousemove="handleLegendaryHoverMove"
+          @mouseleave="handleLegendaryHoverLeave"
+          @touchmove.passive="handleLegendaryHoverMove"
+          @touchend.passive="handleLegendaryHoverLeave"
         >
           <canvas
             ref="displayCanvasRef"
@@ -238,6 +285,12 @@ function handleCanvasSeek(event) {
           >
             <div
               class="absolute -top-0.5 -left-1.5 h-3 w-3 rotate-45 bg-rose-400 shadow-[0_0_6px_#fff]"
+            ></div>
+            <div
+              v-show="isHoverProbing"
+              ref="hoverDotRef"
+              class="absolute -left-2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-yellow-300 bg-yellow-400/30 shadow-[0_0_10px_#facc15]"
+              style="top: 50%"
             ></div>
           </div>
 

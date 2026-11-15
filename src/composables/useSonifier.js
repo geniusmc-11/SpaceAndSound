@@ -1,32 +1,36 @@
 /**
- * Motor de Sonificación Modular (useSonifier.js) — Opción B (Secuencia de Fotogramas + Imágenes Directas)
+ * Motor de Sonificación Modular (useSonifier.js)
  * Categoría NASA Space Apps: "The Earth Information Jukebox"
  *
- * RENDIMIENTO CRÍTICO:
- * - El <canvas> oculto usa { willReadFrequently: true }.
- * - Los arreglos de píxeles por fotograma (frameBuffers / pixelBuffer), el puntero scanX,
- *   el índice de fotograma actual y todas las instancias de Tone.js viven FUERA de ref() y reactive().
+ * Incluye:
+ * - Opción B: Secuencia de fotogramas precargados en Uint8ClampedArray fuera de Vue reactivity.
+ * - Modo 'maps': Desacoplado vía ColorbarMapper (RGB -> HSL -> flotante [0.0..1.0]).
+ * - Modo 'espacial': Timbre brillante/cristalino (FMSynth + filtro abierto + octavas luminosas).
+ * - Modo Hover Legendario: Repasar los píxeles de la imagen/fotogramas con el cursor genera sonido en tiempo real.
  */
 
 import { ref } from 'vue'
 import * as Tone from 'tone'
 import { loadImageElement } from '@/game/NasaDatasetGenerator'
+import { mapRgbPixelToNormalizedValue } from '@/game/ColorbarMapper'
 
 const SCALES = {
   grafica: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
   maritimo: ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5'],
-  espacialHigh: ['C5', 'D5', 'F#5', 'G5', 'A5', 'B5', 'D6', 'E6', 'F#6', 'G6'],
+  maps: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
+  // Registros más altos y luminosos para estrellas/nebulosas (Lidio / Pentatónica aguda)
+  espacialHigh: ['E5', 'F#5', 'G#5', 'B5', 'C#6', 'E6', 'F#6', 'G#6', 'B6', 'E7'],
   espacialIR: [
-    ['C2', 'G2', 'Eb3'],
-    ['D2', 'A2', 'F3'],
-    ['Eb2', 'Bb2', 'G3'],
-    ['F2', 'C3', 'Ab3'],
+    ['C3', 'G3', 'D4', 'E4'],
+    ['D3', 'A3', 'E4', 'F#4'],
+    ['F3', 'C4', 'G4', 'A4'],
+    ['G3', 'D4', 'A4', 'B4'],
   ],
   espacialUV: [
-    ['C4', 'E4', 'G4', 'B4'],
-    ['D4', 'F#4', 'A4', 'C#5'],
-    ['E4', 'G#4', 'B4', 'D#5'],
-    ['G4', 'B4', 'D5', 'F#5'],
+    ['E4', 'G#4', 'B4', 'D#5', 'F#5'],
+    ['F#4', 'A#4', 'C#5', 'F5', 'G#5'],
+    ['G#4', 'B4', 'D#5', 'F#5', 'A#5'],
+    ['B4', 'D#5', 'F#5', 'A#5', 'C#6'],
   ],
   huracanCalm: ['C3', 'G3', 'D4', 'E4', 'G4', 'A4', 'C5'],
   huracanTense: ['C3', 'Db3', 'E3', 'F#3', 'G3', 'Ab3', 'B3', 'C4', 'Db4', 'E4', 'F#4', 'Bb4'],
@@ -37,10 +41,11 @@ const SCALES = {
 // ============================================================================
 let hiddenCanvas = null
 let hiddenCtx = null
-let frameBuffers = [] // Array<Uint8ClampedArray> precargado para Opción B
-let pixelBuffer = null // Apuntador al fotograma activo en reproducción
+let frameBuffers = []
+let pixelBuffer = null
 let currentFrameIndex = 0
 let currentFrameIntervalMs = 1900
+let activeMapProfileId = 'default'
 let loadedDiscId = null
 let loadGeneration = 0
 
@@ -50,23 +55,25 @@ let scanX = 0
 let scanTimerId = null
 let frameTimerId = null
 let audioInitialized = false
+let lastHoverSoundAt = 0
+let hoverPausedAutoScan = false
 
 // Instancias de Tone.js (estrictamente fuera de Vue Reactivity)
 let leadSynth = null
 let harmonySynth = null
 let bassDrone = null
 let pluckSynth = null
+let shimmerSynth = null
 let padPolySynth = null
 let filterNode = null
 let reverbNode = null
 
-// Suscriptores de frame y barrido láser sin re-renderizar Vue
 const scanListeners = new Set()
 const frameListeners = new Set()
 
 const isRunning = ref(false)
-const activeMode = ref('huracan')
-const activeRarity = ref('epico')
+const activeMode = ref('maps')
+const activeRarity = ref('legendario')
 
 function ensureHiddenCanvas() {
   if (!hiddenCanvas && typeof document !== 'undefined') {
@@ -83,44 +90,55 @@ async function ensureAudioGraph() {
   try {
     await Tone.start()
     filterNode = new Tone.Filter({
-      frequency: 1800,
+      frequency: 2800,
       type: 'lowpass',
       rolloff: -12,
     }).toDestination()
 
     reverbNode = new Tone.Reverb({
-      decay: 2.8,
+      decay: 3.0,
       wet: 0.35,
     }).connect(filterNode)
 
     leadSynth = new Tone.Synth({
-      oscillator: { type: 'square8' },
-      envelope: { attack: 0.01, decay: 0.12, sustain: 0.2, release: 0.25 },
-      volume: -10,
+      oscillator: { type: 'triangle8' },
+      envelope: { attack: 0.008, decay: 0.14, sustain: 0.22, release: 0.28 },
+      volume: -9,
     }).connect(reverbNode)
 
     harmonySynth = new Tone.Synth({
-      oscillator: { type: 'triangle8' },
-      envelope: { attack: 0.02, decay: 0.15, sustain: 0.25, release: 0.35 },
-      volume: -14,
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.015, decay: 0.18, sustain: 0.25, release: 0.38 },
+      volume: -13,
     }).connect(reverbNode)
 
     bassDrone = new Tone.MonoSynth({
       oscillator: { type: 'sawtooth' },
       envelope: { attack: 0.05, decay: 0.2, sustain: 0.6, release: 0.4 },
-      volume: -15,
+      volume: -16,
     }).connect(filterNode)
 
     pluckSynth = new Tone.Synth({
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.002, decay: 0.22, sustain: 0.0, release: 0.25 },
+      volume: -8,
+    }).connect(reverbNode)
+
+    // Sintetizador FM cristalino para destellos brillantes en estrellas/nebulosas y hover
+    shimmerSynth = new Tone.FMSynth({
+      harmonicity: 3.01,
+      modulationIndex: 4.5,
       oscillator: { type: 'sine' },
-      envelope: { attack: 0.002, decay: 0.18, sustain: 0.0, release: 0.2 },
-      volume: -9,
+      modulation: { type: 'triangle' },
+      envelope: { attack: 0.003, decay: 0.25, sustain: 0.05, release: 0.45 },
+      modulationEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.1, release: 0.3 },
+      volume: -11,
     }).connect(reverbNode)
 
     padPolySynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.08, decay: 0.3, sustain: 0.4, release: 0.6 },
-      volume: -16,
+      oscillator: { type: 'sine' },
+      envelope: { attack: 0.05, decay: 0.3, sustain: 0.45, release: 0.7 },
+      volume: -14,
     }).connect(reverbNode)
 
     audioInitialized = true
@@ -142,18 +160,23 @@ function getPixelAt(x, y) {
   }
 }
 
-function applyRarityScaling(rarity, primaryNote, harmonyNote, normLuminance, mirrorNote) {
+function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorNote) {
   if (!audioInitialized || !leadSynth) return
 
   if (reverbNode) {
-    reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.42 : 0.58
+    reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.38 : 0.54
   }
 
-  if (filterNode && (rarity === 'epico' || rarity === 'legendario')) {
-    const cutoff = 450 + Math.floor(normLuminance * 3800)
-    filterNode.frequency.value = Math.max(300, Math.min(5000, cutoff))
-  } else if (filterNode) {
-    filterNode.frequency.value = 2400
+  if (filterNode) {
+    if (activeMode.value === 'espacial') {
+      // Filtro completamente abierto/brillante para estrellas y nebulosas
+      filterNode.frequency.value = 9500
+    } else if (rarity === 'epico' || rarity === 'legendario') {
+      const cutoff = 480 + Math.floor(Math.max(0, Math.min(1, normValue)) * 4200)
+      filterNode.frequency.value = Math.max(350, Math.min(5500, cutoff))
+    } else {
+      filterNode.frequency.value = 2600
+    }
   }
 
   if (primaryNote) {
@@ -173,7 +196,58 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normLuminance, mir
   }
 }
 
+/**
+ * SÍNTESIS PURA DESACOPLADA PARA TIPO 'maps':
+ * Recibe ÚNICAMENTE un valor flotante limpio entre 0.0 y 1.0 (sin ninguna dependencia con RGB crudos).
+ */
+export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendario') {
+  const v = Math.max(0, Math.min(1, Number(normalizedValue) || 0))
+  const scale = SCALES.maps
+  const noteIdx = Math.min(scale.length - 1, Math.floor(v * scale.length))
+  const primaryNote = scale[noteIdx]
+  const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
+  const mirrorNote = scale[Math.min(scale.length - 1, noteIdx + 4)]
+
+  applyRarityScaling(rarity, primaryNote, harmonyNote, v, mirrorNote)
+
+  if (audioInitialized && bassDrone && v > 0.72) {
+    bassDrone.triggerAttackRelease('C2', '16n')
+  }
+
+  return {
+    mode: 'maps',
+    normalizedValue: Number(v.toFixed(3)),
+    primaryNote,
+    normValue: Number(v.toFixed(2)),
+    detail: `COLORBAR ${activeMapProfileId}: ${(v * 100).toFixed(0)}% (${primaryNote})`,
+  }
+}
+
 const SONIFICATION_STRATEGIES = {
+  /**
+   * Nuevo tipo 'maps':
+   * Lee píxeles con getImageData() -> convierte RGB a HSL -> calcula posición [0.0..1.0]
+   * en el perfil del mapa activo -> pasa únicamente ese flotante limpio al sintetizador.
+   */
+  maps(colX, rarity) {
+    let sumNormalized = 0
+    let maxNormalized = 0
+    let sampleCount = 0
+
+    for (let y = 0; y < canvasHeight; y += 4) {
+      const { r, g, b } = getPixelAt(colX, y)
+      const val = mapRgbPixelToNormalizedValue(r, g, b, activeMapProfileId)
+      sumNormalized += val
+      if (val > maxNormalized) maxNormalized = val
+      sampleCount++
+    }
+
+    const avgNormalized = sampleCount > 0 ? sumNormalized / sampleCount : 0
+    const cleanValue = Math.max(0, Math.min(1, avgNormalized * 0.45 + maxNormalized * 0.55))
+
+    return synthesizeNormalizedMapValue(cleanValue, rarity)
+  },
+
   grafica(colX, rarity) {
     let brightestY = Math.floor(canvasHeight / 2)
     let maxLuma = -1
@@ -263,6 +337,10 @@ const SONIFICATION_STRATEGIES = {
     }
   },
 
+  /**
+   * Estrellas / Nebulosas (Timbre más brillante, cristalino y agudo):
+   * Usa FMSynth + filtro abierto (9.5kHz) + acordes Lidios/luminosos.
+   */
   espacial(colX, rarity) {
     let starY = -1
     let redEnergy = 0
@@ -280,14 +358,23 @@ const SONIFICATION_STRATEGIES = {
     }
 
     const highScale = SCALES.espacialHigh
-    let primaryNote = 'G5'
+    let primaryNote = 'B5'
+
+    if (filterNode) {
+      filterNode.frequency.value = 9500
+    }
 
     if (starY !== -1) {
       const starNorm = 1 - starY / canvasHeight
       const idx = Math.min(highScale.length - 1, Math.floor(starNorm * highScale.length))
       primaryNote = highScale[idx]
+      const sparkleNote = highScale[Math.min(highScale.length - 1, idx + 2)]
+
+      if (audioInitialized && shimmerSynth) {
+        shimmerSynth.triggerAttackRelease(primaryNote, '16n')
+      }
       if (audioInitialized && pluckSynth) {
-        pluckSynth.triggerAttackRelease(primaryNote, '16n')
+        pluckSynth.triggerAttackRelease(sparkleNote, '16n')
       }
     }
 
@@ -300,8 +387,11 @@ const SONIFICATION_STRATEGIES = {
     }
 
     const normLuma = Math.min(1, (redEnergy + blueEnergy) / (canvasHeight * 120))
+    const shimmerHigh = chord[chord.length - 1]
     if (rarity !== 'comun') {
-      applyRarityScaling(rarity, chord[0], chord[1], normLuma, primaryNote)
+      applyRarityScaling(rarity, chord[1] || chord[0], shimmerHigh, normLuma, primaryNote)
+    } else if (starY === -1 && audioInitialized && shimmerSynth && colX % 4 === 0) {
+      shimmerSynth.triggerAttackRelease(shimmerHigh, '16n')
     }
 
     return {
@@ -310,10 +400,10 @@ const SONIFICATION_STRATEGIES = {
       normValue: Number(normLuma.toFixed(2)),
       detail:
         starY !== -1
-          ? `ESTRELLA >690 RGB PLUCK (${primaryNote})`
+          ? `DESTELLO ESTELAR CRISTALINO (${primaryNote})`
           : isInfraredDominant
-            ? `NEBULOSA IR GRAVE (${chord.join(' ')})`
-            : `NEBULOSA UV AGUDA (${chord.join(' ')})`,
+            ? `NEBULOSA IR LUMINOSA (${chord.join(' ')})`
+            : `NEBULOSA UV BRILLANTE (${chord.join(' ')})`,
     }
   },
 
@@ -366,11 +456,11 @@ function speakLegendaryMetadata(disc) {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(
       disc.narration ||
-        `Archivo NASA: ${disc.title}. Instrumento ${disc.instrument}.`
+        `Archivo Legendario NASA: ${disc.title}. Modo interactivo por hover activado.`
     )
     utterance.lang = 'es-ES'
     utterance.rate = 1.02
-    utterance.pitch = 0.92
+    utterance.pitch = 0.95
     window.speechSynthesis.speak(utterance)
   } catch {
     // Ignorar si el navegador bloquea speechSynthesis sin interacción
@@ -388,15 +478,12 @@ function notifyFrameListeners() {
 }
 
 export function useSonifier() {
-  /**
-   * Precarga todos los fotogramas de un disco (Opción B: secuencia de pocos fotogramas
-   * o imagen directa de 1 fotograma) en buffers Uint8ClampedArray fuera de Vue reactivity.
-   */
   async function loadDisc(disc) {
     if (!disc) return
     const ctx = ensureHiddenCanvas()
-    activeMode.value = disc.category || 'huracan'
-    activeRarity.value = disc.rarity || 'epico'
+    activeMode.value = disc.category || 'maps'
+    activeRarity.value = disc.rarity || 'legendario'
+    activeMapProfileId = String(disc.mapProfileId || disc.svsId || 'default')
     currentFrameIntervalMs = disc.frameIntervalMs || 1900
 
     const isSameDisc = loadedDiscId === disc.id && frameBuffers.length > 0
@@ -424,7 +511,6 @@ export function useSonifier() {
       return
     }
 
-    // Cargar primer fotograma de inmediato para arrancar la sonificación sin espera
     const firstImg = await loadImageElement(sources[0])
     if (myGen !== loadGeneration) return
     if (firstImg) {
@@ -435,12 +521,11 @@ export function useSonifier() {
         frameBuffers[0] = firstData
         pixelBuffer = firstData
       } catch {
-        // Canvas contaminado por CORS si se usó URL externa sin permiso
+        // Ignorar si falla lectura
       }
     }
     notifyFrameListeners()
 
-    // Decodificar el resto de fotogramas en segundo plano para Opción B
     for (let i = 1; i < sources.length; i++) {
       const img = await loadImageElement(sources[i])
       if (myGen !== loadGeneration) return
@@ -450,7 +535,7 @@ export function useSonifier() {
         try {
           frameBuffers[i] = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
         } catch {
-          // Ignorar fotograma si falla lectura
+          // Ignorar si falla lectura
         }
       }
     }
@@ -473,10 +558,94 @@ export function useSonifier() {
     }
   }
 
+  function setHoverActive(active) {
+    hoverPausedAutoScan = Boolean(active)
+  }
+
+  /**
+   * MODO HOVER PARA DISCOS LEGENDARIOS:
+   * Lee el píxel exacto bajo el cursor (normX, normY en [0..1]) del fotograma actual
+   * y sintetiza el sonido directamente según la estrategia del disco.
+   */
+  async function probeHoverPixel(normX, normY, disc = null) {
+    if (disc) {
+      if (disc.rarity !== 'legendario') return null
+      if (loadedDiscId !== disc.id || !pixelBuffer) {
+        await loadDisc(disc)
+      }
+    } else if (activeRarity.value !== 'legendario') {
+      return null
+    }
+
+    if (!pixelBuffer) return null
+
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    if (now - lastHoverSoundAt < 58) {
+      return null
+    }
+    lastHoverSoundAt = now
+
+    await ensureAudioGraph()
+
+    const clampedNX = Math.max(0, Math.min(1, Number(normX) || 0))
+    const clampedNY = Math.max(0, Math.min(1, Number(normY) || 0))
+    const px = Math.min(canvasWidth - 1, Math.floor(clampedNX * canvasWidth))
+    const py = Math.min(canvasHeight - 1, Math.floor(clampedNY * canvasHeight))
+    scanX = px
+
+    const mode = disc?.category || activeMode.value
+    const mapId = String(disc?.mapProfileId || disc?.svsId || activeMapProfileId || 'default')
+    const { r, g, b } = getPixelAt(px, py)
+    let telemetry = null
+
+    if (mode === 'maps') {
+      activeMapProfileId = mapId
+      const cleanNormalized = mapRgbPixelToNormalizedValue(r, g, b, mapId)
+      telemetry = synthesizeNormalizedMapValue(cleanNormalized, 'legendario')
+    } else if (mode === 'espacial') {
+      const sum = r + g + b
+      const highScale = SCALES.espacialHigh
+      const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
+      const noteIdx = Math.min(highScale.length - 1, Math.floor(yNorm * highScale.length))
+      const primaryNote = highScale[noteIdx]
+      if (filterNode) filterNode.frequency.value = 9500
+      if (sum > 520 && audioInitialized && shimmerSynth) {
+        shimmerSynth.triggerAttackRelease(primaryNote, '16n')
+      } else {
+        const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
+        applyRarityScaling('legendario', primaryNote, chord[2], sum / 765, chord[3] || primaryNote)
+      }
+      telemetry = {
+        mode: 'espacial',
+        primaryNote,
+        normValue: Number((sum / 765).toFixed(2)),
+        detail: `HOVER ESTELAR (${px},${py}) -> ${primaryNote}`,
+      }
+    } else {
+      const strategy = SONIFICATION_STRATEGIES[mode] || SONIFICATION_STRATEGIES.maps
+      telemetry = strategy(px, 'legendario')
+    }
+
+    scanListeners.forEach((listener) => {
+      listener({
+        scanX: px,
+        canvasWidth,
+        normalizedX: clampedNX,
+        normalizedY: clampedNY,
+        frameIndex: currentFrameIndex,
+        frameCount: frameBuffers.length || 1,
+        isHover: true,
+        telemetry,
+      })
+    })
+
+    return telemetry
+  }
+
   function stepScan() {
     if (!pixelBuffer) return null
     const strategy =
-      SONIFICATION_STRATEGIES[activeMode.value] || SONIFICATION_STRATEGIES.huracan
+      SONIFICATION_STRATEGIES[activeMode.value] || SONIFICATION_STRATEGIES.maps
     const telemetry = strategy(scanX, activeRarity.value)
     const normalizedX = scanX / Math.max(1, canvasWidth - 1)
 
@@ -487,6 +656,7 @@ export function useSonifier() {
         normalizedX,
         frameIndex: currentFrameIndex,
         frameCount: frameBuffers.length || 1,
+        isHover: false,
         telemetry,
       })
     })
@@ -509,7 +679,10 @@ export function useSonifier() {
 
     const runLoop = () => {
       if (!isRunning.value) return
-      const result = stepScan()
+      let result = null
+      if (!hoverPausedAutoScan) {
+        result = stepScan()
+      }
 
       let intervalMs = 95
       if (activeMode.value === 'huracan' && result && typeof result.warmRatio === 'number') {
@@ -521,7 +694,6 @@ export function useSonifier() {
 
     runLoop()
 
-    // Avance automático de fotogramas para discos Opción B (> 1 fotograma)
     if (frameBuffers.length > 1 || (disc?.frames && disc.frames.length > 1)) {
       frameTimerId = setInterval(() => {
         if (!isRunning.value || frameBuffers.length <= 1) return
@@ -532,6 +704,7 @@ export function useSonifier() {
 
   function stop() {
     isRunning.value = false
+    hoverPausedAutoScan = false
     if (scanTimerId) {
       clearTimeout(scanTimerId)
       scanTimerId = null
@@ -575,6 +748,8 @@ export function useSonifier() {
     start,
     stop,
     stepScan,
+    probeHoverPixel,
+    setHoverActive,
     setScanPosition,
     setFrameIndex,
     setMode,

@@ -56,6 +56,16 @@ function handleMediaAdded(disc) {
 function getRarityMeta(rarity) {
   return RARITY_CONFIG[rarity] || RARITY_CONFIG.comun
 }
+
+function handleVaultLegendaryHover(event, disc) {
+  if (!disc || disc.rarity !== 'legendario') return
+  const target = event.currentTarget
+  if (!target) return
+  const rect = target.getBoundingClientRect()
+  const normX = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width)))
+  const normY = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(1, rect.height)))
+  sonifier.probeHoverPixel(normX, normY, disc)
+}
 </script>
 
 <template>
@@ -149,6 +159,7 @@ function getRarityMeta(rarity) {
               getRarityMeta(disc.rarity).borderClass,
               gameStore.currentDisc?.id === disc.id ? 'ring-2 ring-white' : '',
             ]"
+            @mousemove="handleVaultLegendaryHover($event, disc)"
           >
             <!-- Portada Pixel Art (canvas 64x64 escalado con image-rendering: pixelated) -->
             <canvas

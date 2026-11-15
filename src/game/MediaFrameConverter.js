@@ -150,7 +150,8 @@ export function buildDiscRecord({
   title,
   instrument = 'Archivo Multimedia Usuario',
   date = new Date().toISOString().slice(0, 10),
-  category = 'huracan',
+  category = 'maps',
+  mapProfileId = 'default',
   rarity = 'raro',
   mediaType = 'image',
   frames = [],
@@ -177,6 +178,7 @@ export function buildDiscRecord({
       narration ||
       `Archivo ${mediaType === 'frames' ? 'de video por fotogramas' : 'de imagen'}: ${title}. Rareza ${rarityMeta.label}.`,
     category,
+    mapProfileId,
     rarity,
     colorHex: rarityMeta.hex,
     threeColor: rarityMeta.threeColor,

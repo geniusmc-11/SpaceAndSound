@@ -4,7 +4,7 @@
  * Lenguaje: JavaScript puro (ES6+)
  */
 
-export const NASA_CATEGORIES = ['espacial', 'maritimo', 'grafica', 'huracan']
+export const NASA_CATEGORIES = ['espacial', 'maritimo', 'grafica', 'huracan', 'maps']
 
 export const RARITY_CONFIG = {
   comun: {
@@ -92,8 +92,9 @@ export const CURATED_NASA_DISCS = [
     date: '2023-09-26',
     narration:
       'Visualización científica NASA SVS 5153: Concentración global de monóxido de carbono cerca de la superficie estimada por el modelo GEOS-CF.',
-    category: 'huracan',
-    rarity: 'epico',
+    category: 'maps',
+    mapProfileId: '5153',
+    rarity: 'legendario',
     durationSec: 31,
     frameIntervalMs: 1900,
     frames: SVS_5153_FRAMES,

@@ -6,6 +6,7 @@ import {
   convertImageToDirectDiscMedia,
   buildDiscRecord,
 } from '@/game/MediaFrameConverter'
+import { COLORBAR_PROFILES } from '@/game/ColorbarMapper'
 
 const emit = defineEmits(['close', 'added'])
 const gameStore = useGameStore()
@@ -13,7 +14,8 @@ const gameStore = useGameStore()
 const inputType = ref('video') // 'video' (Opción B) | 'image' (Directa)
 const title = ref('')
 const instrument = ref('Dataset NASA / Usuario')
-const category = ref('huracan')
+const category = ref('maps')
+const mapProfileId = ref('5153')
 const rarity = ref('raro')
 const frameCount = ref(16)
 const externalImageUrl = ref('')
@@ -59,6 +61,7 @@ async function handleSubmit() {
         title: title.value || selectedFile.value.name,
         instrument: instrument.value,
         category: category.value,
+        mapProfileId: mapProfileId.value,
         rarity: rarity.value,
         mediaType: 'frames',
         frames: result.frames,
@@ -89,6 +92,7 @@ async function handleSubmit() {
         title: title.value || (selectedFile.value?.name ?? 'Imagen NASA Directa'),
         instrument: instrument.value,
         category: category.value,
+        mapProfileId: mapProfileId.value,
         rarity: rarity.value,
         mediaType: 'image',
         frames: result.frames,
@@ -269,6 +273,25 @@ async function handleSubmit() {
               </option>
             </select>
           </div>
+        </div>
+
+        <!-- Perfil de Colorbar cuando el tipo es 'maps' -->
+        <div v-if="category === 'maps'">
+          <label class="mb-1 block text-[11px] font-bold uppercase text-sky-300">
+            Perfil de Leyenda (Colorbar ID)
+          </label>
+          <select
+            v-model="mapProfileId"
+            class="w-full border border-sky-600 bg-black px-2 py-1.5 text-xs text-sky-200"
+          >
+            <option
+              v-for="(profile, key) in COLORBAR_PROFILES"
+              :key="key"
+              :value="key"
+            >
+              {{ key }} — {{ profile.name }}
+            </option>
+          </select>
         </div>
 
         <!-- Barra de Progreso de Conversión -->
