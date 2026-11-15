@@ -65,10 +65,10 @@ async function loadTopicDetails(disc) {
       releaseDate: disc.date,
       summary: disc.narration,
       credits: [disc.instrument],
-      keywords: [disc.mediaType === 'frames' ? 'Video Opción B' : 'Imagen Directa'],
+      keywords: [disc.mediaType === 'frames' ? 'Option B Video' : 'Direct Image'],
       paragraphs: [
         disc.narration ||
-          'Dataset multimedia cargado manualmente para análisis espectral y sonificación.',
+          'Multimedia dataset manually loaded for spectral analysis and sonification.',
       ],
       moreInfoUrl: disc.sourceUrl || null,
       svsUrl: null,
@@ -124,7 +124,7 @@ onMounted(async () => {
           ? ` [${Math.round(telemetry.normalizedValue * 100)}%]`
           : ''
       const thereminTag = telemetry.thereminNote ? ` // THEREMIN: ${telemetry.thereminNote}` : ''
-      scanNoteTextRef.value.textContent = `NOTA: ${telemetry.primaryNote}${thereminTag}${extra}`
+      scanNoteTextRef.value.textContent = `NOTE: ${telemetry.primaryNote}${thereminTag}${extra}`
     }
   })
 
@@ -189,103 +189,103 @@ function handleLegendaryHoverLeave() {
 
 <template>
   <section
-    class="relative flex h-dvh w-screen shrink-0 snap-center flex-col overflow-y-auto bg-[#040812] p-4 md:p-8"
+    class="relative flex h-full w-full shrink-0 snap-center flex-col overflow-y-auto bg-[#101820] p-4 text-[#E7D5AC] md:p-6"
   >
-    <!-- Encabezado Reproductor NASA -->
+    <!-- LAB Header -->
     <header
-      class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-2 border-amber-400/50 pb-3"
+      class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b-2 border-[#31515A] pb-3"
     >
       <div>
-        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400">
-          <span>[SECCIÓN DERECHA // EARTH INFORMATION JUKEBOX]</span>
+        <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#D18C39]">
+          <span>[RIGHT SECTION // LAB]</span>
           <span
             v-if="currentDisc && totalFrames > 1"
-            class="border border-sky-500/60 bg-sky-950/70 px-2 py-0.5 text-[10px] text-sky-300"
+            class="border border-[#31515A] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#E7D5AC]"
           >
-            OPCIÓN B: {{ totalFrames }} FOTOGRAMAS
+            OPTION B: {{ totalFrames }} FRAMES
           </span>
           <span
             v-if="currentDisc?.rarity === 'legendario'"
-            class="border border-yellow-400/80 bg-yellow-950/80 px-2 py-0.5 text-[10px] text-yellow-300"
+            class="border border-[#D18C39] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#D18C39]"
           >
-            ✨ HOVER LEGENDARIO ACTIVO
+            ✨ LEGENDARY HOVER ACTIVE
           </span>
           <span
             v-if="currentDisc?.category === 'espacial'"
-            class="border border-purple-400/80 bg-purple-950/80 px-2 py-0.5 text-[10px] text-purple-200"
+            class="border border-[#31515A] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#E7D5AC]"
           >
-            🎧 AUDIO 8D ORBITAL
+            🎧 8D ORBITAL AUDIO
           </span>
           <span
             v-if="currentDisc?.category === 'planetario'"
-            class="border border-indigo-400/80 bg-indigo-950/80 px-2 py-0.5 text-[10px] text-indigo-200"
+            class="border border-[#31515A] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#E7D5AC]"
           >
-            🪐 PLANETARIO (SILENCIO EN NEGRO)
+            🪐 PLANETARY (SILENT ON BLACK)
           </span>
           <span
             v-if="currentDisc"
-            class="border border-cyan-400/60 bg-cyan-950/70 px-2 py-0.5 text-[10px] text-cyan-200"
+            class="border border-[#31515A] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#E7D5AC]/80"
           >
-            🌊 FONDO + THEREMIN{{
+            🌊 AMBIENT + THEREMIN{{
               currentDisc.rarity !== 'comun'
-                ? `: ${currentDisc.ambientStyle || (currentDisc.category === 'espacial' || currentDisc.category === 'grafica' || currentDisc.category === 'planetario' ? 'espacial' : 'maritimo')}`
+                ? `: ${currentDisc.ambientStyle === 'espacial' || currentDisc.category === 'espacial' || currentDisc.category === 'grafica' || currentDisc.category === 'planetario' ? 'spatial' : 'maritime'}`
                 : ': base'
             }}
           </span>
         </div>
-        <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
-          REPRODUCTOR &amp; INFORME CIENTÍFICO NASA
+        <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-[#E7D5AC] md:text-2xl">
+          LAB // VISUALIZER &amp; NASA SCIENTIFIC REPORT
         </h1>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          class="border-2 border-emerald-400 bg-emerald-950 px-3 py-1.5 text-xs font-black uppercase text-emerald-200 hover:bg-emerald-800"
+          class="border-2 border-[#D18C39] bg-[#1D303B] px-3 py-1.5 text-xs font-black uppercase text-[#E7D5AC] hover:bg-[#D18C39] hover:text-[#101820]"
           @click="showUploader = true"
         >
-          + AÑADIR VIDEO / IMAGEN
+          + ADD VIDEO / IMAGE
         </button>
         <button
           type="button"
-          class="border-2 border-slate-500 bg-slate-900 px-3 py-1.5 text-xs font-bold uppercase text-slate-200 hover:bg-slate-800"
+          class="border-2 border-[#31515A] bg-[#1D303B] px-3 py-1.5 text-xs font-bold uppercase text-[#E7D5AC] hover:border-[#D18C39]"
           @click="emit('navigate-to-vault')"
         >
-          ◄◄ BÓVEDA
+          ◄◄ GALLERY [1/G]
         </button>
         <button
           type="button"
-          class="border-2 border-sky-400 bg-sky-950 px-3 py-1.5 text-xs font-bold uppercase text-sky-200 shadow-[3px_3px_0px_#000] hover:bg-sky-800"
+          class="border-2 border-[#31515A] bg-[#D18C39] px-3 py-1.5 text-xs font-bold uppercase text-[#101820] shadow-[3px_3px_0px_#000] hover:brightness-110"
           @click="emit('navigate-to-game')"
         >
-          ◄ VOLVER AL JUEGO [A]
+          ◄ BACK TO GAME [2/A]
         </button>
       </div>
     </header>
 
     <div
       v-if="!currentDisc"
-      class="my-auto flex flex-col items-center justify-center border-2 border-dashed border-slate-700 p-10 text-center"
+      class="my-auto flex flex-col items-center justify-center border-2 border-dashed border-[#31515A] bg-[#1D303B]/40 p-10 text-center"
     >
-      <p class="text-sm font-bold uppercase text-slate-300">
-        NINGÚN DISCO SELECCIONADO
+      <p class="text-sm font-bold uppercase text-[#E7D5AC]">
+        NO DISC SELECTED
       </p>
-      <p class="mt-1 text-xs text-slate-500">
-        Recoge NASA SVS #5153 en la nave o añade un video/imagen desde el botón superior.
+      <p class="mt-1 text-xs text-[#E7D5AC]/70">
+        Collect NASA SVS #5153 on the ship or add a video/image from the top button.
       </p>
     </div>
 
-    <!-- Visor Principal + Panel de Información Científica vía API -->
+    <!-- Main Viewer + NASA SVS API Scientific Information Panel -->
     <div v-else class="grid flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
-      <!-- Columna Izquierda: Visualizador Láser + Timeline Opción B + Play/Pause -->
+      <!-- Left Column: Laser Visualizer + Option B Timeline + Play/Pause -->
       <div class="flex flex-col lg:col-span-2">
         <div
           class="relative flex-1 cursor-crosshair overflow-hidden border-2 bg-black min-h-[240px] md:min-h-[340px]"
           :class="rarityMeta.borderClass"
           :title="
             currentDisc.rarity === 'legendario'
-              ? 'Disco Legendario: pasa el cursor sobre los píxeles para sonificar en tiempo real'
-              : 'Haz clic para mover el láser scanX'
+              ? 'Legendary Disc: hover over pixels to sonify in real time'
+              : 'Click to move the scanX laser'
           "
           @click="handleCanvasSeek"
           @mousemove="handleLegendaryHoverMove"
@@ -300,19 +300,19 @@ function handleLegendaryHoverLeave() {
             class="pixelated h-full w-full object-fill"
           ></canvas>
 
-          <!-- Línea Láser Vertical sincronizada con scanX -->
+          <!-- Vertical Laser Line synchronized with scanX -->
           <div
             ref="laserLineRef"
-            class="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-rose-500 shadow-[0_0_12px_#f43f5e,0_0_4px_#fff]"
+            class="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-[#D18C39] shadow-[0_0_12px_#D18C39,0_0_4px_#E7D5AC]"
             style="left: 0%"
           >
             <div
-              class="absolute -top-0.5 -left-1.5 h-3 w-3 rotate-45 bg-rose-400 shadow-[0_0_6px_#fff]"
+              class="absolute -top-0.5 -left-1.5 h-3 w-3 rotate-45 bg-[#D18C39] shadow-[0_0_6px_#E7D5AC]"
             ></div>
             <div
               v-show="isHoverProbing"
               ref="hoverDotRef"
-              class="absolute -left-2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-yellow-300 bg-yellow-400/30 shadow-[0_0_10px_#facc15]"
+              class="absolute -left-2 h-4 w-4 -translate-y-1/2 rounded-full border-2 border-[#E7D5AC] bg-[#D18C39]/40 shadow-[0_0_10px_#D18C39]"
               style="top: 50%"
             ></div>
           </div>
@@ -320,26 +320,26 @@ function handleLegendaryHoverLeave() {
           <div class="crt-scanlines pointer-events-none absolute inset-0 opacity-25"></div>
         </div>
 
-        <!-- Timeline de Fotogramas (Opción B cuando hay >1 fotograma) -->
+        <!-- Frame Timeline (Option B when >1 frame) -->
         <div
           v-if="totalFrames > 1"
-          class="mt-3 flex flex-col gap-2 border-2 border-slate-700 bg-[#070d1c] p-2.5"
+          class="mt-3 flex flex-col gap-2 border-2 border-[#31515A] bg-[#1D303B] p-2.5"
         >
           <div class="flex items-center justify-between text-xs font-bold">
-            <span class="text-amber-300">
-              FOTOGRAMA {{ String(activeFrameIndex + 1).padStart(2, '0') }} / {{ String(totalFrames).padStart(2, '0') }}
+            <span class="text-[#D18C39]">
+              FRAME {{ String(activeFrameIndex + 1).padStart(2, '0') }} / {{ String(totalFrames).padStart(2, '0') }}
             </span>
             <div class="flex gap-1.5">
               <button
                 type="button"
-                class="border border-slate-600 bg-slate-900 px-2 py-0.5 text-[11px] hover:bg-slate-800"
+                class="border border-[#31515A] bg-[#101820] px-2 py-0.5 text-[11px] text-[#E7D5AC] hover:border-[#D18C39]"
                 @click="handleSelectFrame(activeFrameIndex - 1)"
               >
                 ◀
               </button>
               <button
                 type="button"
-                class="border border-slate-600 bg-slate-900 px-2 py-0.5 text-[11px] hover:bg-slate-800"
+                class="border border-[#31515A] bg-[#101820] px-2 py-0.5 text-[11px] text-[#E7D5AC] hover:border-[#D18C39]"
                 @click="handleSelectFrame(activeFrameIndex + 1)"
               >
                 ▶
@@ -358,76 +358,71 @@ function handleLegendaryHoverLeave() {
               class="h-2.5 border transition-colors"
               :class="
                 idx - 1 === activeFrameIndex
-                  ? 'border-white bg-amber-400'
-                  : 'border-slate-700 bg-slate-800 hover:bg-sky-700'
+                  ? 'border-[#E7D5AC] bg-[#D18C39]'
+                  : 'border-[#31515A] bg-[#101820] hover:bg-[#31515A]'
               "
-              :title="`Fotograma ${idx}`"
+              :title="`Frame ${idx}`"
               @click="handleSelectFrame(idx - 1)"
             ></button>
           </div>
         </div>
 
-        <!-- Barra simple de reproducción + lectura láser -->
+        <!-- Playback & laser readout bar -->
         <div
-          class="mt-3 flex flex-wrap items-center justify-between gap-3 border-2 border-slate-700 bg-[#081021] px-3 py-2.5"
+          class="mt-3 flex flex-wrap items-center justify-between gap-3 border-2 border-[#31515A] bg-[#1D303B] px-3 py-2.5"
         >
           <button
             type="button"
-            class="border-2 border-emerald-400 bg-emerald-950 px-4 py-1.5 text-xs font-black uppercase tracking-wider text-emerald-200 shadow-[3px_3px_0px_#000] hover:bg-emerald-800"
+            class="border-2 border-[#31515A] bg-[#D18C39] px-4 py-1.5 text-xs font-black uppercase tracking-wider text-[#101820] shadow-[3px_3px_0px_#000] hover:brightness-110"
             @click="handleTogglePlay"
           >
-            {{ gameStore.isPlayingAudio ? '❚❚ PAUSAR' : '▶ REPRODUCIR' }}
+            {{ gameStore.isPlayingAudio ? '❚❚ PAUSE' : '▶ PLAY' }}
           </button>
 
           <div class="flex items-center gap-4 text-xs font-bold">
-            <span ref="scanColumnTextRef" class="text-rose-400">
+            <span ref="scanColumnTextRef" class="text-[#D18C39]">
               SCAN_X: 000 / 256
             </span>
-            <span ref="scanNoteTextRef" class="text-emerald-400">
-              NOTA: --
+            <span ref="scanNoteTextRef" class="text-[#E7D5AC]">
+              NOTE: --
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Columna Derecha: Información Científica del Tema vía API NASA SVS -->
+      <!-- Right Column: Scientific Topic Information via NASA SVS API -->
       <aside
         data-testid="topic-info-panel"
-        class="flex max-h-[75dvh] flex-col justify-between overflow-y-auto border-2 border-slate-700 bg-[#081021] p-4"
+        class="flex max-h-[75dvh] flex-col justify-between overflow-y-auto border-2 border-[#31515A] bg-[#1D303B] p-4"
       >
         <div>
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-[#31515A] pb-2">
             <span
-              class="border px-1.5 py-0.5 text-[10px] font-bold uppercase"
-              :class="
-                topicInfo?.source === 'api-live'
-                  ? 'border-emerald-400 bg-emerald-950 text-emerald-300'
-                  : 'border-sky-400 bg-sky-950 text-sky-300'
-              "
+              class="border border-[#D18C39] bg-[#101820] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#D18C39]"
             >
               {{
                 isLoadingTopic
-                  ? 'CONSULTANDO API NASA SVS...'
+                  ? 'QUERYING NASA SVS API...'
                   : topicInfo?.source === 'api-live'
-                    ? `API NASA SVS #${currentDisc.svsId} (EN VIVO)`
+                    ? `NASA SVS API #${currentDisc.svsId} (LIVE)`
                     : currentDisc.svsId
-                      ? `NASA SVS #${currentDisc.svsId} (DATOS API)`
-                      : 'ARCHIVO MULTIMEDIA'
+                      ? `NASA SVS #${currentDisc.svsId} (API DATA)`
+                      : 'MEDIA ARCHIVE'
               }}
             </span>
-            <span class="text-[11px] text-slate-400">
+            <span class="text-[11px] text-[#E7D5AC]/70">
               {{ topicInfo?.releaseDate || currentDisc.date }}
             </span>
           </div>
 
-          <h2 class="mt-2.5 text-lg font-black text-white">
+          <h2 class="mt-2.5 text-lg font-black text-[#E7D5AC]">
             {{ topicInfo?.title || currentDisc.title }}
           </h2>
-          <p class="text-xs font-bold text-amber-300">
+          <p class="text-xs font-bold text-[#D18C39]">
             {{ currentDisc.instrument }}
           </p>
 
-          <!-- Palabras clave de la API -->
+          <!-- API Keywords -->
           <div
             v-if="topicInfo?.keywords?.length"
             class="mt-2.5 flex flex-wrap gap-1.5"
@@ -435,37 +430,37 @@ function handleLegendaryHoverLeave() {
             <span
               v-for="kw in topicInfo.keywords"
               :key="kw"
-              class="border border-slate-600 bg-slate-900 px-1.5 py-0.5 text-[10px] text-sky-300"
+              class="border border-[#31515A] bg-[#101820] px-1.5 py-0.5 text-[10px] text-[#E7D5AC]/85"
             >
               #{{ kw }}
             </span>
           </div>
 
-          <!-- Resumen del Dataset -->
+          <!-- Dataset Summary -->
           <p
             v-if="topicInfo?.summary"
-            class="mt-3 border-l-2 border-amber-400 pl-2.5 text-xs font-semibold text-slate-200"
+            class="mt-3 border-l-2 border-[#D18C39] pl-2.5 text-xs font-semibold text-[#E7D5AC]"
           >
             {{ topicInfo.summary }}
           </p>
 
-          <!-- Escala de Color oficial NASA si existe -->
+          <!-- Official NASA Colorbar Scale if present -->
           <div
             v-if="currentDisc.colorbarUrl"
-            class="mt-3 border border-slate-700 bg-black/70 p-2"
+            class="mt-3 border border-[#31515A] bg-[#101820] p-2"
           >
-            <p class="mb-1 text-[10px] font-bold uppercase text-slate-400">
-              ESCALA OFICIAL DE CONCENTRACIÓN (NASA SVS):
+            <p class="mb-1 text-[10px] font-bold uppercase text-[#E7D5AC]/75">
+              OFFICIAL CONCENTRATION SCALE (NASA SVS):
             </p>
             <img
               :src="currentDisc.colorbarUrl"
-              alt="Escala de color NASA Carbon Monoxide"
+              alt="NASA Official Color Scale"
               class="pixelated w-full bg-white/95 p-1"
             />
           </div>
 
-          <!-- Explicación Científica del Tema (API SVS Media Groups) -->
-          <div class="mt-3 space-y-2.5 text-xs leading-relaxed text-slate-300">
+          <!-- Scientific Topic Explanation (SVS API Media Groups) -->
+          <div class="mt-3 space-y-2.5 text-xs leading-relaxed text-[#E7D5AC]/85">
             <p
               v-for="(paragraph, idx) in topicInfo?.paragraphs || []"
               :key="`p-${idx}`"
@@ -474,38 +469,38 @@ function handleLegendaryHoverLeave() {
             </p>
           </div>
 
-          <!-- Créditos oficiales de la API -->
+          <!-- Official API Credits -->
           <div
             v-if="topicInfo?.credits?.length"
-            class="mt-4 border-t border-slate-800 pt-2.5 text-[11px] text-slate-400"
+            class="mt-4 border-t border-[#31515A] pt-2.5 text-[11px] text-[#E7D5AC]/75"
           >
-            <span class="font-bold uppercase text-slate-300">CRÉDITOS NASA:</span>
+            <span class="font-bold uppercase text-[#D18C39]">NASA CREDITS:</span>
             {{ topicInfo.credits.join(' • ') }}
           </div>
         </div>
 
-        <!-- Enlaces a fuentes oficiales NASA -->
+        <!-- Official NASA Source Links -->
         <div
           v-if="topicInfo?.svsUrl || topicInfo?.moreInfoUrl"
-          class="mt-4 flex flex-wrap gap-2 border-t border-slate-700 pt-3"
+          class="mt-4 flex flex-wrap gap-2 border-t border-[#31515A] pt-3"
         >
           <a
             v-if="topicInfo?.svsUrl"
             :href="topicInfo.svsUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="border border-sky-500 bg-sky-950/70 px-2.5 py-1.5 text-[11px] font-bold uppercase text-sky-200 hover:bg-sky-800"
+            class="border border-[#D18C39] bg-[#101820] px-2.5 py-1.5 text-[11px] font-bold uppercase text-[#E7D5AC] hover:bg-[#D18C39] hover:text-[#101820]"
           >
-            VER EN NASA SVS ↗
+            VIEW ON NASA SVS ↗
           </a>
           <a
             v-if="topicInfo?.moreInfoUrl"
             :href="topicInfo.moreInfoUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="border border-amber-500 bg-amber-950/70 px-2.5 py-1.5 text-[11px] font-bold uppercase text-amber-200 hover:bg-amber-800"
+            class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-[11px] font-bold uppercase text-[#D18C39] hover:border-[#D18C39]"
           >
-            MÁS INFO (GEOS-CF) ↗
+            MORE INFO (GEOS-CF) ↗
           </a>
         </div>
       </aside>

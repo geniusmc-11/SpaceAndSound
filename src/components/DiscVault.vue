@@ -70,36 +70,36 @@ function handleVaultLegendaryHover(event, disc) {
 
 <template>
   <section
-    class="relative flex h-dvh w-screen shrink-0 snap-center flex-col overflow-y-auto bg-[#050914] p-4 md:p-8"
+    class="relative flex h-full w-full shrink-0 snap-center flex-col overflow-y-auto bg-[#101820] p-4 text-[#E7D5AC] md:p-6"
   >
-    <!-- Encabezado de la Bóveda -->
+    <!-- Vault Header -->
     <header
-      class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b-2 border-sky-500/50 pb-4"
+      class="mb-6 flex flex-wrap items-center justify-between gap-4 border-b-2 border-[#31515A] pb-4"
     >
       <div>
-        <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest text-sky-400">
-          <span>[SECCIÓN IZQUIERDA // GALERÍA ORBITAL]</span>
+        <div class="flex flex-wrap items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#D18C39]">
+          <span>[LEFT SECTION // ORBITAL GALLERY]</span>
           <span
             data-testid="vault-progress-badge"
-            class="border border-amber-400/70 bg-amber-950/70 px-2 py-0.5 text-[11px] font-black text-amber-300"
+            class="border border-[#D18C39] bg-[#1D303B] px-2 py-0.5 text-[11px] font-black text-[#E7D5AC]"
           >
-            DISCOS: {{ gameStore.collectedOfficialCount }} / {{ gameStore.totalCatalogDiscs }}
+            DISCS: {{ gameStore.collectedOfficialCount }} / {{ gameStore.totalCatalogDiscs }}
           </span>
           <span
             v-if="gameStore.customDiscCount > 0"
-            class="border border-emerald-400/60 bg-emerald-950/60 px-2 py-0.5 text-[10px] text-emerald-300"
+            class="border border-[#31515A] bg-[#1D303B] px-2 py-0.5 text-[10px] text-[#D18C39]"
           >
             + {{ gameStore.customDiscCount }} EXTRA
           </span>
         </div>
-        <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-slate-100 md:text-2xl">
-          BÓVEDA DE DISCOS // LOBBY TRACKS 32-BIT
+        <h1 class="mt-1 text-xl font-black uppercase tracking-wider text-[#E7D5AC] md:text-2xl">
+          DISC GALLERY // 32-BIT LOBBY TRACKS
         </h1>
-        <!-- Barra de progreso de colección total -->
+        <!-- Total collection progress bar -->
         <div class="mt-1.5 flex items-center gap-3">
-          <div class="h-2.5 w-48 border border-sky-500/60 bg-slate-900 p-0.5">
+          <div class="h-2.5 w-48 border border-[#31515A] bg-[#1D303B] p-0.5">
             <div
-              class="h-full bg-amber-400 transition-all duration-300"
+              class="h-full bg-[#D18C39] transition-all duration-300"
               :style="{
                 width: `${
                   gameStore.totalCatalogDiscs > 0
@@ -109,8 +109,8 @@ function handleVaultLegendaryHover(event, disc) {
               }"
             ></div>
           </div>
-          <span class="text-[11px] font-bold text-slate-300">
-            {{ gameStore.collectedDiscs.length }} PISTAS DESBLOQUEADAS DE {{ gameStore.totalCatalogDiscs }} TOTALES
+          <span class="text-[11px] font-bold text-[#E7D5AC]/80">
+            {{ gameStore.collectedDiscs.length }} TRACKS UNLOCKED OF {{ gameStore.totalCatalogDiscs }} TOTAL
           </span>
         </div>
       </div>
@@ -119,36 +119,36 @@ function handleVaultLegendaryHover(event, disc) {
         <button
           type="button"
           data-testid="open-media-uploader-btn"
-          class="border-2 border-emerald-400 bg-emerald-950 px-3 py-1.5 text-xs font-black uppercase text-emerald-200 shadow-[3px_3px_0px_#000] hover:bg-emerald-800"
+          class="border-2 border-[#D18C39] bg-[#1D303B] px-3 py-1.5 text-xs font-black uppercase text-[#E7D5AC] shadow-[3px_3px_0px_#000] hover:bg-[#D18C39] hover:text-[#101820]"
           @click="showUploader = true"
         >
-          + AÑADIR VIDEO / IMAGEN
+          + ADD VIDEO / IMAGE
         </button>
 
         <button
           type="button"
-          class="border-2 border-sky-400 bg-sky-950 px-3 py-1.5 text-xs font-bold uppercase text-sky-200 shadow-[3px_3px_0px_#000] hover:bg-sky-800"
+          class="border-2 border-[#31515A] bg-[#D18C39] px-3 py-1.5 text-xs font-bold uppercase text-[#101820] shadow-[3px_3px_0px_#000] hover:brightness-110"
           @click="emit('navigate-to-game')"
         >
-          VOLVER AL JUEGO [D] ►
+          BACK TO GAME [2/D] ►
         </button>
       </div>
     </header>
 
-    <!-- Estado vacío -->
+    <!-- Empty state -->
     <div
       v-if="gameStore.collectedDiscs.length === 0"
-      class="my-auto flex flex-col items-center justify-center border-2 border-dashed border-slate-700 p-10 text-center"
+      class="my-auto flex flex-col items-center justify-center border-2 border-dashed border-[#31515A] bg-[#1D303B]/40 p-10 text-center"
     >
-      <p class="text-sm font-bold uppercase text-slate-300">
-        AÚN NO HAY DISCOS EN LA BÓVEDA
+      <p class="text-sm font-bold uppercase text-[#E7D5AC]">
+        NO DISCS IN THE VAULT YET
       </p>
-      <p class="mt-1 text-xs text-slate-500">
-        Derrota 2 enemigos en la nave para obtener NASA SVS #5153 o añade un video/imagen manualmente.
+      <p class="mt-1 text-xs text-[#E7D5AC]/70">
+        Defeat 2 enemies on the ship to obtain NASA SVS #5153 or add a video/image manually.
       </p>
     </div>
 
-    <!-- Cuadrícula estilo "Lobby Tracks de Fortnite" (Funda Pixel Art + Disco Pixel Art grande sobresaliendo) -->
+    <!-- Fortnite Lobby Tracks style grid (Pixel Art Sleeve + Large Protruding Pixel Art Disc) -->
     <div
       v-else
       class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
@@ -159,9 +159,9 @@ function handleVaultLegendaryHover(event, disc) {
         class="group relative flex cursor-pointer flex-col pr-20 transition-transform duration-200 hover:-translate-y-1 sm:pr-24"
         @click="handleSelectDisc(disc)"
       >
-        <!-- Contenedor Funda + Disco Sobresaliente más grande -->
+        <!-- Sleeve + Protruding Disc Container -->
         <div class="relative flex items-center">
-          <!-- Disco Pixel Art 32x32 más grande que sobresale por detrás a la derecha -->
+          <!-- 32x32 Pixel Art Disc protruding on the right -->
           <div
             class="absolute right-0 z-0 h-44 w-44 translate-x-14 transition-transform duration-300 ease-out group-hover:translate-x-20 sm:h-52 sm:w-52"
             :class="
@@ -176,16 +176,16 @@ function handleVaultLegendaryHover(event, disc) {
             />
           </div>
 
-          <!-- Funda / Portada Cuadrada en Pixel Art (Baja resolución escalada con pixelated) -->
+          <!-- Square Pixel Art Cover Sleeve -->
           <div
-            class="relative z-10 aspect-square w-full overflow-hidden border-2 bg-[#060b18] shadow-[6px_6px_0px_#000]"
+            class="relative z-10 aspect-square w-full overflow-hidden border-2 bg-[#1D303B] shadow-[6px_6px_0px_#000]"
             :class="[
               getRarityMeta(disc.rarity).borderClass,
-              gameStore.currentDisc?.id === disc.id ? 'ring-2 ring-white' : '',
+              gameStore.currentDisc?.id === disc.id ? 'ring-2 ring-[#E7D5AC]' : '',
             ]"
             @mousemove="handleVaultLegendaryHover($event, disc)"
           >
-            <!-- Portada Pixel Art (canvas 64x64 escalado con image-rendering: pixelated) -->
+            <!-- Pixel Art Cover (64x64 canvas scaled with image-rendering: pixelated) -->
             <canvas
               :ref="(el) => setThumbnailCanvas(el, disc)"
               width="64"
@@ -193,10 +193,10 @@ function handleVaultLegendaryHover(event, disc) {
               class="pixelated h-full w-full object-cover"
             ></canvas>
 
-            <!-- Scanlines retro sutiles sobre la portada -->
+            <!-- Subtle retro scanlines over cover -->
             <div class="crt-scanlines pointer-events-none absolute inset-0 opacity-25"></div>
 
-            <!-- Etiqueta superior de Rareza + Tipo de Media -->
+            <!-- Top badge: Rarity + Media Type -->
             <div class="absolute top-2 right-2 left-2 flex items-center justify-between gap-1">
               <span
                 class="border px-1.5 py-0.5 text-[9px] font-black uppercase shadow-[2px_2px_0px_#000]"
@@ -206,7 +206,7 @@ function handleVaultLegendaryHover(event, disc) {
               </span>
 
               <span
-                class="border border-amber-400/70 bg-black/85 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300"
+                class="border border-[#D18C39]/80 bg-[#101820]/90 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[#E7D5AC]"
               >
                 {{
                   disc.frames && disc.frames.length > 1
@@ -216,26 +216,26 @@ function handleVaultLegendaryHover(event, disc) {
               </span>
             </div>
 
-            <!-- Banner inferior de la funda estilo Lobby Track -->
+            <!-- Bottom Lobby Track sleeve banner -->
             <div
-              class="absolute right-0 bottom-0 left-0 border-t-2 bg-[#040814]/92 px-2.5 py-2"
+              class="absolute right-0 bottom-0 left-0 border-t-2 bg-[#101820]/92 px-2.5 py-2"
               :style="{ borderTopColor: getRarityMeta(disc.rarity).hex }"
             >
               <div class="flex items-center justify-between gap-1">
-                <span class="text-[9px] font-bold uppercase tracking-wider text-sky-400">
-                  {{ disc.svsId ? `NASA SVS #${disc.svsId}` : 'PISTA DE DATOS' }}
+                <span class="text-[9px] font-bold uppercase tracking-wider text-[#D18C39]">
+                  {{ disc.svsId ? `NASA SVS #${disc.svsId}` : 'DATA TRACK' }}
                 </span>
                 <span
                   v-if="gameStore.currentDisc?.id === disc.id && gameStore.isPlayingAudio"
-                  class="animate-pulse text-[9px] font-black text-emerald-400"
+                  class="animate-pulse text-[9px] font-black text-[#D18C39]"
                 >
-                  ▶ SONANDO
+                  ▶ PLAYING
                 </span>
               </div>
-              <h2 class="mt-0.5 truncate text-xs font-black uppercase text-white group-hover:text-sky-300">
+              <h2 class="mt-0.5 truncate text-xs font-black uppercase text-[#E7D5AC] group-hover:text-[#D18C39]">
                 {{ disc.title }}
               </h2>
-              <p class="truncate text-[10px] text-slate-400">
+              <p class="truncate text-[10px] text-[#E7D5AC]/70">
                 {{ disc.instrument }}
               </p>
             </div>
@@ -244,7 +244,7 @@ function handleVaultLegendaryHover(event, disc) {
       </article>
     </div>
 
-    <!-- Modal Importador Video (Opción B) / Imagen Directa -->
+    <!-- Video (Option B) / Direct Image Importer Modal -->
     <MediaUploaderModal
       v-if="showUploader"
       @close="showUploader = false"

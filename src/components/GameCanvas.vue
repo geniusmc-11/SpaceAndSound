@@ -37,7 +37,8 @@ const showVisualPlaceholders = ref(true)
 const muzzleFlash = ref(false)
 const damageFlash = ref(false)
 const gravityWarning = ref(false)
-const audioCueBanner = ref('ESCUCHA EN LA NIEBLA: PASOS EN EL TECHO Y DISPAROS A DISTANCIA')
+const isPointerLocked = ref(false)
+const audioCueBanner = ref('LISTEN IN THE FOG: CEILING FOOTSTEPS AND DISTANT SHOTS')
 
 // Límites del corredor espacial en grilla (cada celda = 2 unidades en 3D)
 const GRID_MIN_X = -4
@@ -569,22 +570,22 @@ function updateEnemiesAndSpatialAudio(dtMs) {
             { x: px, z: pz },
             pyaw
           )
-          audioCueBanner.value = `🔊 PASOS EN EL TECHO DETECTADOS A ${Math.round(distBlocks)} BLOQUES ARRIBA`
+          audioCueBanner.value = `🔊 CEILING FOOTSTEPS DETECTED ${Math.round(distBlocks)} BLOCKS ABOVE`
         }
       }
 
-      // Si te colocas en la casilla exactamente debajo de él -> Te atrapa y activa QTE
+      // If you stand on the exact cell below it -> Traps you and triggers QTE
       if (enemy.gridX === px && enemy.gridZ === pz && !gameStore.qteActive) {
         enemy.isTrappingPlayer = true
         enemy.qteTimerMs = 0
-        // Desciende sobre el jugador
+        // Descends onto the player
         enemy.sprite.position.set(px * CELL_SIZE, 0.9, pz * CELL_SIZE)
         gameStore.startStalkerQTE(enemy.id, 6)
       }
     }
 
     // ------------------------------------------------------------------------
-    // 2. FRANCOTIRADOR OCULTO (Tirador en la oscuridad)
+    // 2. HIDDEN SNIPER (Shooter in the dark)
     // ------------------------------------------------------------------------
     else if (enemy.type === 'shooter') {
       if (enemy.timerMs >= enemy.blueprint.attackIntervalMs) {
@@ -595,7 +596,7 @@ function updateEnemiesAndSpatialAudio(dtMs) {
             { x: px, y: 0.8, z: pz },
             pyaw
           )
-          audioCueBanner.value = `🔊 ¡DISPARO DE FRANCOTIRADOR ACERCÁNDOSE DESDE (${enemy.gridX}, ${enemy.gridZ})!`
+          audioCueBanner.value = `🔊 SNIPER SHOT APPROACHING FROM (${enemy.gridX}, ${enemy.gridZ})!`
 
           // Crear proyectil luminoso acercándose desde la niebla usando bullet2.gif
           if (scene) {
@@ -673,7 +674,7 @@ function updateEnemiesAndSpatialAudio(dtMs) {
             pyaw
           )
           audioCueBanner.value =
-            '⚠️ CAMPO GRAVITATORIO: ATRAÍDO 1 BLOQUE // ¡USA DASH (-3⚡) PARA ESCAPAR!'
+            '⚠️ GRAVITY FIELD: PULLED 1 BLOCK // USE DASH (-3⚡) TO ESCAPE!'
 
           // Si llegas a tocarlo, explota quitándote vida
           if (nextX === enemy.gridX && nextZ === enemy.gridZ) {
@@ -809,7 +810,7 @@ function handleMoveStep(forward, strafe = 0) {
     )
     if (distConsole <= 1.5) {
       audioCueBanner.value =
-        '🛰️ PUNTO DE CONTROL DE LA NAVE: TELEMETRÍA ACTIVA // RECUPERA ENERGÍA JUNTO AL PUENTE'
+        '🛰️ SHIP CONTROL STATION: TELEMETRY ACTIVE // RECHARGING ENERGY NEAR BRIDGE'
       gameStore.rechargeEnergy(1)
     }
   }
@@ -905,10 +906,46 @@ function onCanvasTouchEnd() {
   touchLookId = null
 }
 
-// Giro libre de cámara con el movimiento del ratón (SIN necesidad de hacer clic)
+// Bloqueo del mouse (Pointer Lock) en el juego + giro de cámara sin arrastrar clic
 let lastMouseX = null
 let lastMouseY = null
 let mouseEdgeTurnVelocity = 0
+
+function lockPointerInGame() {
+  if (
+    gameStore.activeSection !== 1 ||
+    gameStore.qteActive ||
+    gameStore.isGameOver ||
+    !canvasRef.value
+  ) {
+    return
+  }
+  try {
+    if (document.pointerLockElement !== canvasRef.value) {
+      canvasRef.value.requestPointerLock?.()
+    }
+  } catch {
+    // Ignorar en entornos sin soporte PointerLock
+  }
+}
+
+function releasePointerLock() {
+  try {
+    if (typeof document !== 'undefined' && document.pointerLockElement) {
+      document.exitPointerLock?.()
+    }
+  } catch {
+    // noop
+  }
+}
+
+function onPointerLockChange() {
+  isPointerLocked.value =
+    typeof document !== 'undefined' && document.pointerLockElement === canvasRef.value
+  if (isPointerLocked.value) {
+    mouseEdgeTurnVelocity = 0
+  }
+}
 
 function onCanvasMouseEnter(e) {
   lastMouseX = e.clientX
@@ -917,6 +954,18 @@ function onCanvasMouseEnter(e) {
 
 function onCanvasMouseMove(e) {
   if (gameStore.activeSection !== 1 || gameStore.qteActive || gameStore.isGameOver) return
+
+  const locked =
+    typeof document !== 'undefined' && document.pointerLockElement === canvasRef.value
+
+  if (locked) {
+    const dx = e.movementX || 0
+    const dy = e.movementY || 0
+    gameStore.rotateCamera(-dx * 0.0042)
+    smoothCam.pitch = Math.max(-0.42, Math.min(0.48, smoothCam.pitch - dy * 0.0028))
+    mouseEdgeTurnVelocity = 0
+    return
+  }
 
   if (lastMouseX === null || lastMouseY === null) {
     lastMouseX = e.clientX
@@ -952,6 +1001,15 @@ function onCanvasMouseLeave() {
   mouseEdgeTurnVelocity = 0
 }
 
+watch(
+  () => [gameStore.qteActive, gameStore.isGameOver, gameStore.activeSection],
+  ([qte, over, sec]) => {
+    if (qte || over || sec !== 1) {
+      releasePointerLock()
+    }
+  }
+)
+
 const nearbyEnemySummary = computed(() => {
   const px = gameStore.playerGrid.x
   const pz = gameStore.playerGrid.z
@@ -967,6 +1025,7 @@ const nearbyEnemySummary = computed(() => {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
+  document.addEventListener('pointerlockchange', onPointerLockChange)
 
   // Recarga pasiva lenta de energía (1 cuadrito cada 2.2 segundos)
   rechargeIntervalId = setInterval(() => {
@@ -1055,6 +1114,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('pointerlockchange', onPointerLockChange)
+  releasePointerLock()
   if (animFrameId) cancelAnimationFrame(animFrameId)
   if (rechargeIntervalId) clearInterval(rechargeIntervalId)
   if (spriteAnimIntervalId) clearInterval(spriteAnimIntervalId)
@@ -1064,14 +1125,16 @@ onBeforeUnmount(() => {
 
 <template>
   <section
-    class="relative flex h-dvh w-screen shrink-0 snap-center flex-col justify-between overflow-hidden bg-[#050811] select-none"
+    class="relative flex h-full w-full shrink-0 snap-center flex-col justify-between overflow-hidden bg-[#101820] text-[#E7D5AC] select-none"
   >
-    <!-- Lienzo 3D (Baja resolución 320x200 con escalado pixelado PS1 / Doom 2.5D) -->
+    <!-- 3D Canvas (Low resolution 320x200 with pixelated scaling PS1 / Doom 2.5D) -->
     <canvas
       ref="canvasRef"
       width="320"
       height="200"
-      class="pixelated absolute inset-0 h-full w-full cursor-crosshair object-cover"
+      class="pixelated absolute inset-0 h-full w-full object-cover"
+      :class="isPointerLocked ? 'cursor-none' : 'cursor-crosshair'"
+      @click="lockPointerInGame"
       @mouseenter="onCanvasMouseEnter"
       @mousemove="onCanvasMouseMove"
       @mouseleave="onCanvasMouseLeave"
@@ -1080,11 +1143,11 @@ onBeforeUnmount(() => {
       @touchend.passive="onCanvasTouchEnd"
     ></canvas>
 
-    <!-- Efectos Visuales CRT Scanlines + Flash de Disparo / Daño / Gravedad -->
+    <!-- Visual Effects: CRT Scanlines + Muzzle / Damage / Gravity Flash -->
     <div class="crt-scanlines pointer-events-none absolute inset-0 opacity-40"></div>
     <div
       v-if="muzzleFlash"
-      class="pointer-events-none absolute inset-0 bg-sky-400/20"
+      class="pointer-events-none absolute inset-0 bg-[#D18C39]/25"
     ></div>
     <div
       v-if="damageFlash"
@@ -1092,46 +1155,46 @@ onBeforeUnmount(() => {
     ></div>
     <div
       v-if="gravityWarning"
-      class="pointer-events-none absolute inset-0 border-4 border-purple-500/70 shadow-[inset_0_0_50px_rgba(168,85,247,0.45)]"
+      class="pointer-events-none absolute inset-0 border-4 border-[#D18C39]/80 shadow-[inset_0_0_50px_rgba(209,140,57,0.45)]"
     ></div>
 
-    <!-- Retícula Central 32-bits -->
+    <!-- Center 32-bit Crosshair Reticle (Fallout Pip-Boy Amber) -->
     <div
       class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       <div class="relative flex h-7 w-7 items-center justify-center">
-        <div class="h-1.5 w-1.5 bg-sky-400 shadow-[0_0_6px_#38bdf8]"></div>
-        <div class="absolute inset-0 border border-sky-400/50"></div>
+        <div class="h-1.5 w-1.5 bg-[#D18C39] shadow-[0_0_6px_#D18C39]"></div>
+        <div class="absolute inset-0 border border-[#E7D5AC]/60"></div>
       </div>
     </div>
 
     <!-- ================================================================== -->
-    <!-- HUD SUPERIOR ESTILO 32-BITS (Salud: 2 Corazones, Energía: 5 Cuadritos) -->
+    <!-- TOP 32-BIT HUD (Health: 2 Hearts, Energy: 5 Squares)               -->
     <!-- ================================================================== -->
-    <header class="relative z-10 flex flex-wrap items-start justify-between gap-2 p-3 md:p-4">
-      <!-- Estadísticas del Jugador: 2 Corazones + 5 Cuadritos de Energía -->
-      <div class="retro-panel flex flex-col gap-2 px-3 py-2">
+    <header class="relative z-10 flex flex-wrap items-start justify-between gap-2 p-2.5 md:p-3.5">
+      <!-- Player Stats: 2 Hearts + 5 Energy Squares -->
+      <div class="retro-panel flex flex-col gap-1.5 px-3 py-2">
         <div class="flex items-center gap-4">
-          <!-- Salud: 2 Corazones -->
+          <!-- Health: 2 Hearts -->
           <div class="flex items-center gap-1.5" data-testid="hud-health">
-            <span class="text-[11px] font-bold uppercase text-slate-300">SALUD:</span>
+            <span class="text-[11px] font-bold uppercase text-[#E7D5AC]">HEALTH:</span>
             <span
               v-for="idx in gameStore.maxHealth"
               :key="`heart-${idx}`"
               class="text-base leading-none transition-transform"
               :class="
                 idx <= gameStore.health
-                  ? 'text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.8)]'
-                  : 'text-slate-700'
+                  ? 'text-[#D18C39] drop-shadow-[0_0_6px_rgba(209,140,57,0.85)]'
+                  : 'text-[#31515A]'
               "
             >
               ♥
             </span>
           </div>
 
-          <!-- Arma y Energía: 5 Cuadritos (Recarga pasiva) -->
+          <!-- Weapon & Energy: 5 Squares (Passive recharge) -->
           <div class="flex items-center gap-1" data-testid="hud-energy">
-            <span class="text-[11px] font-bold uppercase text-slate-300">ENERGÍA:</span>
+            <span class="text-[11px] font-bold uppercase text-[#E7D5AC]">ENERGY:</span>
             <div class="flex gap-1">
               <div
                 v-for="sq in gameStore.maxEnergy"
@@ -1139,40 +1202,53 @@ onBeforeUnmount(() => {
                 class="h-3.5 w-3.5 border transition-colors"
                 :class="
                   sq <= gameStore.energy
-                    ? 'border-sky-200 bg-sky-400 shadow-[0_0_8px_#38bdf8]'
-                    : 'border-slate-700 bg-slate-900'
+                    ? 'border-[#E7D5AC] bg-[#D18C39] shadow-[0_0_8px_#D18C39]'
+                    : 'border-[#31515A] bg-[#101820]'
                 "
               ></div>
             </div>
-            <span class="ml-1 text-[10px] font-bold text-sky-300">
+            <span class="ml-1 text-[10px] font-bold text-[#D18C39]">
               {{ gameStore.energy }}/{{ gameStore.maxEnergy }}
             </span>
           </div>
         </div>
 
-        <!-- Telemetría de Bajas y Regla de Drop (Cada 2 bajas) -->
-        <div class="flex flex-wrap items-center gap-3 border-t border-slate-800 pt-1.5 text-[10px]">
-          <span class="font-bold text-amber-300">
-            BAJAS: {{ gameStore.kills }} (DROP CADA {{ KILLS_PER_DROP }})
+        <!-- Kill Telemetry & Drop Rule (Every 2 kills) -->
+        <div class="flex flex-wrap items-center gap-3 border-t border-[#31515A] pt-1.5 text-[10px]">
+          <span class="font-bold text-[#D18C39]">
+            KILLS: {{ gameStore.kills }} (DROP EVERY {{ KILLS_PER_DROP }})
           </span>
-          <span class="text-emerald-300">
-            DISCOS: {{ gameStore.collectedOfficialCount }}/{{ gameStore.totalCatalogDiscs }}
+          <span class="text-[#E7D5AC]">
+            DISCS: {{ gameStore.collectedOfficialCount }}/{{ gameStore.totalCatalogDiscs }}
           </span>
-          <span class="text-slate-400">
+          <span class="text-[#E7D5AC]/70">
             POS: ({{ gameStore.playerGrid.x }}, {{ gameStore.playerGrid.z }})
           </span>
         </div>
       </div>
 
-      <!-- Radar Acústico Espacial y Selector de Placeholders .GIF -->
+      <!-- Spatial Acoustic Radar & .GIF Placeholder Selector -->
       <div class="retro-panel flex flex-col items-end gap-1.5 px-3 py-2 text-right">
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center justify-end gap-1.5">
           <button
             type="button"
-            class="border border-purple-400/70 bg-purple-950/70 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-200 hover:bg-purple-800"
+            class="border border-[#31515A] bg-[#101820] px-2 py-0.5 text-[10px] font-bold uppercase text-[#E7D5AC] hover:border-[#D18C39]"
             @click="togglePlaceholderStyle"
           >
-            GIF SPRITES: {{ showVisualPlaceholders ? 'DISEÑO PLACEHOLDER 32-BIT' : 'EN BLANCO / TRANSPARENTE' }}
+            GIF SPRITES: {{ showVisualPlaceholders ? '32-BIT PLACEHOLDER ART' : 'BLANK / TRANSPARENT' }}
+          </button>
+
+          <button
+            type="button"
+            class="border px-2 py-0.5 text-[10px] font-bold uppercase"
+            :class="
+              isPointerLocked
+                ? 'border-[#D18C39] bg-[#D18C39] text-[#101820]'
+                : 'border-[#31515A] bg-[#101820] text-[#E7D5AC] hover:border-[#D18C39]'
+            "
+            @click="isPointerLocked ? releasePointerLock() : lockPointerInGame()"
+          >
+            {{ isPointerLocked ? '🔒 MOUSE LOCKED [ESC]' : '🖱️ LOCK MOUSE' }}
           </button>
 
           <button
@@ -1180,79 +1256,79 @@ onBeforeUnmount(() => {
             class="border px-2 py-0.5 text-[10px] font-bold uppercase"
             :class="
               gameStore.navMode
-                ? 'border-amber-400 bg-amber-950 text-amber-200'
-                : 'border-slate-600 bg-slate-900 text-slate-300'
+                ? 'border-[#D18C39] bg-[#D18C39] text-[#101820]'
+                : 'border-[#31515A] bg-[#101820] text-[#E7D5AC]/80'
             "
             @click="gameStore.navMode = !gameStore.navMode"
           >
-            TECLAS A/D: {{ gameStore.navMode ? 'MENÚ CARRUSEL' : 'STRAFE JUEGO' }}
+            {{ gameStore.navMode ? 'MENU [A/D]' : 'SECTIONS [1/G · 3/L]' }}
           </button>
         </div>
 
-        <p class="max-w-xs truncate text-[10px] font-bold text-sky-300">
+        <p class="max-w-xs truncate text-[10px] font-bold text-[#D18C39]">
           {{ audioCueBanner }}
         </p>
-        <p class="max-w-xs truncate text-[10px] text-amber-200">
+        <p class="max-w-xs truncate text-[10px] text-[#E7D5AC]">
           {{ gameStore.statusMessage }}
         </p>
       </div>
     </header>
 
     <!-- ================================================================== -->
-    <!-- MODAL QTE: ATRAPADO POR ACECHADOR DE TECHO (MASH SPACEBAR)          -->
+    <!-- QTE MODAL: TRAPPED BY CEILING STALKER (MASH SPACEBAR)              -->
     <!-- ================================================================== -->
     <div
       v-if="gameStore.qteActive"
-      class="relative z-20 mx-auto my-auto flex max-w-md flex-col items-center border-4 border-rose-500 bg-black/95 p-5 text-center shadow-[0_0_40px_rgba(244,63,94,0.8)]"
+      class="relative z-20 mx-auto my-auto flex max-w-md flex-col items-center border-4 border-[#D18C39] bg-[#101820]/95 p-5 text-center shadow-[0_0_40px_rgba(209,140,57,0.8)]"
       data-testid="qte-modal"
     >
-      <p class="animate-pulse text-sm font-black uppercase tracking-widest text-rose-400">
-        ⚠️ ¡ATRAPADO POR ACECHADOR DE TECHO! ⚠️
+      <p class="animate-pulse text-sm font-black uppercase tracking-widest text-[#D18C39]">
+        ⚠️ TRAPPED BY CEILING STALKER! ⚠️
       </p>
-      <p class="mt-1 text-xs text-slate-200">
-        Presiona rápidamente <kbd class="border border-white px-1.5 py-0.5">ESPACIO</kbd> o el botón inferior para liberarte y detonar su explosión:
+      <p class="mt-1 text-xs text-[#E7D5AC]">
+        Rapidly press <kbd class="border border-[#E7D5AC] px-1.5 py-0.5">SPACE</kbd> or the button below to break free and detonate it:
       </p>
 
-      <div class="mt-3 h-4 w-full border-2 border-rose-400 bg-rose-950 p-0.5">
+      <div class="mt-3 h-4 w-full border-2 border-[#31515A] bg-[#1D303B] p-0.5">
         <div
-          class="h-full bg-rose-400 transition-all duration-75"
+          class="h-full bg-[#D18C39] transition-all duration-75"
           :style="{ width: `${(gameStore.qteProgress / gameStore.qteTarget) * 100}%` }"
         ></div>
       </div>
-      <p class="mt-1 text-[11px] font-bold text-amber-300">
-        PROGRESO QTE: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }}
+      <p class="mt-1 text-[11px] font-bold text-[#D18C39]">
+        QTE PROGRESS: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }}
       </p>
 
       <button
         type="button"
-        class="mt-3 w-full border-2 border-amber-300 bg-rose-700 py-2.5 text-sm font-black uppercase text-white active:scale-95"
+        class="mt-3 w-full border-2 border-[#31515A] bg-[#D18C39] py-2.5 text-sm font-black uppercase text-[#101820] active:scale-95"
         @click="handleSpaceQTEAction"
       >
-        ¡PULSAR RÁPIDO [BARRA ESPACIADORA]!
+        MASH [SPACEBAR] FAST!
       </button>
     </div>
 
-    <!-- Modal Game Over -->
+    <!-- Game Over Modal -->
     <div
       v-if="gameStore.isGameOver"
-      class="relative z-20 mx-auto my-auto flex max-w-sm flex-col items-center border-4 border-rose-500 bg-black/95 p-6 text-center"
+      class="relative z-20 mx-auto my-auto flex max-w-sm flex-col items-center border-4 border-[#D18C39] bg-[#101820]/95 p-6 text-center"
     >
-      <h2 class="text-xl font-black uppercase text-rose-500">
-        MISIÓN INTERRUMPIDA
+      <h2 class="text-xl font-black uppercase text-[#D18C39]">
+        MISSION INTERRUPTED
       </h2>
-      <p class="mt-1 text-xs text-slate-300">
-        Tu traje espacial perdió sus 2 corazones de integridad.
+      <p class="mt-1 text-xs text-[#E7D5AC]/80">
+        Your space suit lost both integrity hearts.
       </p>
       <button
         type="button"
-        class="mt-4 border-2 border-emerald-400 bg-emerald-950 px-5 py-2 text-xs font-black uppercase text-emerald-200 hover:bg-emerald-800"
+        class="mt-4 border-2 border-[#31515A] bg-[#D18C39] px-5 py-2 text-xs font-black uppercase text-[#101820] hover:brightness-110"
         @click="gameStore.resetGame()"
       >
-        REINICIAR SISTEMAS
+        REBOOT SYSTEMS
       </button>
     </div>
 
-    <!-- Botón de Recolección Directa cuando hay un Disco Holográfico en la escena -->
+    <!-- Direct Collect Button when a Holographic Disc is in the scene -->
     <div
       v-if="gameStore.pendingDrops.length > 0 && !gameStore.qteActive"
       class="relative z-10 mx-auto my-auto flex flex-col items-center gap-2"
@@ -1261,49 +1337,49 @@ onBeforeUnmount(() => {
         v-for="drop in gameStore.pendingDrops"
         :key="drop.id"
         type="button"
-        class="animate-bounce border-2 bg-[#071022]/95 px-4 py-2 text-xs font-black uppercase shadow-[4px_4px_0px_#000]"
+        class="animate-bounce border-2 bg-[#1D303B]/95 px-4 py-2 text-xs font-black uppercase text-[#E7D5AC] shadow-[4px_4px_0px_#000]"
         :class="RARITY_CONFIG[drop.rarity]?.borderClass"
         data-testid="collect-disc-btn"
         @click="gameStore.collectDisc(drop)"
       >
-        ◉ RECOGER DISCO HOLOGRÁFICO [{{ drop.category.toUpperCase() }} // {{ drop.rarity.toUpperCase() }}]
+        ◉ COLLECT HOLOGRAPHIC DISC [{{ drop.category.toUpperCase() }} // {{ (RARITY_CONFIG[drop.rarity]?.label || drop.rarity).toUpperCase() }}]
       </button>
     </div>
 
     <!-- ================================================================== -->
-    <!-- CONTROLES TÁCTILES Y DE ESCRITORIO + MINI-PLAYER FLOTANTE          -->
+    <!-- TOUCH & DESKTOP CONTROLS + FLOATING MINI-PLAYER                    -->
     <!-- ================================================================== -->
-    <footer class="relative z-10 flex flex-col gap-2.5 p-3 md:p-4">
-      <!-- Mini-Player Flotante (aparece al recoger un disco) -->
+    <footer class="relative z-10 flex flex-col gap-2 p-2.5 md:p-3.5">
+      <!-- Floating Mini-Player (appears after collecting a disc) -->
       <MiniPlayer
         @toggle-play="gameStore.toggleAudioPlayback()"
         @open-player="emit('navigate-right')"
       />
 
-      <!-- Controles Ergonómicos Híbridos (D-Pad Izquierdo + Acciones Derecha) -->
+      <!-- Hybrid Ergonomic Controls (Left D-Pad + Right Actions) -->
       <div class="flex items-end justify-between gap-2">
-        <!-- D-Pad de Movimiento y Cámara (Eficiente en Móvil y PC) -->
+        <!-- Movement & Camera D-Pad (Efficient on Mobile and PC) -->
         <div class="retro-panel grid grid-cols-3 gap-1 p-1.5">
           <button
             type="button"
-            class="border border-slate-600 bg-slate-900 px-2.5 py-2 text-xs font-bold text-sky-300 active:bg-sky-900"
-            title="Girar Cámara Izquierda (Q / Flecha Izq)"
+            class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-xs font-bold text-[#D18C39] active:bg-[#31515A]"
+            title="Turn Camera Left (Q / Left Arrow)"
             @click="handleRotateStep(Math.PI / 2)"
           >
             ↺ Q
           </button>
           <button
             type="button"
-            class="border border-sky-500/60 bg-sky-950/80 px-2.5 py-2 text-xs font-black text-white active:bg-sky-700"
-            title="Avanzar 1 Bloque (W / Flecha Arriba)"
+            class="border border-[#D18C39]/70 bg-[#101820] px-2.5 py-1.5 text-xs font-black text-[#E7D5AC] active:bg-[#D18C39] active:text-[#101820]"
+            title="Move Forward 1 Block (W / Up Arrow)"
             @click="handleMoveStep(1, 0)"
           >
             ▲ W
           </button>
           <button
             type="button"
-            class="border border-slate-600 bg-slate-900 px-2.5 py-2 text-xs font-bold text-sky-300 active:bg-sky-900"
-            title="Girar Cámara Derecha (E / Flecha Der)"
+            class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-xs font-bold text-[#D18C39] active:bg-[#31515A]"
+            title="Turn Camera Right (E / Right Arrow)"
             @click="handleRotateStep(-Math.PI / 2)"
           >
             E ↻
@@ -1311,78 +1387,78 @@ onBeforeUnmount(() => {
 
           <button
             type="button"
-            class="border border-slate-600 bg-slate-900 px-2.5 py-2 text-xs font-bold text-slate-200 active:bg-slate-700"
-            title="Paso Lateral Izquierdo (A)"
+            class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-xs font-bold text-[#E7D5AC] active:bg-[#31515A]"
+            title="Strafe Left (A)"
             @click="handleMoveStep(0, -1)"
           >
             ◄ A
           </button>
           <button
             type="button"
-            class="border border-sky-500/60 bg-sky-950/80 px-2.5 py-2 text-xs font-black text-white active:bg-sky-700"
-            title="Retroceder 1 Bloque (S / Flecha Abajo)"
+            class="border border-[#D18C39]/70 bg-[#101820] px-2.5 py-1.5 text-xs font-black text-[#E7D5AC] active:bg-[#D18C39] active:text-[#101820]"
+            title="Move Backward 1 Block (S / Down Arrow)"
             @click="handleMoveStep(-1, 0)"
           >
             ▼ S
           </button>
           <button
             type="button"
-            class="border border-slate-600 bg-slate-900 px-2.5 py-2 text-xs font-bold text-slate-200 active:bg-slate-700"
-            title="Paso Lateral Derecho (D)"
+            class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-xs font-bold text-[#E7D5AC] active:bg-[#31515A]"
+            title="Strafe Right (D)"
             @click="handleMoveStep(0, 1)"
           >
             D ►
           </button>
         </div>
 
-        <!-- Resumen de Enemigos Detectados en la Niebla (Oculto en pantallas muy pequeñas) -->
+        <!-- Detected Enemies in Fog Summary (Hidden on very small screens) -->
         <div
           class="retro-panel hidden max-w-xs flex-col gap-1 px-3 py-2 text-[10px] md:flex"
         >
-          <span class="font-bold uppercase text-slate-400">
-            SENSORES DE AUDIO ESPACIAL ({{ nearbyEnemySummary.length }} ACTIVOS):
+          <span class="font-bold uppercase text-[#D18C39]">
+            SPATIAL AUDIO SENSORS ({{ nearbyEnemySummary.length }} ACTIVE):
           </span>
           <div class="flex flex-wrap gap-1.5">
             <span
               v-for="e in nearbyEnemySummary"
               :key="e.id"
-              class="border border-slate-700 bg-black/70 px-1.5 py-0.5 text-slate-300"
+              class="border border-[#31515A] bg-[#101820] px-1.5 py-0.5 text-[#E7D5AC]"
             >
               {{ e.name }}: {{ e.dist }}m
             </span>
           </div>
         </div>
 
-        <!-- Botones de Acción: Disparar (-1⚡) y Dash 2 Bloques Atrás (-3⚡) -->
+        <!-- Action Buttons: Shoot (-1⚡) & Dash 2 Blocks Back (-3⚡) -->
         <div class="retro-panel flex flex-col gap-1.5 p-1.5 sm:flex-row">
           <button
             type="button"
             data-testid="btn-dash"
             :disabled="!gameStore.canDash"
-            class="border-2 px-3 py-2.5 text-xs font-black uppercase tracking-wider transition-all"
+            class="border-2 px-3 py-2 text-xs font-black uppercase tracking-wider transition-all"
             :class="
               gameStore.canDash
-                ? 'border-purple-400 bg-purple-950 text-purple-200 hover:bg-purple-800 active:translate-y-0.5'
-                : 'cursor-not-allowed border-slate-700 bg-slate-900 text-slate-600'
+                ? 'border-[#31515A] bg-[#101820] text-[#E7D5AC] hover:border-[#D18C39] active:translate-y-0.5'
+                : 'cursor-not-allowed border-[#31515A]/40 bg-[#101820]/50 text-[#E7D5AC]/30'
             "
             @click="handleDashAction"
           >
-            ⚡ DASH -2 BLOQUES (-{{ DASH_COST }}⚡)
+            ⚡ DASH -2 BLOCKS (-{{ DASH_COST }}⚡)
           </button>
 
           <button
             type="button"
             data-testid="btn-shoot"
             :disabled="!gameStore.canShoot"
-            class="border-2 px-3.5 py-2.5 text-xs font-black uppercase tracking-wider transition-all"
+            class="border-2 px-3.5 py-2 text-xs font-black uppercase tracking-wider transition-all"
             :class="
               gameStore.canShoot
-                ? 'border-sky-400 bg-sky-950 text-sky-200 hover:bg-sky-800 active:translate-y-0.5'
-                : 'cursor-not-allowed border-slate-700 bg-slate-900 text-slate-600'
+                ? 'border-[#31515A] bg-[#D18C39] text-[#101820] hover:brightness-110 active:translate-y-0.5'
+                : 'cursor-not-allowed border-[#31515A]/40 bg-[#101820]/50 text-[#E7D5AC]/30'
             "
             @click="handleShootAction"
           >
-            🔥 DISPARAR (-{{ SHOOT_COST }}⚡)
+            🔥 SHOOT (-{{ SHOOT_COST }}⚡)
           </button>
         </div>
       </div>

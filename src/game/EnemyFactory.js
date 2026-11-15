@@ -17,9 +17,9 @@ const SUBTYPE_REGISTRY = new Map([
     'stalker',
     {
       type: 'stalker',
-      name: 'Acechador de Techo',
+      name: 'Ceiling Stalker',
       gifPath: GIF_SPRITE_PATHS.stalker,
-      defaultY: 2.0, // Se mueve 2 niveles más arriba
+      defaultY: 2.0, // Moves 2 levels higher
       scale: 1.5,
       hp: 1,
       stepIntervalMs: 1300,
@@ -29,7 +29,7 @@ const SUBTYPE_REGISTRY = new Map([
     'shooter',
     {
       type: 'shooter',
-      name: 'Francotirador Oculto',
+      name: 'Hidden Sniper',
       gifPath: GIF_SPRITE_PATHS.shooter,
       defaultY: 0.75,
       scale: 1.65,
@@ -41,21 +41,21 @@ const SUBTYPE_REGISTRY = new Map([
     'gravity',
     {
       type: 'gravity',
-      name: 'Anomalía Gravitatoria',
+      name: 'Gravity Anomaly',
       gifPath: GIF_SPRITE_PATHS.gravity,
       defaultY: 0.85,
       scale: 1.75,
       hp: 1,
-      pullRadiusBlocks: 3, // Atrae si estás a 3 bloques o menos
-      pullIntervalMs: 1500, // Te atrae 1 bloque cada 1.5 segundos
+      pullRadiusBlocks: 3, // Pulls if within 3 blocks
+      pullIntervalMs: 1500, // Pulls 1 block every 1.5 seconds
     },
   ],
-  // Variantes 4 y 5 pre-registradas para escalabilidad inmediata a 5 subtipos
+  // Pre-registered variants 4 and 5 for immediate scalability to 5 subtypes
   [
     'crawler',
     {
       type: 'crawler',
-      name: 'Rastrero de Conducto (Variante 4)',
+      name: 'Duct Crawler (Variant 4)',
       gifPath: GIF_SPRITE_PATHS.crawler,
       defaultY: 0.35,
       scale: 1.2,
@@ -67,7 +67,7 @@ const SUBTYPE_REGISTRY = new Map([
     'phaser',
     {
       type: 'phaser',
-      name: 'Espectro de Fase (Variante 5)',
+      name: 'Phase Wraith (Variant 5)',
       gifPath: GIF_SPRITE_PATHS.phaser,
       defaultY: 0.9,
       scale: 1.6,

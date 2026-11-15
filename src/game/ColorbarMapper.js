@@ -12,43 +12,43 @@
 export const COLORBAR_PROFILES = {
   '5147': {
     id: '5147',
-    name: 'Anomalía de Temperatura Global (SVS #5147)',
+    name: 'Global Temperature Anomaly (SVS #5147)',
     unit: '°C',
     stops: [
-      { value: 0.0, hsl: { h: 225, s: 0.85, l: 0.42 } }, // Azul frío mínimo
-      { value: 0.25, hsl: { h: 190, s: 0.80, l: 0.52 } }, // Cian
-      { value: 0.5, hsl: { h: 55, s: 0.88, l: 0.68 } }, // Amarillo/blanco neutro
-      { value: 0.75, hsl: { h: 26, s: 0.94, l: 0.54 } }, // Naranja cálido
-      { value: 1.0, hsl: { h: 2, s: 0.92, l: 0.46 } }, // Rojo extremo máximo
+      { value: 0.0, hsl: { h: 225, s: 0.85, l: 0.42 } },
+      { value: 0.25, hsl: { h: 190, s: 0.80, l: 0.52 } },
+      { value: 0.5, hsl: { h: 55, s: 0.88, l: 0.68 } },
+      { value: 0.75, hsl: { h: 26, s: 0.94, l: 0.54 } },
+      { value: 1.0, hsl: { h: 2, s: 0.92, l: 0.46 } },
     ],
   },
   '5151': {
     id: '5151',
-    name: 'Concentración PM2.5 Atmosférico (SVS #5151)',
+    name: 'Atmospheric PM2.5 Concentration (SVS #5151)',
     unit: 'µg/m³',
     stops: [
-      { value: 0.0, hsl: { h: 205, s: 0.72, l: 0.62 } }, // Aire limpio (azul cielo)
-      { value: 0.25, hsl: { h: 145, s: 0.68, l: 0.48 } }, // Moderado bajo (verde)
-      { value: 0.5, hsl: { h: 52, s: 0.94, l: 0.54 } }, // Moderado (amarillo)
-      { value: 0.75, hsl: { h: 16, s: 0.92, l: 0.52 } }, // Alto (naranja/rojo)
-      { value: 1.0, hsl: { h: 305, s: 0.82, l: 0.42 } }, // Crítico (magenta/púrpura)
+      { value: 0.0, hsl: { h: 205, s: 0.72, l: 0.62 } },
+      { value: 0.25, hsl: { h: 145, s: 0.68, l: 0.48 } },
+      { value: 0.5, hsl: { h: 52, s: 0.94, l: 0.54 } },
+      { value: 0.75, hsl: { h: 16, s: 0.92, l: 0.52 } },
+      { value: 1.0, hsl: { h: 305, s: 0.82, l: 0.42 } },
     ],
   },
   '5153': {
     id: '5153',
-    name: 'Monóxido de Carbono CO - GEOS-CF (SVS #5153)',
+    name: 'Carbon Monoxide CO - GEOS-CF (SVS #5153)',
     unit: 'ppbv',
     stops: [
-      { value: 0.0, hsl: { h: 225, s: 0.65, l: 0.22 } }, // Fondo limpio (azul marino)
-      { value: 0.25, hsl: { h: 185, s: 0.78, l: 0.45 } }, // Bajo (cian)
-      { value: 0.55, hsl: { h: 54, s: 0.94, l: 0.55 } }, // Medio (amarillo)
-      { value: 0.8, hsl: { h: 24, s: 0.95, l: 0.52 } }, // Alto (naranja)
-      { value: 1.0, hsl: { h: 355, s: 0.92, l: 0.48 } }, // Muy alto (rojo intenso)
+      { value: 0.0, hsl: { h: 225, s: 0.65, l: 0.22 } },
+      { value: 0.25, hsl: { h: 185, s: 0.78, l: 0.45 } },
+      { value: 0.55, hsl: { h: 54, s: 0.94, l: 0.55 } },
+      { value: 0.8, hsl: { h: 24, s: 0.95, l: 0.52 } },
+      { value: 1.0, hsl: { h: 355, s: 0.92, l: 0.48 } },
     ],
   },
   '5154': {
     id: '5154',
-    name: 'Óxidos de Nitrógeno NOx (SVS #5154)',
+    name: 'Nitrogen Oxides NOx (SVS #5154)',
     unit: 'ppbv',
     stops: [
       { value: 0.0, hsl: { h: 230, s: 0.60, l: 0.18 } },
@@ -60,7 +60,7 @@ export const COLORBAR_PROFILES = {
   },
   '5149': {
     id: '5149',
-    name: 'Precipitación y Nubes GEOS-FP (SVS #5149)',
+    name: 'GEOS-FP Precipitation & Clouds (SVS #5149)',
     unit: 'mm/hr',
     stops: [
       { value: 0.0, hsl: { h: 215, s: 0.35, l: 0.20 } },
@@ -72,7 +72,7 @@ export const COLORBAR_PROFILES = {
   },
   '5152': {
     id: '5152',
-    name: 'Ozono Cercano a la Superficie O3 (SVS #5152)',
+    name: 'Near-Surface Ozone O3 (SVS #5152)',
     unit: 'ppbv',
     stops: [
       { value: 0.0, hsl: { h: 220, s: 0.70, l: 0.32 } },
@@ -84,18 +84,18 @@ export const COLORBAR_PROFILES = {
   },
   '5150': {
     id: '5150',
-    name: 'Humedad Cercana a la Superficie (SVS #5150)',
+    name: 'Near-Surface Humidity (SVS #5150)',
     unit: 'g/kg',
     stops: [
-      { value: 0.0, hsl: { h: 35, s: 0.55, l: 0.38 } }, // Seco (ocre/marrón)
+      { value: 0.0, hsl: { h: 35, s: 0.55, l: 0.38 } },
       { value: 0.3, hsl: { h: 55, s: 0.50, l: 0.60 } },
-      { value: 0.6, hsl: { h: 175, s: 0.75, l: 0.48 } }, // Húmedo (turquesa)
-      { value: 1.0, hsl: { h: 215, s: 0.88, l: 0.42 } }, // Muy húmedo (azul profundo)
+      { value: 0.6, hsl: { h: 175, s: 0.75, l: 0.48 } },
+      { value: 1.0, hsl: { h: 215, s: 0.88, l: 0.42 } },
     ],
   },
   '5148': {
     id: '5148',
-    name: 'Velocidad del Viento en Superficie (SVS #5148)',
+    name: 'Near-Surface Wind Speed (SVS #5148)',
     unit: 'm/s',
     stops: [
       { value: 0.0, hsl: { h: 225, s: 0.55, l: 0.22 } },
@@ -107,7 +107,7 @@ export const COLORBAR_PROFILES = {
   },
   '4095': {
     id: '4095',
-    name: 'Evaporación Potencial Norteamérica (SVS #4095)',
+    name: 'North America Potential Evaporation (SVS #4095)',
     unit: 'mm',
     stops: [
       { value: 0.0, hsl: { h: 195, s: 0.75, l: 0.42 } },
@@ -118,7 +118,7 @@ export const COLORBAR_PROFILES = {
   },
   '2900': {
     id: '2900',
-    name: 'Monóxido de Carbono MOPITT 2000 (SVS #2900)',
+    name: 'Carbon Monoxide MOPITT 2000 (SVS #2900)',
     unit: 'ppbv',
     stops: [
       { value: 0.0, hsl: { h: 235, s: 0.78, l: 0.35 } },
@@ -129,7 +129,7 @@ export const COLORBAR_PROFILES = {
   },
   default: {
     id: 'default',
-    name: 'Escala Espectral Estándar',
+    name: 'Standard Spectral Scale',
     unit: 'norm',
     stops: [
       { value: 0.0, hsl: { h: 240, s: 0.80, l: 0.45 } },

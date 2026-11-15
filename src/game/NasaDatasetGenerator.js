@@ -18,43 +18,43 @@ export const NASA_CATEGORIES = [
 export const RARITY_CONFIG = {
   comun: {
     id: 'comun',
-    label: 'Común',
+    label: 'Common',
     probability: 0.5,
     hex: '#a3e635',
     threeColor: 0xa3e635,
     borderClass: 'border-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.45)]',
     badgeClass: 'bg-lime-950 text-lime-300 border-lime-500',
-    description: '1 Voz Simple (Onda Cuadrada/Triangular 32-bits)',
+    description: '1 Simple Voice (32-bit Square/Triangle Wave)',
   },
   raro: {
     id: 'raro',
-    label: 'Raro',
+    label: 'Rare',
     probability: 0.3,
     hex: '#38bdf8',
     threeColor: 0x38bdf8,
     borderClass: 'border-sky-400 shadow-[0_0_15px_rgba(56,189,248,0.55)]',
     badgeClass: 'bg-sky-950 text-sky-300 border-sky-400',
-    description: 'Armonía Cuantizada + Reverberación Espacial',
+    description: 'Quantized Harmony + Spatial Reverb',
   },
   epico: {
     id: 'epico',
-    label: 'Épico',
+    label: 'Epic',
     probability: 0.15,
     hex: '#c084fc',
-    threeColor: 0xc084fc,
+    threeColor: 0x31515a,
     borderClass: 'border-purple-400 shadow-[0_0_18px_rgba(192,132,252,0.65)]',
     badgeClass: 'bg-purple-950 text-purple-300 border-purple-400',
-    description: 'Lectura Dual de Espectro + Filtros Dinámicos',
+    description: 'Dual Spectrum Scan + Dynamic Filters',
   },
   legendario: {
     id: 'legendario',
-    label: 'Legendario',
+    label: 'Legendary',
     probability: 0.05,
-    hex: '#facc15',
-    threeColor: 0xfacc15,
-    borderClass: 'border-yellow-400 shadow-[0_0_24px_rgba(250,204,21,0.85)]',
-    badgeClass: 'bg-yellow-950 text-yellow-300 border-yellow-400',
-    description: 'Capas Completas + Telemetría Narrada por Voz NASA',
+    hex: '#D18C39',
+    threeColor: 0xd18c39,
+    borderClass: 'border-[#D18C39] shadow-[0_0_24px_rgba(209,140,57,0.85)]',
+    badgeClass: 'bg-[#1D303B] text-[#E7D5AC] border-[#D18C39]',
+    description: 'Full Harmonic Layers + Interactive Pixel Hover + NASA Voice Telemetry',
   },
 }
 
@@ -68,22 +68,22 @@ const SVS_5153_FALLBACK_TOPIC = {
   source: 'cache',
   title: 'Carbon Monoxide (CO)',
   summary:
-    'Concentración cercana a la superficie de monóxido de carbono (CO) estimada por el modelo GEOS-CF de la NASA.',
+    'Near-surface concentration of carbon monoxide (CO) estimated by NASA’s GEOS-CF model.',
   releaseDate: '2023-09-26',
   credits: ['Joseph V. Ardizzone (NASA/GSFC)'],
   keywords: ['Atmospheric Composition', 'Earth Information Center', 'GMAO', 'Hyperwall'],
   paragraphs: [
-    'Las predicciones de contaminación del aire se crean mediante modelos complejos que combinan información meteorológica con emisiones, transformación y transporte de especies químicas y partículas. El sistema Goddard Earth Observing System Composition Forecasting (GEOS-CF) es un modelo de investigación mantenido por la Oficina de Modelado y Asimilación Global (GMAO) de la NASA para comprender las causas y el impacto de la contaminación atmosférica.',
-    'GEOS-CF rastrea concentraciones de cientos de especies químicas en fase gaseosa y docenas de tipos de partículas según su composición y tamaño. Se utiliza globalmente para mejorar pronósticos locales, estudiar impactos en la salud humana y calibrar conjuntos de datos satelitales de la NASA.',
-    'El monóxido de carbono (CO), formado por un átomo de carbono y uno de oxígeno, surge de la combustión incompleta en vehículos, industria, quema residencial de madera e incendios forestales. En concentraciones muy altas interfiere con el transporte de oxígeno en la sangre; además, su vida media atmosférica de ~2 meses le permite viajar largas distancias impulsado por los sistemas climáticos globales.',
+    'Air pollution forecasts are created using complex models that combine meteorological data with emissions, chemical transformation, and transport of chemical species and particulate matter. The Goddard Earth Observing System Composition Forecasting (GEOS-CF) system is a research model maintained by NASA’s Global Modeling and Assimilation Office (GMAO) to understand the causes and impacts of air pollution.',
+    'GEOS-CF tracks concentrations of hundreds of gas-phase chemical species and dozens of particle types based on their composition and size. It is used globally to improve local air quality forecasts, study human health impacts, and calibrate NASA satellite datasets.',
+    'Carbon monoxide (CO), consisting of one carbon and one oxygen atom, arises from incomplete combustion in vehicles, industry, residential wood burning, and wildfires. At very high concentrations it interferes with oxygen transport in the bloodstream; with an atmospheric lifetime of roughly two months, CO travels long distances driven by global weather patterns.',
   ],
   moreInfoUrl: 'https://gmao.gsfc.nasa.gov/gmao-products/geos-cf/',
   svsUrl: 'https://svs.gsfc.nasa.gov/5153/',
 }
 
 /**
- * Catálogo curado de discos NASA (Sin generación aleatoria/procedural).
- * Contiene los 20 datasets reales de NASA SVS (#5153 + 19 adicionales).
+ * Curated catalog of NASA discs (no random/procedural generation).
+ * Contains the 20 real NASA SVS datasets (#5153 + 19 additional).
  */
 export const CURATED_NASA_DISCS = [
   {
@@ -100,7 +100,7 @@ export const CURATED_NASA_DISCS = [
     instrument: 'NASA GEOS-CF Model (GMAO)',
     date: '2023-09-26',
     narration:
-      'Visualización científica NASA SVS 5153: Concentración global de monóxido de carbono cerca de la superficie estimada por el modelo GEOS-CF.',
+      'NASA SVS 5153 scientific visualization: Near-surface global carbon monoxide concentration estimated by the GEOS-CF model.',
     category: 'maps',
     mapProfileId: '5153',
     ambientStyle: 'maritimo',

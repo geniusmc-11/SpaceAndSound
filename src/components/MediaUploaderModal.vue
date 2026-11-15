@@ -11,9 +11,9 @@ import { COLORBAR_PROFILES } from '@/game/ColorbarMapper'
 const emit = defineEmits(['close', 'added'])
 const gameStore = useGameStore()
 
-const inputType = ref('video') // 'video' (Opción B) | 'image' (Directa)
+const inputType = ref('video') // 'video' (Option B) | 'image' (Direct)
 const title = ref('')
-const instrument = ref('Dataset NASA / Usuario')
+const instrument = ref('NASA / User Dataset')
 const category = ref('maps')
 const mapProfileId = ref('5153')
 const rarity = ref('raro')
@@ -41,7 +41,7 @@ async function handleSubmit() {
 
   if (inputType.value === 'video') {
     if (!selectedFile.value) {
-      errorMessage.value = 'Selecciona un archivo de video (.mp4, .webm, .mov).'
+      errorMessage.value = 'Please select a video file (.mp4, .webm, .mov).'
       return
     }
     isProcessing.value = true
@@ -73,15 +73,15 @@ async function handleSubmit() {
       emit('added', newDisc)
       emit('close')
     } catch (err) {
-      errorMessage.value = err?.message || 'Error al convertir el video a fotogramas.'
+      errorMessage.value = err?.message || 'Error converting video to frames.'
     } finally {
       isProcessing.value = false
     }
   } else {
-    // Imagen directa (Archivo o URL)
+    // Direct Image (File or URL)
     const source = selectedFile.value || externalImageUrl.value.trim()
     if (!source) {
-      errorMessage.value = 'Selecciona una imagen local o pega una URL de imagen con CORS habilitado.'
+      errorMessage.value = 'Select a local image or paste a CORS-enabled image URL.'
       return
     }
 
@@ -89,7 +89,7 @@ async function handleSubmit() {
     try {
       const result = await convertImageToDirectDiscMedia(source)
       const newDisc = buildDiscRecord({
-        title: title.value || (selectedFile.value?.name ?? 'Imagen NASA Directa'),
+        title: title.value || (selectedFile.value?.name ?? 'Direct NASA Image'),
         instrument: instrument.value,
         category: category.value,
         mapProfileId: mapProfileId.value,
@@ -104,7 +104,7 @@ async function handleSubmit() {
       emit('added', newDisc)
       emit('close')
     } catch (err) {
-      errorMessage.value = err?.message || 'No se pudo cargar la imagen.'
+      errorMessage.value = err?.message || 'Could not load the image.'
     } finally {
       isProcessing.value = false
     }
@@ -117,85 +117,85 @@ async function handleSubmit() {
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4"
     @click.self="!isProcessing && emit('close')"
   >
-    <div class="w-full max-w-lg border-2 border-sky-400 bg-[#070d1c] p-5 shadow-[6px_6px_0px_#000]">
-      <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+    <div class="w-full max-w-lg border-2 border-[#D18C39] bg-[#101820] p-5 text-[#E7D5AC] shadow-[6px_6px_0px_#000]">
+      <div class="flex items-center justify-between border-b border-[#31515A] pb-3">
         <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-amber-400">
-            IMPORTADOR MULTIMEDIA // OPCIÓN B
+          <p class="text-[10px] font-bold uppercase tracking-widest text-[#D18C39]">
+            MULTIMEDIA IMPORTER // OPTION B
           </p>
-          <h2 class="text-base font-black uppercase text-white">
-            AÑADIR VIDEO (A FOTOGRAMAS) O IMAGEN
+          <h2 class="text-base font-black uppercase text-[#E7D5AC]">
+            ADD VIDEO (TO FRAMES) OR IMAGE
           </h2>
         </div>
         <button
           type="button"
           :disabled="isProcessing"
-          class="border border-slate-600 px-2 py-1 text-xs font-bold text-slate-300 hover:bg-slate-800"
+          class="border border-[#31515A] bg-[#1D303B] px-2 py-1 text-xs font-bold text-[#E7D5AC] hover:border-[#D18C39]"
           @click="emit('close')"
         >
           ✕
         </button>
       </div>
 
-      <!-- Selector Tipo: Video -> Opción B vs Imagen Directa -->
+      <!-- Type Selector: Video -> Option B vs Direct Image -->
       <div class="mt-4 grid grid-cols-2 gap-2">
         <button
           type="button"
           class="border-2 py-2 text-xs font-black uppercase"
           :class="
             inputType === 'video'
-              ? 'border-sky-400 bg-sky-950 text-sky-200'
-              : 'border-slate-700 bg-slate-900 text-slate-400'
+              ? 'border-[#D18C39] bg-[#D18C39] text-[#101820]'
+              : 'border-[#31515A] bg-[#1D303B] text-[#E7D5AC]/75'
           "
           @click="inputType = 'video'; selectedFile = null; errorMessage = ''"
         >
-          🎬 VIDEO → FOTOGRAMAS
+          🎬 VIDEO → FRAMES
         </button>
         <button
           type="button"
           class="border-2 py-2 text-xs font-black uppercase"
           :class="
             inputType === 'image'
-              ? 'border-emerald-400 bg-emerald-950 text-emerald-200'
-              : 'border-slate-700 bg-slate-900 text-slate-400'
+              ? 'border-[#D18C39] bg-[#D18C39] text-[#101820]'
+              : 'border-[#31515A] bg-[#1D303B] text-[#E7D5AC]/75'
           "
           @click="inputType = 'image'; selectedFile = null; errorMessage = ''"
         >
-          🖼️ IMAGEN DIRECTA
+          🖼️ DIRECT IMAGE
         </button>
       </div>
 
       <form class="mt-4 flex flex-col gap-3" @submit.prevent="handleSubmit">
-        <!-- Archivo Local -->
+        <!-- Local File -->
         <div>
-          <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-            {{ inputType === 'video' ? 'Archivo de Video (.mp4, .webm, .mov)' : 'Archivo de Imagen (.png, .jpg, .webp)' }}
+          <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+            {{ inputType === 'video' ? 'Video File (.mp4, .webm, .mov)' : 'Image File (.png, .jpg, .webp)' }}
           </label>
           <input
             type="file"
             :accept="inputType === 'video' ? 'video/*' : 'image/*'"
-            class="w-full border border-slate-600 bg-black/70 p-2 text-xs text-slate-200 file:mr-3 file:border-0 file:bg-sky-800 file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-white"
+            class="w-full border border-[#31515A] bg-[#1D303B] p-2 text-xs text-[#E7D5AC] file:mr-3 file:border-0 file:bg-[#D18C39] file:px-2.5 file:py-1 file:text-xs file:font-bold file:text-[#101820]"
             @change="handleFileChange"
           />
         </div>
 
-        <!-- URL opcional para imagen directa -->
+        <!-- Optional URL for direct image -->
         <div v-if="inputType === 'image'">
-          <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-            O URL directa de imagen (si no subes archivo)
+          <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+            Or direct image URL (if not uploading a file)
           </label>
           <input
             v-model="externalImageUrl"
             type="url"
             placeholder="https://..."
-            class="w-full border border-slate-600 bg-black/70 px-2.5 py-1.5 text-xs text-slate-100"
+            class="w-full border border-[#31515A] bg-[#1D303B] px-2.5 py-1.5 text-xs text-[#E7D5AC]"
           />
         </div>
 
-        <!-- Cantidad de Fotogramas (solo Video Opción B) -->
+        <!-- Keyframe Count (Video Option B only) -->
         <div v-if="inputType === 'video'">
-          <label class="mb-1 block text-[11px] font-bold uppercase text-amber-300">
-            Fotogramas clave a extraer (Opción B): {{ frameCount }} frames
+          <label class="mb-1 block text-[11px] font-bold uppercase text-[#D18C39]">
+            Keyframes to extract (Option B): {{ frameCount }} frames
           </label>
           <div class="grid grid-cols-4 gap-1.5">
             <button
@@ -205,54 +205,54 @@ async function handleSubmit() {
               class="border py-1 text-xs font-bold"
               :class="
                 frameCount === count
-                  ? 'border-amber-400 bg-amber-950 text-amber-200'
-                  : 'border-slate-700 bg-slate-900 text-slate-400'
+                  ? 'border-[#D18C39] bg-[#D18C39] text-[#101820]'
+                  : 'border-[#31515A] bg-[#1D303B] text-[#E7D5AC]/70'
               "
               @click="frameCount = count"
             >
               {{ count }} frames
             </button>
           </div>
-          <p class="mt-1 text-[10px] text-slate-400">
-            Para videos de ~30s se recomienda 12 o 16 fotogramas (~350 KB totales en memoria).
+          <p class="mt-1 text-[10px] text-[#E7D5AC]/65">
+            For ~30s videos, 12 or 16 frames are recommended (~350 KB total in memory).
           </p>
         </div>
 
-        <!-- Título y Metadatos -->
+        <!-- Title and Metadata -->
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-              Título del Disco
+            <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+              Disc Title
             </label>
             <input
               v-model="title"
               type="text"
-              placeholder="Ej. Huracán / CO2 Global"
-              class="w-full border border-slate-600 bg-black/70 px-2.5 py-1.5 text-xs text-slate-100"
+              placeholder="e.g. Hurricane / Global CO2"
+              class="w-full border border-[#31515A] bg-[#1D303B] px-2.5 py-1.5 text-xs text-[#E7D5AC]"
             />
           </div>
 
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-              Fuente / Instrumento
+            <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+              Source / Instrument
             </label>
             <input
               v-model="instrument"
               type="text"
-              class="w-full border border-slate-600 bg-black/70 px-2.5 py-1.5 text-xs text-slate-100"
+              class="w-full border border-[#31515A] bg-[#1D303B] px-2.5 py-1.5 text-xs text-[#E7D5AC]"
             />
           </div>
         </div>
 
-        <!-- Estrategia de Sonificación y Rareza -->
+        <!-- Sonification Strategy and Rarity -->
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-              Modo de Sonificación
+            <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+              Sonification Mode
             </label>
             <select
               v-model="category"
-              class="w-full border border-slate-600 bg-black px-2 py-1.5 text-xs uppercase text-sky-200"
+              class="w-full border border-[#31515A] bg-[#1D303B] px-2 py-1.5 text-xs uppercase text-[#E7D5AC]"
             >
               <option v-for="cat in NASA_CATEGORIES" :key="cat" :value="cat">
                 {{ cat }}
@@ -261,12 +261,12 @@ async function handleSubmit() {
           </div>
 
           <div>
-            <label class="mb-1 block text-[11px] font-bold uppercase text-slate-300">
-              Rareza (Capas de Audio)
+            <label class="mb-1 block text-[11px] font-bold uppercase text-[#E7D5AC]">
+              Rarity (Audio Layers)
             </label>
             <select
               v-model="rarity"
-              class="w-full border border-slate-600 bg-black px-2 py-1.5 text-xs uppercase text-amber-200"
+              class="w-full border border-[#31515A] bg-[#1D303B] px-2 py-1.5 text-xs uppercase text-[#D18C39]"
             >
               <option v-for="(meta, key) in RARITY_CONFIG" :key="key" :value="key">
                 {{ meta.label }}
@@ -275,14 +275,14 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <!-- Perfil de Colorbar cuando el tipo es 'maps' -->
+        <!-- Colorbar Profile when mode is 'maps' -->
         <div v-if="category === 'maps'">
-          <label class="mb-1 block text-[11px] font-bold uppercase text-sky-300">
-            Perfil de Leyenda (Colorbar ID)
+          <label class="mb-1 block text-[11px] font-bold uppercase text-[#D18C39]">
+            Legend Profile (Colorbar ID)
           </label>
           <select
             v-model="mapProfileId"
-            class="w-full border border-sky-600 bg-black px-2 py-1.5 text-xs text-sky-200"
+            class="w-full border border-[#31515A] bg-[#1D303B] px-2 py-1.5 text-xs text-[#E7D5AC]"
           >
             <option
               v-for="(profile, key) in COLORBAR_PROFILES"
@@ -294,18 +294,18 @@ async function handleSubmit() {
           </select>
         </div>
 
-        <!-- Barra de Progreso de Conversión -->
-        <div v-if="isProcessing" class="border border-sky-500/60 bg-black/80 p-2.5">
-          <p class="text-[11px] font-bold text-sky-300">
+        <!-- Conversion Progress Bar -->
+        <div v-if="isProcessing" class="border border-[#D18C39] bg-[#1D303B] p-2.5">
+          <p class="text-[11px] font-bold text-[#D18C39]">
             {{
               inputType === 'video'
-                ? `EXTRAYENDO FOTOGRAMAS OPCIÓN B: ${progressCurrent} / ${progressTotal}`
-                : 'PROCESANDO IMAGEN...'
+                ? `EXTRACTING OPTION B FRAMES: ${progressCurrent} / ${progressTotal}`
+                : 'PROCESSING IMAGE...'
             }}
           </p>
-          <div class="mt-1.5 h-2.5 w-full bg-slate-800">
+          <div class="mt-1.5 h-2.5 w-full bg-[#101820]">
             <div
-              class="h-full bg-sky-400 transition-all duration-150"
+              class="h-full bg-[#D18C39] transition-all duration-150"
               :style="{
                 width:
                   progressTotal > 0
@@ -324,22 +324,22 @@ async function handleSubmit() {
           <button
             type="button"
             :disabled="isProcessing"
-            class="border border-slate-600 bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-slate-300"
+            class="border border-[#31515A] bg-[#1D303B] px-4 py-2 text-xs font-bold uppercase text-[#E7D5AC]"
             @click="emit('close')"
           >
-            Cancelar
+            Cancel
           </button>
           <button
             type="submit"
             :disabled="isProcessing"
-            class="border-2 border-emerald-400 bg-emerald-950 px-4 py-2 text-xs font-black uppercase text-emerald-200 hover:bg-emerald-800 disabled:opacity-50"
+            class="border-2 border-[#31515A] bg-[#D18C39] px-4 py-2 text-xs font-black uppercase text-[#101820] hover:brightness-110 disabled:opacity-50"
           >
             {{
               isProcessing
-                ? 'CONVIRTIENDO...'
+                ? 'CONVERTING...'
                 : inputType === 'video'
-                  ? 'CONVERTIR VIDEO Y AÑADIR'
-                  : 'AÑADIR IMAGEN A LA BÓVEDA'
+                  ? 'CONVERT VIDEO & ADD'
+                  : 'ADD IMAGE TO VAULT'
             }}
           </button>
         </div>

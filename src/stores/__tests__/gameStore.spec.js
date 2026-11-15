@@ -42,6 +42,7 @@ import {
 import App from '@/App.vue'
 import DiscVault from '@/components/DiscVault.vue'
 import GameCanvas from '@/components/GameCanvas.vue'
+import MiniPlayer from '@/components/MiniPlayer.vue'
 
 describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
   beforeEach(() => {
@@ -136,7 +137,8 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(store.layoutUnlocked).toBe(true)
     expect(store.collectedDiscs.length).toBe(1)
     expect(store.currentDisc.id).toBe('nasa-svs-5153')
-    expect(store.isPlayingAudio).toBe(true)
+    // Al recoger el disco en el juego no se reproduce automáticamente
+    expect(store.isPlayingAudio).toBe(false)
   })
 
   it('permite añadir manualmente discos de video convertidos (Opción B) e imágenes directas', () => {
@@ -222,6 +224,7 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(store.activeSection).toBe(1)
     expect(wrapper.find('[data-testid="edge-indicator-left"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="edge-indicator-right"]').exists()).toBe(true)
+    wrapper.unmount()
   })
 
   it('desacopla mapas tipo "maps" mediante perfiles de colorbar HSL y pasa solo un flotante limpio [0.0..1.0]', () => {
@@ -265,7 +268,7 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     const wrapper = mount(DiscVault)
     const badge = wrapper.find('[data-testid="vault-progress-badge"]')
     expect(badge.exists()).toBe(true)
-    expect(badge.text()).toContain('DISCOS: 1 / 20')
+    expect(badge.text()).toContain('DISCS: 1 / 20')
   })
 
   it('corrige la colisión de balas lentas para no matar al disparar a otro lado, bloquea el punto de control y coloca ventanas inteligentes', () => {
@@ -313,7 +316,7 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     )
     expect(blackResult.mode).toBe('planetario')
     expect(blackResult.silent).toBe(true)
-    expect(blackResult.primaryNote).toBe('SILENCIO')
+    expect(blackResult.primaryNote).toBe('SILENCE')
     expect(blackResult.thereminNote).toBeNull()
 
     // Píxeles planetarios iluminados generan Melodía 1 + Melodía 2 (bajo tipo Theremin)
@@ -326,7 +329,7 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     )
     expect(litResult.mode).toBe('planetario')
     expect(litResult.silent).toBe(false)
-    expect(litResult.primaryNote).not.toBe('SILENCIO')
+    expect(litResult.primaryNote).not.toBe('SILENCE')
     expect(litResult.thereminNote).toBeTruthy()
   })
 
@@ -363,5 +366,92 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     await canvas.trigger('mouseenter', { clientX: 200, clientY: 150 })
     await canvas.trigger('mousemove', { clientX: 260, clientY: 150 })
     expect(store.playerGrid.yaw).not.toBe(initialYaw)
+  })
+
+  it('muestra MiniPlayer colapsado con nombre y logo sin reproducir y permite cambiar con teclas o botones a Galería y LAB', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const store = useGameStore()
+
+    // Recoger disco -> no se reproduce, queda colapsado con título y logo
+    store.collectDisc(CURATED_NASA_DISCS[0])
+    expect(store.isPlayingAudio).toBe(false)
+
+    const miniWrapper = mount(MiniPlayer, {
+      global: { plugins: [pinia] },
+    })
+    expect(miniWrapper.find('[data-testid="mini-player-title"]').text()).toContain('5153')
+    // Botones de reproducción ocultos mientras está colapsado
+    expect(miniWrapper.text()).not.toContain('▶ PLAY')
+
+    // En App.vue se conservan botones táctiles para celular y atajos de teclado (1/G Galería, 3/L LAB, 2 Juego)
+    const appWrapper = mount(App, {
+      global: { plugins: [pinia] },
+    })
+    await nextTick()
+
+    const rightBtn = appWrapper.find('[data-testid="edge-indicator-right"]')
+    const leftBtn = appWrapper.find('[data-testid="edge-indicator-left"]')
+    expect(leftBtn.text()).toContain('GALLERY')
+    expect(rightBtn.text()).toContain('LAB')
+    expect(rightBtn.text()).not.toContain('NASA LAB')
+
+    // Mock scrollTo en jsdom para verificar cambio de sección por teclas
+    const carousel = appWrapper.find('[data-testid="main-carousel"]').element
+    carousel.scrollTo = () => {}
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyG' }))
+    expect(store.activeSection).toBe(0)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyL' }))
+    expect(store.activeSection).toBe(2)
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2' }))
+    expect(store.activeSection).toBe(1)
+
+    appWrapper.unmount()
+  })
+
+  it('integra los 4 componentes en App.vue con la rocola Fallout (Deep Space Operations) después de IntroductionText, botón Try it out! e iluminación lateral en inglés', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const appWrapper = mount(App, {
+      global: { plugins: [pinia] },
+    })
+
+    const html = appWrapper.html()
+    // Verificar presencia y orden: Header -> IntroductionText -> Jukebox -> Conclusion -> Footer
+    const introIdx = html.indexOf('NASA Space Apps Challenge')
+    const jukeboxIdx = html.indexOf('data-testid="jukebox-cabinet"')
+    const conclusionIdx = html.indexOf('Conclusion: Listening to the Invisible')
+    const footerIdx = html.indexOf('All rights reserved.')
+
+    expect(introIdx).toBeGreaterThan(-1)
+    expect(jukeboxIdx).toBeGreaterThan(introIdx)
+    expect(conclusionIdx).toBeGreaterThan(jukeboxIdx)
+    expect(footerIdx).toBeGreaterThan(conclusionIdx)
+
+    // Botones laterales izquierda y derecha que se iluminan al presionarlos
+    const leftBtn = appWrapper.get('[data-testid="jukebox-btn-left"]')
+    const rightBtn = appWrapper.get('[data-testid="jukebox-btn-right"]')
+    expect(leftBtn.attributes('aria-pressed')).toBe('false')
+    expect(rightBtn.attributes('aria-pressed')).toBe('false')
+
+    await leftBtn.trigger('click')
+    expect(leftBtn.attributes('aria-pressed')).toBe('true')
+
+    await rightBtn.trigger('click')
+    expect(rightBtn.attributes('aria-pressed')).toBe('true')
+
+    // Botón central "Try it out!" que pone el canvas en pantalla completa
+    const tryBtn = appWrapper.get('[data-testid="jukebox-try-it-out-btn"]')
+    expect(tryBtn.text()).toContain('Try it out!')
+    await tryBtn.trigger('click')
+
+    const jukeboxScreen = appWrapper.get('[data-testid="jukebox-screen"]')
+    expect(jukeboxScreen.classes()).toContain('fixed')
+    expect(appWrapper.find('[data-testid="exit-fullscreen-btn"]').exists()).toBe(true)
+
+    appWrapper.unmount()
   })
 })

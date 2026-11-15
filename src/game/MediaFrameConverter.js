@@ -44,14 +44,14 @@ export async function convertVideoToOptionBFrames(fileOrUrl, options = {}) {
     await new Promise((resolve, reject) => {
       video.onloadedmetadata = () => resolve()
       video.onerror = () =>
-        reject(new Error('No se pudo decodificar el video (formato no soportado o bloqueado por CORS).'))
+        reject(new Error('Could not decode video (unsupported format or blocked by CORS).'))
       video.src = objectUrl
     })
 
     const durationSec = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 10
     const frames = []
 
-    // Extraer fotogramas distribuidos uniformemente a lo largo del video
+    // Extract keyframes uniformly distributed across the video
     for (let i = 0; i < requestedFrames; i++) {
       const ratio = requestedFrames === 1 ? 0 : i / (requestedFrames - 1)
       const targetTime = Math.min(Math.max(0.05, ratio * Math.max(0.1, durationSec - 0.1)), durationSec)
@@ -63,7 +63,7 @@ export async function convertVideoToOptionBFrames(fileOrUrl, options = {}) {
         }
         const onError = () => {
           video.removeEventListener('error', onError)
-          reject(new Error(`Error al extraer fotograma ${i + 1}`))
+          reject(new Error(`Error extracting frame ${i + 1}`))
         }
         video.addEventListener('seeked', onSeeked, { once: true })
         video.addEventListener('error', onError, { once: true })
@@ -117,7 +117,7 @@ export async function convertImageToDirectDiscMedia(fileOrUrl, quality = 0.9) {
       }
       el.onload = () => resolve(el)
       el.onerror = () =>
-        reject(new Error('No se pudo cargar la imagen (archivo inválido o bloqueado por CORS).'))
+        reject(new Error('Could not load image (invalid file or blocked by CORS).'))
       el.src = objectUrl
     })
 
@@ -143,12 +143,12 @@ export async function convertImageToDirectDiscMedia(fileOrUrl, quality = 0.9) {
 }
 
 /**
- * Construye un objeto Disco normalizado compatible con useGameStore y useSonifier.
+ * Builds a normalized Disc object compatible with useGameStore and useSonifier.
  */
 export function buildDiscRecord({
   id,
   title,
-  instrument = 'Archivo Multimedia Usuario',
+  instrument = 'User Multimedia File',
   date = new Date().toISOString().slice(0, 10),
   category = 'maps',
   mapProfileId = 'default',
@@ -171,12 +171,12 @@ export function buildDiscRecord({
 
   return {
     id: id || `custom-disc-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
-    title: (title || 'Dataset Personalizado').trim(),
+    title: (title || 'Custom Dataset').trim(),
     instrument,
     date,
     narration:
       narration ||
-      `Archivo ${mediaType === 'frames' ? 'de video por fotogramas' : 'de imagen'}: ${title}. Rareza ${rarityMeta.label}.`,
+      `${mediaType === 'frames' ? 'Frame-sequence video' : 'Image'} file: ${title}. Rarity: ${rarityMeta.label}.`,
     category,
     mapProfileId,
     rarity,

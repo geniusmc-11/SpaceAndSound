@@ -470,10 +470,10 @@ export function synthesizePlanetarySamples(samples, rarity = 'comun') {
     return {
       mode: 'planetario',
       silent: true,
-      primaryNote: 'SILENCIO',
+      primaryNote: 'SILENCE',
       thereminNote: null,
       normValue: 0,
-      detail: 'ESPACIO NEGRO (SIN SONIDO)',
+      detail: 'BLACK SPACE (SILENT)',
     }
   }
 
@@ -512,7 +512,7 @@ export function synthesizePlanetarySamples(samples, rarity = 'comun') {
     primaryNote,
     thereminNote,
     normValue: Number(avgLumaNorm.toFixed(2)),
-    detail: `PLANETARIO ${primaryNote} + THEREMIN ${thereminNote}`,
+    detail: `PLANETARY ${primaryNote} + THEREMIN ${thereminNote}`,
   }
 }
 
@@ -648,13 +648,13 @@ const SONIFICATION_STRATEGIES = {
       primaryNote,
       normValue: Number(seaNorm.toFixed(2)),
       detail: surpassesWhiteGuide
-        ? `MAREA ALTA > GUÍA BLANCA (${primaryNote} + DRONE ${bassNote})`
-        : `NIVEL MARÍTIMO NOMINAL (${primaryNote} / DRONE ${bassNote})`,
+        ? `HIGH TIDE > WHITE GUIDE (${primaryNote} + DRONE ${bassNote})`
+        : `NOMINAL MARITIME LEVEL (${primaryNote} / DRONE ${bassNote})`,
     }
   },
 
   /**
-   * Estrellas / Nebulosas 8D (Audio orbital HRTF + FMSynth cristalino + PingPongDelay):
+   * Stars / Nebulae 8D (Orbital HRTF audio + crystalline FMSynth + PingPongDelay):
    */
   espacial(colX, rarity) {
     let starY = -1
@@ -726,10 +726,10 @@ const SONIFICATION_STRATEGIES = {
       normValue: Number(normLuma.toFixed(2)),
       detail:
         starY !== -1
-          ? `8D DESTELLO ESTELAR (${primaryNote} + THEREMIN ${thereminNote})`
+          ? `8D STELLAR FLASH (${primaryNote} + THEREMIN ${thereminNote})`
           : isInfraredDominant
-            ? `8D NEBULOSA IR (${chord.join(' ')} + ${thereminNote})`
-            : `8D NEBULOSA UV (${chord.join(' ')} + ${thereminNote})`,
+            ? `8D IR NEBULA (${chord.join(' ')} + ${thereminNote})`
+            : `8D UV NEBULA (${chord.join(' ')} + ${thereminNote})`,
     }
   },
 
@@ -782,8 +782,8 @@ const SONIFICATION_STRATEGIES = {
       primaryNote,
       warmRatio,
       normValue: Number(warmRatio.toFixed(2)),
-      detail: `CALOR ${Math.round(warmRatio * 100)}% // ${
-        isHighTension ? 'TENSIÓN CICLÓNICA ALTA' : 'FRENTE FRÍO ESTABLE'
+      detail: `HEAT ${Math.round(warmRatio * 100)}% // ${
+        isHighTension ? 'HIGH CYCLONIC TENSION' : 'STABLE COLD FRONT'
       } (${primaryNote})`,
     }
   },
@@ -796,9 +796,9 @@ function speakLegendaryMetadata(disc) {
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(
       disc.narration ||
-        `Archivo Legendario NASA: ${disc.title}. Modo interactivo por hover activado.`
+        `NASA Legendary Archive: ${disc.title}. Interactive hover mode enabled.`
     )
-    utterance.lang = 'es-ES'
+    utterance.lang = 'en-US'
     utterance.rate = 1.02
     utterance.pitch = 0.95
     window.speechSynthesis.speak(utterance)
@@ -969,7 +969,7 @@ export function useSonifier() {
         primaryNote,
         thereminNote,
         normValue: Number((sum / 765).toFixed(2)),
-        detail: `8D HOVER ESTELAR (${px},${py}) -> ${primaryNote} + ${thereminNote}`,
+        detail: `8D STELLAR HOVER (${px},${py}) -> ${primaryNote} + ${thereminNote}`,
       }
     } else {
       const strategy = SONIFICATION_STRATEGIES[mode] || SONIFICATION_STRATEGIES.maps

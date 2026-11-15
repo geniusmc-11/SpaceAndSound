@@ -63,9 +63,9 @@ export const useGameStore = defineStore('game', () => {
   const qteTarget = ref(6)
   const trappingEnemyId = ref(null)
 
-  // --- Mensajes de Telemetría HUD ---
+  // --- HUD Telemetry Messages ---
   const statusMessage = ref(
-    'SISTEMA EN LÍNEA // DERROTA 2 ENEMIGOS PARA OBTENER NASA SVS #5153'
+    'SYSTEM ONLINE // DEFEAT 2 ENEMIES TO OBTAIN NASA SVS #5153'
   )
 
   // --- Getters ---
@@ -88,10 +88,10 @@ export const useGameStore = defineStore('game', () => {
     return collectedDiscs.value.filter((d) => !officialIds.has(d.id)).length
   })
 
-  // --- Acciones de Energía y Combate ---
+  // --- Energy and Combat Actions ---
   function shoot() {
     if (energy.value < SHOOT_COST || isGameOver.value) {
-      statusMessage.value = 'ENERGÍA INSUFICIENTE PARA DISPARAR (REQUIERE 1⚡)'
+      statusMessage.value = 'INSUFFICIENT ENERGY TO SHOOT (REQUIRES 1⚡)'
       return false
     }
     energy.value = Math.max(0, energy.value - SHOOT_COST)
@@ -99,11 +99,11 @@ export const useGameStore = defineStore('game', () => {
   }
 
   /**
-   * Dash (Esquivar): Desplaza 2 bloques hacia atrás instantáneamente y consume 3 cuadritos de energía.
+   * Dash (Dodge): Shifts 2 blocks backward instantaneously and consumes 3 energy squares.
    */
   function dash(isCellWalkable) {
     if (energy.value < DASH_COST || isGameOver.value || qteActive.value) {
-      statusMessage.value = 'ENERGÍA INSUFICIENTE PARA DASH (REQUIERE 3⚡)'
+      statusMessage.value = 'INSUFFICIENT ENERGY TO DASH (REQUIRES 3⚡)'
       return false
     }
 
@@ -131,7 +131,7 @@ export const useGameStore = defineStore('game', () => {
 
     playerGrid.value.x = targetX
     playerGrid.value.z = targetZ
-    statusMessage.value = `DASH RETROPROPULSADO (-${DASH_COST}⚡ // ${movedBlocks} BLOQUES ATRÁS)`
+    statusMessage.value = `RETRO-THRUST DASH (-${DASH_COST}⚡ // ${movedBlocks} BLOCKS BACK)`
 
     return {
       success: true,
@@ -153,9 +153,9 @@ export const useGameStore = defineStore('game', () => {
     if (health.value === 0) {
       isGameOver.value = true
       qteActive.value = false
-      statusMessage.value = 'TRAJE DESPRESURIZADO // PULSA REINICIAR MISIÓN'
+      statusMessage.value = 'SUIT DEPRESSURIZED // PRESS REBOOT SYSTEMS'
     } else {
-      statusMessage.value = `ALERTA DE IMPACTO: SALUD RESTANTE ${health.value}/${maxHealth.value} ♥`
+      statusMessage.value = `IMPACT ALERT: REMAINING HEALTH ${health.value}/${maxHealth.value} ♥`
     }
     return health.value
   }
@@ -213,7 +213,7 @@ export const useGameStore = defineStore('game', () => {
 
     if (!nextDisc) {
       statusMessage.value =
-        'CATÁLOGO NASA COMPLETADO // AÑADE VIDEOS O IMÁGENES EN LA BÓVEDA (◄ A)'
+        'NASA CATALOG COMPLETED // ADD VIDEOS OR IMAGES IN THE GALLERY (◄ 1/G)'
       return null
     }
 
@@ -231,13 +231,13 @@ export const useGameStore = defineStore('game', () => {
     }
 
     pendingDrops.value.push(droppedDisc)
-    statusMessage.value = `¡DISCO NASA DESPLEGADO! ${droppedDisc.title.toUpperCase()}`
+    statusMessage.value = `NASA DISC DEPLOYED! ${droppedDisc.title.toUpperCase()}`
     return droppedDisc
   }
 
   /**
-   * Registra la baja de un enemigo y verifica la regla KILLS_PER_DROP (cada 2 bajas).
-   * Ya NO genera discos procedurales aleatorios; entrega únicamente el catálogo configurado (SVS #5153).
+   * Registers an enemy kill and checks the KILLS_PER_DROP rule (every 2 kills).
+   * Delivers only the curated NASA SVS catalog discs.
    */
   function registerEnemyKill(position = null) {
     kills.value += 1
@@ -250,12 +250,12 @@ export const useGameStore = defineStore('game', () => {
       )
     }
 
-    statusMessage.value = `ENEMIGO ELIMINADO (${killsSinceLastDrop.value}/${KILLS_PER_DROP} PARA DISCO NASA SVS #5153)`
+    statusMessage.value = `ENEMY ELIMINATED (${killsSinceLastDrop.value}/${KILLS_PER_DROP} FOR NASA SVS #5153 DISC)`
     return null
   }
 
   /**
-   * Recoge un disco holográfico 3D de la escena.
+   * Collects a 3D holographic disc from the scene.
    */
   function collectDisc(discOrId) {
     let disc = null
@@ -285,17 +285,18 @@ export const useGameStore = defineStore('game', () => {
     }
 
     currentDisc.value = disc
-    isPlayingAudio.value = true
+    // Collecting a disc in-game does NOT auto-play; it appears collapsed with its name and logo
+    isPlayingAudio.value = false
     statusMessage.value = wasLocked
-      ? `¡DISCO NASA SVS #5153 RECOLECTADO! BÓVEDA (◄ A) Y REPRODUCTOR (D ►) DESBLOQUEADOS`
-      : `DISCO CARGADO: ${disc.title.toUpperCase()}`
+      ? `DISC OBTAINED! ${disc.title.toUpperCase()} // PRESS [1/G] GALLERY OR [3/L] LAB`
+      : `DISC SAVED: ${disc.title.toUpperCase()}`
 
     return disc
   }
 
   /**
-   * Añade un disco personalizado (Video convertido a fotogramas Opción B o Imagen directa)
-   * directamente a la Bóveda y desbloquea la navegación si estaba bloqueada.
+   * Adds a custom disc (Video converted to Option B frames or Direct Image)
+   * directly to the Vault and unlocks navigation if locked.
    */
   function addCustomDisc(disc, openInPlayer = true) {
     if (!disc) return null
@@ -320,7 +321,7 @@ export const useGameStore = defineStore('game', () => {
       isPlayingAudio.value = true
     }
 
-    statusMessage.value = `NUEVO DISCO AÑADIDO: ${normalized.title.toUpperCase()}`
+    statusMessage.value = `NEW DISC ADDED: ${normalized.title.toUpperCase()}`
     return normalized
   }
 
@@ -346,7 +347,7 @@ export const useGameStore = defineStore('game', () => {
     return isPlayingAudio.value
   }
 
-  // --- Mecánica QTE de Acechador de Techo (Mash Spacebar) ---
+  // --- Ceiling Stalker QTE Mechanic (Mash Spacebar) ---
   function startStalkerQTE(enemyId, requiredPresses = 6) {
     if (isGameOver.value) return
     qteActive.value = true
@@ -354,7 +355,7 @@ export const useGameStore = defineStore('game', () => {
     qteTarget.value = requiredPresses
     trappingEnemyId.value = enemyId
     statusMessage.value =
-      '¡ATRAPADO POR ACECHADOR DE TECHO! PRESIONA RÁPIDO [ESPACIO] PARA LIBERARTE'
+      'TRAPPED BY CEILING STALKER! RAPIDLY PRESS [SPACE] TO BREAK FREE'
   }
 
   function pressSpaceQTE(enemyPosition = null) {
@@ -367,7 +368,7 @@ export const useGameStore = defineStore('game', () => {
       qteProgress.value = 0
       trappingEnemyId.value = null
       const drop = registerEnemyKill(enemyPosition)
-      statusMessage.value = '¡TE LIBERASTE! ACECHADOR DE TECHO DESTRUIDO'
+      statusMessage.value = 'YOU BROKE FREE! CEILING STALKER DESTROYED'
       return { freed: true, defeatedEnemyId: defeatedId, drop }
     }
 
@@ -398,7 +399,7 @@ export const useGameStore = defineStore('game', () => {
     qteProgress.value = 0
     trappingEnemyId.value = null
     playerGrid.value = { x: 0, y: 0, z: 0, dirX: 0, dirZ: -1, yaw: 0 }
-    statusMessage.value = 'SISTEMAS REINICIADOS // EXPLORA LA NAVE AVERIADA'
+    statusMessage.value = 'SYSTEMS REBOOTED // EXPLORE THE DAMAGED SPACESHIP'
   }
 
   return {
