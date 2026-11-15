@@ -160,6 +160,7 @@ export function buildDiscRecord({
   frameIntervalMs = 1500,
   narration = '',
   sourceUrl = null,
+  sonificationMode = category === 'grafica' ? 'grafica' : 'nasa',
 }) {
   const rarityMeta = RARITY_CONFIG[rarity] || RARITY_CONFIG.raro
   const normalizedFrames =
@@ -188,6 +189,7 @@ export function buildDiscRecord({
     durationSec,
     frameIntervalMs,
     sourceMethod: mediaType === 'frames' ? 'video-frames-option-b' : 'direct-image',
+    sonificationMode,
     sourceUrl,
     collectedAt: new Date().toISOString(),
   }

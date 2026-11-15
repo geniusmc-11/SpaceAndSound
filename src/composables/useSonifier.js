@@ -18,6 +18,7 @@ import { loadImageElement } from '@/game/NasaDatasetGenerator'
 import { mapRgbPixelToNormalizedValue } from '@/game/ColorbarMapper'
 
 const SCALES = {
+  nasa: ['C2', 'D2', 'E2', 'G2', 'A2', 'C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5'],
   grafica: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
   maritimo: ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5'],
   maps: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
@@ -52,6 +53,7 @@ let currentFrameIndex = 0
 let currentFrameIntervalMs = 1900
 let activeMapProfileId = 'default'
 let activeAmbientStyle = 'maritimo'
+let activeSonificationMode = 'maps'
 let loadedDiscId = null
 let loadGeneration = 0
 
@@ -544,7 +546,86 @@ export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendar
   }
 }
 
+/**
+ * Sonificación tipo NASA para medios importados:
+ * el tiempo avanza de izquierda a derecha, la luminancia determina el tono,
+ * la posición vertical añade contexto melódico y el color controla la armonía.
+ */
+export function synthesizeNasaColumn(samples, rarity = 'raro') {
+  const pixels = Array.isArray(samples) ? samples : []
+  if (pixels.length === 0) {
+    silenceThereminBass()
+    return {
+      mode: 'nasa',
+      silent: true,
+      primaryNote: 'SILENCE',
+      thereminNote: null,
+      normValue: 0,
+      detail: 'NASA IMAGE SCAN // SILENCE',
+    }
+  }
+
+  let totalWeight = 0
+  let weightedY = 0
+  let weightedRed = 0
+  let weightedBlue = 0
+  let totalLuma = 0
+
+  for (const pixel of pixels) {
+    const r = Math.max(0, Math.min(255, Number(pixel?.r) || 0))
+    const g = Math.max(0, Math.min(255, Number(pixel?.g) || 0))
+    const b = Math.max(0, Math.min(255, Number(pixel?.b) || 0))
+    const luma = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+    const weight = Math.max(0.02, luma)
+    totalLuma += luma
+    totalWeight += weight
+    weightedY += weight * Math.max(0, Math.min(1, Number(pixel?.yNorm) || 0))
+    weightedRed += weight * r
+    weightedBlue += weight * b
+  }
+
+  const brightness = Math.max(0, Math.min(1, totalLuma / pixels.length))
+  const centroidY = totalWeight > 0 ? weightedY / totalWeight : 0.5
+  const pitchValue = Math.max(0, Math.min(1, brightness * 0.72 + (1 - centroidY) * 0.28))
+  const scale = SCALES.nasa
+  const noteIdx = Math.min(scale.length - 1, Math.floor(pitchValue * scale.length))
+  const primaryNote = scale[noteIdx]
+  const harmonyOffset = weightedRed >= weightedBlue ? 3 : 2
+  const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + harmonyOffset)]
+  const mirrorNote = scale[Math.min(scale.length - 1, noteIdx + 5)]
+  const thereminNote = applyRarityScaling(
+    rarity,
+    primaryNote,
+    harmonyNote,
+    brightness,
+    mirrorNote
+  )
+
+  return {
+    mode: 'nasa',
+    silent: false,
+    primaryNote,
+    thereminNote,
+    normValue: Number(brightness.toFixed(2)),
+    detail: `NASA LUMINANCE ${Math.round(brightness * 100)}% // ${primaryNote} + ${thereminNote}`,
+  }
+}
+
 const SONIFICATION_STRATEGIES = {
+  nasa(colX, rarity) {
+    const samples = []
+    for (let y = 0; y < canvasHeight; y += 2) {
+      const { r, g, b } = getPixelAt(colX, y)
+      samples.push({
+        yNorm: 1 - y / Math.max(1, canvasHeight - 1),
+        r,
+        g,
+        b,
+      })
+    }
+    return synthesizeNasaColumn(samples, rarity)
+  },
+
   maps(colX, rarity) {
     let sumNormalized = 0
     let maxNormalized = 0
@@ -825,6 +906,9 @@ export function useSonifier() {
     activeRarity.value = disc.rarity || 'legendario'
     activeMapProfileId = String(disc.mapProfileId || disc.svsId || 'default')
     activeAmbientStyle = resolveAmbientStyle(disc)
+    activeSonificationMode =
+      disc.sonificationMode ||
+      (disc.sourceMethod && disc.category !== 'grafica' ? 'nasa' : disc.category || 'maps')
     currentFrameIntervalMs = disc.frameIntervalMs || 1900
 
     const isSameDisc = loadedDiscId === disc.id && frameBuffers.length > 0
@@ -896,7 +980,9 @@ export function useSonifier() {
   function setMode(mode) {
     if (SONIFICATION_STRATEGIES[mode]) {
       activeMode.value = mode
+      activeSonificationMode = mode
     }
+
   }
 
   function setHoverActive(active) {
@@ -931,7 +1017,11 @@ export function useSonifier() {
     const py = Math.min(canvasHeight - 1, Math.floor(clampedNY * canvasHeight))
     scanX = px
 
-    const mode = disc?.category || activeMode.value
+    const mode =
+      disc?.sonificationMode ||
+      (disc?.sourceMethod && disc.category !== 'grafica'
+        ? 'nasa'
+        : disc?.category || activeSonificationMode)
     const mapId = String(disc?.mapProfileId || disc?.svsId || activeMapProfileId || 'default')
     const { r, g, b } = getPixelAt(px, py)
     let telemetry = null
@@ -995,7 +1085,7 @@ export function useSonifier() {
   function stepScan() {
     if (!pixelBuffer) return null
     const strategy =
-      SONIFICATION_STRATEGIES[activeMode.value] || SONIFICATION_STRATEGIES.maps
+      SONIFICATION_STRATEGIES[activeSonificationMode] || SONIFICATION_STRATEGIES.maps
     const telemetry = strategy(scanX, activeRarity.value)
     const normalizedX = scanX / Math.max(1, canvasWidth - 1)
 

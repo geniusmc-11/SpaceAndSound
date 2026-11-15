@@ -21,6 +21,7 @@ import {
 } from '@/game/ColorbarMapper'
 import {
   synthesizeNormalizedMapValue,
+  synthesizeNasaColumn,
   synthesizePlanetarySamples,
   isBlackPixel,
 } from '@/composables/useSonifier'
@@ -171,6 +172,16 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(videoOptionBDisc.frames).toHaveLength(2)
     expect(directImageDisc.mediaType).toBe('image')
     expect(directImageDisc.frames).toHaveLength(1)
+    expect(videoOptionBDisc.sonificationMode).toBe('nasa')
+    expect(directImageDisc.sonificationMode).toBe('nasa')
+
+    const graphicDisc = buildDiscRecord({
+      title: 'Gráfica de referencia',
+      category: 'grafica',
+      mediaType: 'image',
+      imageUrl: 'data:image/jpeg;base64,graphic',
+    })
+    expect(graphicDisc.sonificationMode).toBe('grafica')
   })
 
   it('ejecuta eficientemente el movimiento de personaje, rotación de cámara y QTE del Acechador de Techo', () => {
@@ -331,6 +342,28 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(litResult.silent).toBe(false)
     expect(litResult.primaryNote).not.toBe('SILENCE')
     expect(litResult.thereminNote).toBeTruthy()
+  })
+
+  it('sonifica medios no gráficos con luminancia NASA y conserva el modo gráfico', () => {
+    const darkResult = synthesizeNasaColumn(
+      [
+        { yNorm: 0.2, r: 12, g: 12, b: 12 },
+        { yNorm: 0.8, r: 20, g: 20, b: 20 },
+      ],
+      'comun'
+    )
+    const brightResult = synthesizeNasaColumn(
+      [
+        { yNorm: 0.2, r: 240, g: 120, b: 30 },
+        { yNorm: 0.8, r: 230, g: 110, b: 25 },
+      ],
+      'comun'
+    )
+
+    expect(darkResult.mode).toBe('nasa')
+    expect(brightResult.mode).toBe('nasa')
+    expect(brightResult.normValue).toBeGreaterThan(darkResult.normValue)
+    expect(brightResult.primaryNote).not.toBe(darkResult.primaryNote)
   })
 
   it('mapea los sprites GIF reales, mueve la cámara con el mouse sin clic y genera sonido único por enemigo en rango 3x3', async () => {
