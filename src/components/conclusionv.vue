@@ -97,108 +97,280 @@ onUnmounted(() => {
     aria-labelledby="conclusion-title"
     class="relative overflow-hidden bg-[#101820] px-6 py-20 font-sans text-[#E7D5AC] sm:py-24"
   >
-    <!-- Deep starfield (visible stars with soft halos that preserve readability) -->
+    <!-- Deep starfield, distant galaxies, orbital arcs & shooting stars -->
     <div
       aria-hidden="true"
-      class="pointer-events-none absolute inset-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_28%_22%,rgba(0,0,0,0.45)_15%,black_75%)]"
+      class="pointer-events-none absolute inset-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_28%_22%,rgba(0,0,0,0.62)_15%,black_80%)]"
     >
       <svg
         viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice"
         class="h-full w-full"
       >
-        <!-- Layer 1: Medium-high brightness beige stars -->
+        <defs>
+          <!-- Soft star glow -->
+          <filter id="conclusion-star-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="1.8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
+          <!-- Lightweight radial gradients for galaxies (zero blur overhead) -->
+          <radialGradient id="galaxy-halo-amber" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E7D5AC" stop-opacity="0.85" />
+            <stop offset="22%" stop-color="#D18C39" stop-opacity="0.42" />
+            <stop offset="58%" stop-color="#31515A" stop-opacity="0.22" />
+            <stop offset="100%" stop-color="#101820" stop-opacity="0" />
+          </radialGradient>
+
+          <radialGradient id="galaxy-halo-teal" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#E7D5AC" stop-opacity="0.75" />
+            <stop offset="30%" stop-color="#31515A" stop-opacity="0.45" />
+            <stop offset="68%" stop-color="#1D303B" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="#101820" stop-opacity="0" />
+          </radialGradient>
+
+          <linearGradient id="conclusion-meteor-beige" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#E7D5AC" stop-opacity="0" />
+            <stop offset="75%" stop-color="#E7D5AC" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.95" />
+          </linearGradient>
+
+          <linearGradient id="conclusion-meteor-amber" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#D18C39" stop-opacity="0" />
+            <stop offset="70%" stop-color="#D18C39" stop-opacity="0.5" />
+            <stop offset="100%" stop-color="#E7D5AC" stop-opacity="0.9" />
+          </linearGradient>
+        </defs>
+
+        <!-- Subtle celestial orbital arcs -->
+        <g opacity="0.2" stroke="#E7D5AC" fill="none">
+          <circle cx="1340" cy="80" r="190" stroke-width="0.7" stroke-dasharray="3 7" />
+          <circle cx="1340" cy="80" r="295" stroke-width="0.5" stroke-dasharray="1 9" />
+          <circle cx="90" cy="830" r="175" stroke-width="0.6" stroke-dasharray="2 8" />
+        </g>
+
+        <!-- Distant Galaxies -->
+        <g class="galaxy-pulse motion-reduce:animate-none">
+          <!-- 1. Tilted Spiral Galaxy (Upper-right quadrant) -->
+          <g transform="translate(1195, 205) rotate(-26)">
+            <ellipse cx="0" cy="0" rx="76" ry="28" fill="url(#galaxy-halo-amber)" />
+            <ellipse cx="0" cy="0" rx="34" ry="12" fill="url(#galaxy-halo-teal)" />
+            <!-- Spiral arms -->
+            <path
+              d="M -6 -2 C -26 -14, -56 -8, -64 4 C -48 12, -20 9, 0 2"
+              fill="none"
+              stroke="#E7D5AC"
+              stroke-width="1.1"
+              stroke-linecap="round"
+              opacity="0.45"
+            />
+            <path
+              d="M 6 2 C 26 14, 56 8, 64 -4 C 48 -12, 20 -9, 0 -2"
+              fill="none"
+              stroke="#D18C39"
+              stroke-width="1.1"
+              stroke-linecap="round"
+              opacity="0.5"
+            />
+            <path
+              d="M -14 6 C -38 15, -58 10, -68 2"
+              fill="none"
+              stroke="#31515A"
+              stroke-width="1.4"
+              stroke-linecap="round"
+              opacity="0.6"
+            />
+            <!-- Galactic core -->
+            <circle cx="0" cy="0" r="2.4" fill="#E7D5AC" />
+            <circle cx="-38" cy="-5" r="0.9" fill="#E7D5AC" opacity="0.7" />
+            <circle cx="42" cy="4" r="0.9" fill="#D18C39" opacity="0.75" />
+          </g>
+
+          <!-- 2. Edge-on Lenticular Galaxy with dust lane (Mid-left) -->
+          <g transform="translate(175, 535) rotate(22)">
+            <ellipse cx="0" cy="0" rx="72" ry="14" fill="url(#galaxy-halo-teal)" />
+            <ellipse cx="0" cy="0" rx="28" ry="8" fill="url(#galaxy-halo-amber)" />
+            <!-- Dark cosmic dust lane -->
+            <line
+              x1="-52"
+              y1="0.8"
+              x2="52"
+              y2="-0.8"
+              stroke="#101820"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              opacity="0.65"
+            />
+            <circle cx="0" cy="0" r="2" fill="#E7D5AC" opacity="0.9" />
+          </g>
+
+          <!-- 3. Compact Distant Spiral Galaxy (Lower-right) -->
+          <g transform="translate(1285, 765) rotate(34)">
+            <ellipse cx="0" cy="0" rx="48" ry="18" fill="url(#galaxy-halo-amber)" opacity="0.85" />
+            <path
+              d="M -4 -1 C -18 -9, -36 -5, -41 3"
+              fill="none"
+              stroke="#E7D5AC"
+              stroke-width="0.9"
+              stroke-linecap="round"
+              opacity="0.4"
+            />
+            <path
+              d="M 4 1 C 18 9, 36 5, 41 -3"
+              fill="none"
+              stroke="#D18C39"
+              stroke-width="0.9"
+              stroke-linecap="round"
+              opacity="0.45"
+            />
+            <circle cx="0" cy="0" r="1.7" fill="#E7D5AC" />
+          </g>
+        </g>
+
+        <!-- Layer 1: High-luminance beige stars -->
         <g class="star-twinkle-1 motion-reduce:animate-none" fill="#E7D5AC">
-          <circle cx="95" cy="78" r="1.7" opacity="0.9" />
-          <circle cx="95" cy="78" r="4.5" opacity="0.16" />
+          <circle cx="95" cy="78" r="1.9" filter="url(#conclusion-star-glow)" />
+          <circle cx="95" cy="78" r="5" opacity="0.2" />
 
-          <circle cx="260" cy="145" r="1.3" opacity="0.75" />
-          <circle cx="445" cy="68" r="1.8" opacity="0.9" />
-          <circle cx="670" cy="112" r="1.4" opacity="0.8" />
-          <circle cx="890" cy="54" r="1.9" opacity="0.95" />
-          <circle cx="890" cy="54" r="5" opacity="0.18" />
+          <circle cx="260" cy="145" r="1.4" opacity="0.8" />
+          <circle cx="445" cy="68" r="2" filter="url(#conclusion-star-glow)" />
+          <circle cx="670" cy="112" r="1.5" opacity="0.85" />
+          <circle cx="890" cy="54" r="2.1" filter="url(#conclusion-star-glow)" />
+          <circle cx="890" cy="54" r="5.5" opacity="0.22" />
 
-          <circle cx="1120" cy="128" r="1.5" opacity="0.85" />
-          <circle cx="1335" cy="84" r="2" opacity="0.95" />
-          <circle cx="1335" cy="84" r="5.5" opacity="0.2" />
+          <circle cx="1120" cy="128" r="1.6" opacity="0.9" />
+          <circle cx="1335" cy="84" r="2.2" filter="url(#conclusion-star-glow)" />
+          <circle cx="1335" cy="84" r="6" opacity="0.24" />
 
-          <circle cx="140" cy="360" r="1.6" opacity="0.85" />
-          <circle cx="520" cy="325" r="1.5" opacity="0.8" />
-          <circle cx="980" cy="340" r="1.8" opacity="0.9" />
-          <circle cx="1290" cy="390" r="1.6" opacity="0.85" />
+          <circle cx="140" cy="360" r="1.7" opacity="0.9" />
+          <circle cx="520" cy="325" r="1.6" opacity="0.85" />
+          <circle cx="980" cy="340" r="1.9" filter="url(#conclusion-star-glow)" />
+          <circle cx="1290" cy="390" r="1.7" opacity="0.9" />
 
-          <circle cx="82" cy="640" r="1.9" opacity="0.9" />
-          <circle cx="82" cy="640" r="5" opacity="0.18" />
+          <circle cx="82" cy="640" r="2.1" filter="url(#conclusion-star-glow)" />
+          <circle cx="82" cy="640" r="5.5" opacity="0.22" />
 
-          <circle cx="410" cy="615" r="1.5" opacity="0.8" />
-          <circle cx="780" cy="655" r="1.7" opacity="0.85" />
-          <circle cx="1165" cy="620" r="1.9" opacity="0.9" />
-          <circle cx="1375" cy="710" r="1.6" opacity="0.85" />
-          <circle cx="245" cy="835" r="1.8" opacity="0.9" />
-          <circle cx="920" cy="845" r="1.7" opacity="0.85" />
+          <circle cx="410" cy="615" r="1.6" opacity="0.85" />
+          <circle cx="780" cy="655" r="1.8" filter="url(#conclusion-star-glow)" />
+          <circle cx="1165" cy="620" r="2" filter="url(#conclusion-star-glow)" />
+          <circle cx="1375" cy="710" r="1.7" opacity="0.9" />
+          <circle cx="245" cy="835" r="1.9" filter="url(#conclusion-star-glow)" />
+          <circle cx="920" cy="845" r="1.8" opacity="0.9" />
         </g>
 
         <!-- Layer 2: Staggered secondary stars -->
         <g class="star-twinkle-2 motion-reduce:animate-none" fill="#E7D5AC">
-          <circle cx="180" cy="230" r="1.2" opacity="0.7" />
-          <circle cx="355" cy="195" r="1.4" opacity="0.75" />
-          <circle cx="585" cy="185" r="1.2" opacity="0.65" />
-          <circle cx="795" cy="175" r="1.5" opacity="0.8" />
-          <circle cx="1015" cy="215" r="1.3" opacity="0.75" />
-          <circle cx="1225" cy="245" r="1.6" opacity="0.85" />
+          <circle cx="180" cy="230" r="1.3" opacity="0.75" />
+          <circle cx="355" cy="195" r="1.5" opacity="0.85" />
+          <circle cx="585" cy="185" r="1.3" opacity="0.7" />
+          <circle cx="795" cy="175" r="1.6" opacity="0.85" />
+          <circle cx="1015" cy="215" r="1.4" opacity="0.8" />
+          <circle cx="1225" cy="245" r="1.7" filter="url(#conclusion-star-glow)" />
 
-          <circle cx="315" cy="475" r="1.4" opacity="0.75" />
-          <circle cx="715" cy="490" r="1.3" opacity="0.7" />
-          <circle cx="1085" cy="480" r="1.5" opacity="0.8" />
+          <circle cx="315" cy="475" r="1.5" opacity="0.8" />
+          <circle cx="715" cy="490" r="1.4" opacity="0.75" />
+          <circle cx="1085" cy="480" r="1.6" opacity="0.85" />
+          <circle cx="475" cy="275" r="1.2" opacity="0.7" />
+          <circle cx="885" cy="285" r="1.3" opacity="0.75" />
 
-          <circle cx="165" cy="755" r="1.4" opacity="0.75" />
-          <circle cx="560" cy="735" r="1.6" opacity="0.85" />
-          <circle cx="845" cy="760" r="1.3" opacity="0.7" />
-          <circle cx="1055" cy="785" r="1.5" opacity="0.8" />
-          <circle cx="1275" cy="830" r="1.7" opacity="0.85" />
+          <circle cx="165" cy="755" r="1.5" opacity="0.8" />
+          <circle cx="560" cy="735" r="1.7" filter="url(#conclusion-star-glow)" />
+          <circle cx="845" cy="760" r="1.4" opacity="0.75" />
+          <circle cx="1055" cy="785" r="1.6" opacity="0.85" />
+          <circle cx="1275" cy="830" r="1.8" filter="url(#conclusion-star-glow)" />
         </g>
 
-        <!-- Layer 3: Warm amber stars and 4-point sparkles -->
+        <!-- Layer 3: Warm amber stars and glowing 4-point sparkles -->
         <g class="star-twinkle-3 motion-reduce:animate-none" fill="#D18C39">
-          <circle cx="320" cy="95" r="1.7" opacity="0.9" />
-          <circle cx="320" cy="95" r="4.5" opacity="0.2" />
+          <circle cx="320" cy="95" r="1.9" filter="url(#conclusion-star-glow)" />
+          <circle cx="320" cy="95" r="5" opacity="0.24" />
 
-          <circle cx="1045" cy="82" r="1.8" opacity="0.9" />
-          <circle cx="1210" cy="165" r="1.5" opacity="0.8" />
-          <circle cx="70" cy="495" r="1.8" opacity="0.9" />
-          <circle cx="640" cy="605" r="1.6" opacity="0.85" />
-          <circle cx="1360" cy="545" r="1.9" opacity="0.95" />
-          <circle cx="1360" cy="545" r="5.5" opacity="0.22" />
+          <circle cx="1045" cy="82" r="2" filter="url(#conclusion-star-glow)" />
+          <circle cx="1210" cy="165" r="1.6" opacity="0.85" />
+          <circle cx="70" cy="495" r="2" filter="url(#conclusion-star-glow)" />
+          <circle cx="640" cy="605" r="1.7" opacity="0.9" />
+          <circle cx="1360" cy="545" r="2.1" filter="url(#conclusion-star-glow)" />
+          <circle cx="1360" cy="545" r="6" opacity="0.25" />
 
-          <circle cx="475" cy="855" r="1.7" opacity="0.85" />
-          <circle cx="1135" cy="860" r="1.6" opacity="0.8" />
+          <circle cx="475" cy="855" r="1.8" filter="url(#conclusion-star-glow)" />
+          <circle cx="1135" cy="860" r="1.7" opacity="0.85" />
 
           <!-- 4-point star sparkles -->
           <path
-            d="M1265 56 L1267.2 64.8 L1276 67 L1267.2 69.2 L1265 78 L1262.8 69.2 L1254 67 L1262.8 64.8 Z"
+            d="M1265 54 L1267.5 64.5 L1278 67 L1267.5 69.5 L1265 80 L1262.5 69.5 L1252 67 L1262.5 64.5 Z"
+            filter="url(#conclusion-star-glow)"
+          />
+          <path
+            d="M115 713 L117 721.5 L125.5 723.5 L117 725.5 L115 734 L113 725.5 L104.5 723.5 L113 721.5 Z"
+            filter="url(#conclusion-star-glow)"
+          />
+          <path
+            d="M955 593 L956.8 600.2 L964 602 L956.8 603.8 L955 611 L953.2 603.8 L946 602 L953.2 600.2 Z"
+            fill="#E7D5AC"
+            filter="url(#conclusion-star-glow)"
+          />
+          <path
+            d="M720 42 L721.4 47.6 L727 49 L721.4 50.4 L720 56 L718.6 50.4 L713 49 L718.6 47.6 Z"
+            fill="#E7D5AC"
             opacity="0.9"
           />
-          <path
-            d="M115 715 L116.8 722.2 L124 724 L116.8 725.8 L115 733 L113.2 725.8 L106 724 L113.2 722.2 Z"
-            opacity="0.85"
+        </g>
+
+        <!-- Floating cosmic dust fluctuations -->
+        <g class="dust-float motion-reduce:animate-none" fill="#E7D5AC" opacity="0.5">
+          <circle cx="210" cy="290" r="1.1" />
+          <circle cx="490" cy="430" r="1.2" fill="#D18C39" />
+          <circle cx="760" cy="260" r="1" />
+          <circle cx="1140" cy="330" r="1.2" fill="#D18C39" />
+          <circle cx="340" cy="710" r="1.1" />
+          <circle cx="990" cy="705" r="1.1" fill="#D18C39" />
+        </g>
+
+        <!-- Periodic shooting stars -->
+        <g class="shooting-star-1 motion-reduce:hidden">
+          <line
+            x1="460"
+            y1="35"
+            x2="565"
+            y2="88"
+            stroke="url(#conclusion-meteor-beige)"
+            stroke-width="1.6"
+            stroke-linecap="round"
           />
-          <path
-            d="M955 595 L956.5 601 L962.5 602.5 L956.5 604 L955 610 L953.5 604 L947.5 602.5 L953.5 601 Z"
-            fill="#E7D5AC"
-            opacity="0.85"
+          <circle cx="565" cy="88" r="1.8" fill="#FFFFFF" filter="url(#conclusion-star-glow)" />
+        </g>
+
+        <g class="shooting-star-2 motion-reduce:hidden">
+          <line
+            x1="1030"
+            y1="520"
+            x2="1125"
+            y2="568"
+            stroke="url(#conclusion-meteor-amber)"
+            stroke-width="1.5"
+            stroke-linecap="round"
           />
+          <circle cx="1125" cy="568" r="1.6" fill="#E7D5AC" filter="url(#conclusion-star-glow)" />
         </g>
       </svg>
     </div>
 
-    <!-- Subtle background glows to add depth to the glass -->
+    <!-- Fluctuating cosmic nebula glows -->
     <div
       aria-hidden="true"
-      class="pointer-events-none absolute top-1/3 left-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-[#31515A]/20 blur-3xl"
+      class="nebula-drift-1 pointer-events-none absolute top-1/4 left-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#31515A]/25 blur-3xl motion-reduce:animate-none"
     ></div>
     <div
       aria-hidden="true"
-      class="pointer-events-none absolute right-1/4 bottom-12 h-64 w-64 translate-x-1/2 rounded-full bg-[#D18C39]/12 blur-3xl"
+      class="nebula-drift-2 pointer-events-none absolute right-1/4 bottom-10 h-72 w-72 translate-x-1/2 rounded-full blur-3xl transition-colors duration-700 motion-reduce:animate-none"
+      :class="isPlayingChord ? 'bg-[#D18C39]/25' : 'bg-[#D18C39]/14'"
+    ></div>
+    <div
+      aria-hidden="true"
+      class="nebula-drift-1 pointer-events-none absolute top-16 right-1/3 h-64 w-64 rounded-full bg-[#1D303B]/45 blur-3xl motion-reduce:animate-none"
     ></div>
 
     <div class="relative z-10 mx-auto flex max-w-[1040px] flex-col gap-14">
@@ -277,9 +449,14 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Sound zone (clean glass capsule synced with Header/Footer) -->
+      <!-- Sound zone (clean glass capsule synced with Header/Footer + chord resonance) -->
       <div
-        class="flex flex-col items-start justify-between gap-5 rounded-2xl border border-[#31515A]/70 border-t-[#E7D5AC]/20 bg-[#1D303B]/40 p-5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.16),0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur-xl backdrop-saturate-150 sm:flex-row sm:items-center sm:rounded-full sm:px-7 sm:py-4"
+        class="flex flex-col items-start justify-between gap-5 rounded-2xl border bg-[#1D303B]/40 p-5 backdrop-blur-xl backdrop-saturate-150 transition-all duration-500 sm:flex-row sm:items-center sm:rounded-full sm:px-7 sm:py-4"
+        :class="
+          isPlayingChord
+            ? 'border-[#D18C39]/80 shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_0_36px_rgba(209,140,57,0.24)]'
+            : 'border-[#31515A]/70 border-t-[#E7D5AC]/20 shadow-[inset_0_1px_1px_rgba(231,213,172,0.16),0_16px_36px_rgba(0,0,0,0.45)]'
+        "
       >
         <div class="flex items-center gap-4">
           <!-- Spinning mini record -->
@@ -364,15 +541,92 @@ onUnmounted(() => {
   }
 }
 
+@keyframes galaxy-breathe {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes nebula-fluctuate {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: translate3d(18px, -14px, 0) scale(1.14);
+    opacity: 1;
+  }
+}
+
+@keyframes dust-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate3d(10px, -14px, 0);
+    opacity: 0.8;
+  }
+}
+
+@keyframes shooting-streak {
+  0%,
+  78% {
+    transform: translate3d(-45px, -22px, 0);
+    opacity: 0;
+  }
+  82% {
+    opacity: 1;
+  }
+  92% {
+    transform: translate3d(145px, 72px, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(145px, 72px, 0);
+    opacity: 0;
+  }
+}
+
 .star-twinkle-1 {
-  animation: star-twinkle 4.2s ease-in-out infinite;
+  animation: star-twinkle 4.4s ease-in-out infinite;
 }
 
 .star-twinkle-2 {
-  animation: star-twinkle 5.8s ease-in-out infinite 1.7s;
+  animation: star-twinkle 6s ease-in-out infinite 1.7s;
 }
 
 .star-twinkle-3 {
-  animation: star-twinkle 4.9s ease-in-out infinite 0.8s;
+  animation: star-twinkle 4.8s ease-in-out infinite 0.8s;
+}
+
+.galaxy-pulse {
+  animation: galaxy-breathe 9s ease-in-out infinite;
+}
+
+.nebula-drift-1 {
+  animation: nebula-fluctuate 12s ease-in-out infinite;
+}
+
+.nebula-drift-2 {
+  animation: nebula-fluctuate 15s ease-in-out infinite reverse;
+}
+
+.dust-float {
+  animation: dust-drift 8.5s ease-in-out infinite;
+}
+
+.shooting-star-1 {
+  animation: shooting-streak 12s cubic-bezier(0.25, 0.1, 0.25, 1) infinite 2s;
+}
+
+.shooting-star-2 {
+  animation: shooting-streak 16s cubic-bezier(0.25, 0.1, 0.25, 1) infinite 8s;
 }
 </style>
