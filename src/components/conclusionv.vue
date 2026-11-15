@@ -18,21 +18,21 @@ const pilaresConclusion: PilarConclusion[] = [
     codigo: '',
     titulo: 'Universal Sensory Accessibility',
     descripcion:
-      'Transformar datos visuales en paisajes sonoros elimina las barreras de la percepción óptica, permitiendo que personas con ceguera o baja visión experimenten la inmensidad del cosmos y la biodiversidad de distintos ecosistemas.'
+      'Transforming visual data into soundscapes removes the barriers of optical perception, allowing people who are blind or have low vision to experience the vastness of the cosmos and the biodiversity of different ecosystems.'
   },
   {
     id: 'sonificacion',
     codigo: '',
-    titulo: 'La Rockola como Puente de Datos',
+    titulo: 'The Jukebox as a Data Bridge',
     descripcion:
-      'Reinterpretar el concepto clásico de la rockola hacia la sonificación de imágenes demuestra que el arte, la ciencia y la ingeniería web pueden convertir píxeles, espectros de luz y texturas en experiencias auditivas inmersivas.'
+      'Reinterpreting the classic jukebox concept toward image sonification demonstrates that art, science, and web engineering can transform pixels, light spectra, and textures into immersive auditory experiences.'
   },
   {
     id: 'empatia',
     codigo: '',
-    titulo: 'Tecnología con Propósito Humano',
+    titulo: 'Technology with Human Purpose',
     descripcion:
-      'El verdadero valor de la innovación digital no radica únicamente en su complejidad técnica, sino en su capacidad para democratizar el asombro y conectar a todas las personas con el entorno que las rodea.'
+      'The true value of digital innovation lies not merely in its technical complexity, but in its ability to democratize wonder and connect all people with the environment around them.'
   }
 ];
 
@@ -97,7 +97,7 @@ onUnmounted(() => {
     aria-labelledby="conclusion-title"
     class="relative overflow-hidden bg-[#101820] px-6 py-20 font-sans text-[#E7D5AC] sm:py-24"
   >
-    <!-- Campo estelar profundo (estrellas visibles con halos suaves que respetan la lectura) -->
+    <!-- Deep starfield (visible stars with soft halos that preserve readability) -->
     <div
       aria-hidden="true"
       class="pointer-events-none absolute inset-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_28%_22%,rgba(0,0,0,0.45)_15%,black_75%)]"
@@ -107,7 +107,7 @@ onUnmounted(() => {
         preserveAspectRatio="xMidYMid slice"
         class="h-full w-full"
       >
-        <!-- Capa 1: Estrellas beige de brillo medio-alto -->
+        <!-- Layer 1: Medium-high brightness beige stars -->
         <g class="star-twinkle-1 motion-reduce:animate-none" fill="#E7D5AC">
           <circle cx="95" cy="78" r="1.7" opacity="0.9" />
           <circle cx="95" cy="78" r="4.5" opacity="0.16" />
@@ -138,7 +138,7 @@ onUnmounted(() => {
           <circle cx="920" cy="845" r="1.7" opacity="0.85" />
         </g>
 
-        <!-- Capa 2: Estrellas secundarias desfasadas -->
+        <!-- Layer 2: Staggered secondary stars -->
         <g class="star-twinkle-2 motion-reduce:animate-none" fill="#E7D5AC">
           <circle cx="180" cy="230" r="1.2" opacity="0.7" />
           <circle cx="355" cy="195" r="1.4" opacity="0.75" />
@@ -158,7 +158,7 @@ onUnmounted(() => {
           <circle cx="1275" cy="830" r="1.7" opacity="0.85" />
         </g>
 
-        <!-- Capa 3: Estrellas cálidas ámbar y destellos de 4 puntas -->
+        <!-- Layer 3: Warm amber stars and 4-point sparkles -->
         <g class="star-twinkle-3 motion-reduce:animate-none" fill="#D18C39">
           <circle cx="320" cy="95" r="1.7" opacity="0.9" />
           <circle cx="320" cy="95" r="4.5" opacity="0.2" />
@@ -173,7 +173,7 @@ onUnmounted(() => {
           <circle cx="475" cy="855" r="1.7" opacity="0.85" />
           <circle cx="1135" cy="860" r="1.6" opacity="0.8" />
 
-          <!-- Destellos estelares de 4 puntas -->
+          <!-- 4-point star sparkles -->
           <path
             d="M1265 56 L1267.2 64.8 L1276 67 L1267.2 69.2 L1265 78 L1262.8 69.2 L1254 67 L1262.8 64.8 Z"
             opacity="0.9"
@@ -191,7 +191,7 @@ onUnmounted(() => {
       </svg>
     </div>
 
-    <!-- Resplandores sutiles de fondo para dar profundidad al cristal -->
+    <!-- Subtle background glows to add depth to the glass -->
     <div
       aria-hidden="true"
       class="pointer-events-none absolute top-1/3 left-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-[#31515A]/20 blur-3xl"
@@ -202,35 +202,35 @@ onUnmounted(() => {
     ></div>
 
     <div class="relative z-10 mx-auto flex max-w-[1040px] flex-col gap-14">
-      <!-- Encabezado editorial limpio (sin cajas ni etiquetas pesadas) -->
+      <!-- Clean editorial header (no heavy boxes or tags) -->
       <div class="max-w-[760px]">
         <div
           aria-hidden="true"
           class="mb-3 flex flex-wrap items-center gap-2.5 font-mono text-xs tracking-widest uppercase"
         >
-          <span class="font-bold text-[#D18C39]">Cierre del Proyecto</span>
+          <span class="font-bold text-[#D18C39]">Project Closing</span>
           <span class="text-[#31515A]">/</span>
-          <span class="text-[#E7D5AC]/55">LOG // SONIFICACIÓN-FINAL</span>
+          <span class="text-[#E7D5AC]/55">LOG // FINAL-SONIFICATION</span>
         </div>
 
         <h2
           id="conclusion-title"
           class="mb-5 text-3xl leading-tight font-extrabold tracking-tight text-[#E7D5AC] sm:text-4xl lg:text-[2.55rem]"
         >
-          Conclusión: <span class="text-[#D18C39]">Escuchar lo Invisible</span>
+          Conclusion: <span class="text-[#D18C39]">Hearing the Invisible</span>
         </h2>
 
         <p class="text-base leading-relaxed text-[#E7D5AC]/80 sm:text-lg">
-          Este proyecto demuestra que la web moderna puede trascender lo puramente visual. Al
-          fusionar la nostalgia interactiva de una
-          <strong class="font-semibold text-[#D18C39]">rockola</strong> con algoritmos de
-          <strong class="font-semibold text-[#D18C39]">sonificación de imágenes</strong>, logramos
-          traducir la belleza silenciosa del espacio exterior y los ecosistemas terrestres en un
-          lenguaje universal: el sonido.
+          This project demonstrates that the modern web can transcend the purely visual. By fusing
+          the interactive nostalgia of a
+          <strong class="font-semibold text-[#D18C39]">jukebox</strong> with
+          <strong class="font-semibold text-[#D18C39]">image sonification</strong> algorithms, we
+          succeed in translating the silent beauty of outer space and terrestrial ecosystems into a
+          universal language: sound.
         </p>
       </div>
 
-      <!-- Cuadros de texto minimalistas con reactividad al pasar el cursor -->
+      <!-- Minimalist text cards with hover reactivity -->
       <div class="grid grid-cols-1 gap-6 md:grid-cols-3" role="list">
         <div
           v-for="pilar in pilaresConclusion"
@@ -261,7 +261,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Zona de la frase (protagonista con acento ámbar y cristal) -->
+      <!-- Quote zone (featured with amber accent and glassmorphism) -->
       <div
         class="rounded-2xl border border-[#31515A]/60 border-l-4 border-l-[#D18C39] bg-[#1D303B]/40 px-7 py-6 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-xl sm:px-9 sm:py-7"
       >
@@ -269,20 +269,20 @@ onUnmounted(() => {
           aria-hidden="true"
           class="mb-2 block font-mono text-[0.68rem] font-semibold tracking-[0.2em] text-[#D18C39] uppercase"
         >
-          Transmisión Final // Principio de Diseño
+          Final Transmission // Design Principle
         </span>
         <p class="m-0 text-base leading-relaxed text-[#E7D5AC] italic sm:text-lg">
-          «Cuando diseñamos pensando en quienes perciben el mundo de formas distintas, no solo
-          construimos software accesible; expandimos los sentidos de toda la humanidad.»
+          “When we design with those who perceive the world differently in mind, we don't just build
+          accessible software; we expand the senses of all humanity.”
         </p>
       </div>
 
-      <!-- Zona del sonido (cápsula de cristal limpia sincronizada con el Header/Footer) -->
+      <!-- Sound zone (clean glass capsule synced with Header/Footer) -->
       <div
         class="flex flex-col items-start justify-between gap-5 rounded-2xl border border-[#31515A]/70 border-t-[#E7D5AC]/20 bg-[#1D303B]/40 p-5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.16),0_16px_36px_rgba(0,0,0,0.45)] backdrop-blur-xl backdrop-saturate-150 sm:flex-row sm:items-center sm:rounded-full sm:px-7 sm:py-4"
       >
         <div class="flex items-center gap-4">
-          <!-- Mini disco giratorio -->
+          <!-- Spinning mini record -->
           <div
             aria-hidden="true"
             class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#31515A] bg-[#101820]/80 transition-colors duration-300"
@@ -295,16 +295,16 @@ onUnmounted(() => {
 
           <div class="flex flex-col">
             <span class="font-mono text-xs font-bold tracking-wider text-[#D18C39] uppercase">
-              {{ isPlayingChord ? 'Señal Activa // 432-587 Hz' : 'Sintetizador en Espera' }}
+              {{ isPlayingChord ? 'Active Signal // 432-587 Hz' : 'Synthesizer on Standby' }}
             </span>
             <span class="text-xs text-[#E7D5AC]/75 sm:text-sm">
-              Acorde armónico espacial de cierre (Web Audio API)
+              Closing spatial harmonic chord (Web Audio API)
             </span>
           </div>
         </div>
 
         <div class="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
-          <!-- Barras de frecuencia minimalistas -->
+          <!-- Minimalist frequency bars -->
           <div aria-hidden="true" class="flex h-5 items-end gap-1 px-1">
             <span
               class="w-1 rounded-full transition-all duration-300"
@@ -332,7 +332,7 @@ onUnmounted(() => {
             type="button"
             :disabled="isPlayingChord"
             :aria-pressed="isPlayingChord"
-            aria-label="Reproducir acorde armónico de cierre del proyecto"
+            aria-label="Play closing harmonic chord of the project"
             class="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-[#E7D5AC]/20 bg-[#D18C39] px-6 py-3 text-sm font-extrabold tracking-wide text-[#101820] shadow-[0_0_20px_rgba(209,140,57,0.25)] transition-all duration-200 enabled:hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#E7D5AC] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101820] focus-visible:outline-none disabled:cursor-wait disabled:opacity-90"
             @click="reproducirSintesisFinal"
           >
@@ -341,12 +341,12 @@ onUnmounted(() => {
               class="h-2 w-2 rounded-full bg-[#101820]"
               :class="isPlayingChord ? 'animate-ping' : 'opacity-80'"
             ></span>
-            {{ isPlayingChord ? 'Sintetizando paisaje...' : 'Escuchar eco de cierre' }}
+            {{ isPlayingChord ? 'Synthesizing soundscape...' : 'Listen to closing echo' }}
           </button>
         </div>
 
         <span class="sr-only" aria-live="polite">
-          {{ isPlayingChord ? 'Reproduciendo síntesis sonora espacial de cierre.' : '' }}
+          {{ isPlayingChord ? 'Playing closing spatial sound synthesis.' : '' }}
         </span>
       </div>
     </div>
