@@ -19,6 +19,29 @@ import { mapRgbPixelToNormalizedValue } from '@/game/ColorbarMapper'
 
 const SCALES = {
   nasa: ['C2', 'D2', 'E2', 'G2', 'A2', 'C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5'],
+  pentatonic: ['A2', 'C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
+  guitar: [
+    'E2',
+    'G2',
+    'A2',
+    'Bb2',
+    'B2',
+    'D3',
+    'E3',
+    'G3',
+    'A3',
+    'Bb3',
+    'B3',
+    'D4',
+    'E4',
+    'G4',
+    'A4',
+    'Bb4',
+    'B4',
+    'D5',
+    'E5',
+  ],
+  bell: ['C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5', 'A5', 'C6', 'D6', 'E6', 'G6', 'A6'],
   grafica: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
   maritimo: ['D3', 'F3', 'G3', 'A3', 'C4', 'D4', 'F4', 'G4', 'A4', 'C5', 'D5', 'F5'],
   maps: ['C3', 'D3', 'E3', 'G3', 'A3', 'C4', 'D4', 'E4', 'G4', 'A4', 'C5', 'D5', 'E5', 'G5'],
@@ -38,6 +61,25 @@ const SCALES = {
   huracanCalm: ['C3', 'G3', 'D4', 'E4', 'G4', 'A4', 'C5'],
   huracanTense: ['C3', 'Db3', 'E3', 'F#3', 'G3', 'Ab3', 'B3', 'C4', 'Db4', 'E4', 'F#4', 'Bb4'],
   planetario: ['C3', 'D3', 'E3', 'F#3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F#4', 'G4', 'A4', 'C5'],
+}
+
+export const NOTE_TYPE_OPTIONS = {
+  current: {
+    label: 'Actual (NASA)',
+    description: 'Escalas actuales del sistema de sonificación',
+  },
+  pentatonic: {
+    label: 'Pentatónica menor',
+    description: 'Escala A-C-D-E-G con carácter oscuro y estable',
+  },
+  guitar: {
+    label: 'Guitarra blues',
+    description: 'Escala blues de Mi: E-G-A-Bb-B-D',
+  },
+  bell: {
+    label: 'Campana',
+    description: 'Escala mayor aguda para un timbre brillante y resonante',
+  },
 }
 
 const THEREMIN_BASS_SCALE = ['C2', 'D2', 'E2', 'G2', 'A2', 'C3', 'D3', 'E3']
@@ -103,6 +145,14 @@ const frameListeners = new Set()
 const isRunning = ref(false)
 const activeMode = ref('maps')
 const activeRarity = ref('legendario')
+const activeNoteType = ref('current')
+
+function getSelectedScale(fallbackScale) {
+  if (activeNoteType.value === 'pentatonic') return SCALES.pentatonic
+  if (activeNoteType.value === 'guitar') return SCALES.guitar
+  if (activeNoteType.value === 'bell') return SCALES.bell
+  return fallbackScale
+}
 
 function ensureHiddenCanvas() {
   if (!hiddenCanvas && typeof document !== 'undefined') {
@@ -494,7 +544,7 @@ export function synthesizePlanetarySamples(samples, rarity = 'comun') {
 
   const avgLumaNorm = Math.min(1, totalLuma / (litPixels.length * 765))
   const heightNorm = Math.max(0, Math.min(1, Number(brightest.yNorm ?? 0.5)))
-  const scale = SCALES.planetario
+  const scale = getSelectedScale(SCALES.planetario)
   const noteIdx = Math.min(scale.length - 1, Math.floor(heightNorm * scale.length))
   const primaryNote = scale[noteIdx]
   const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
@@ -524,7 +574,7 @@ export function synthesizePlanetarySamples(samples, rarity = 'comun') {
  */
 export function synthesizeNormalizedMapValue(normalizedValue, rarity = 'legendario') {
   const v = Math.max(0, Math.min(1, Number(normalizedValue) || 0))
-  const scale = SCALES.maps
+  const scale = getSelectedScale(SCALES.maps)
   const noteIdx = Math.min(scale.length - 1, Math.floor(v * scale.length))
   const primaryNote = scale[noteIdx]
   const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
@@ -587,7 +637,7 @@ export function synthesizeNasaColumn(samples, rarity = 'raro') {
   const brightness = Math.max(0, Math.min(1, totalLuma / pixels.length))
   const centroidY = totalWeight > 0 ? weightedY / totalWeight : 0.5
   const pitchValue = Math.max(0, Math.min(1, brightness * 0.72 + (1 - centroidY) * 0.28))
-  const scale = SCALES.nasa
+  const scale = getSelectedScale(SCALES.nasa)
   const noteIdx = Math.min(scale.length - 1, Math.floor(pitchValue * scale.length))
   const primaryNote = scale[noteIdx]
   const harmonyOffset = weightedRed >= weightedBlue ? 3 : 2
@@ -659,7 +709,7 @@ const SONIFICATION_STRATEGIES = {
     }
 
     const normHeight = 1 - brightestY / Math.max(1, canvasHeight - 1)
-    const scale = SCALES.grafica
+    const scale = getSelectedScale(SCALES.grafica)
     const noteIdx = Math.min(scale.length - 1, Math.max(0, Math.floor(normHeight * scale.length)))
     const primaryNote = scale[noteIdx]
     const harmonyNote = scale[Math.min(scale.length - 1, noteIdx + 2)]
@@ -697,7 +747,7 @@ const SONIFICATION_STRATEGIES = {
     }
 
     const droneNorm = 1 - whiteLineY / canvasHeight
-    const scale = SCALES.maritimo
+    const scale = getSelectedScale(SCALES.maritimo)
     const bassNote = droneNorm > 0.52 ? 'D2' : 'A1'
     if (audioInitialized && bassDrone && colX % 2 === 0) {
       bassDrone.triggerAttackRelease(bassNote, '8n')
@@ -753,7 +803,7 @@ const SONIFICATION_STRATEGIES = {
       }
     }
 
-    const highScale = SCALES.espacialHigh
+    const highScale = getSelectedScale(SCALES.espacialHigh)
     let primaryNote = 'B5'
 
     if (filterNode) {
@@ -844,7 +894,9 @@ const SONIFICATION_STRATEGIES = {
     const total = Math.max(1, warmCount + coldCount)
     const warmRatio = warmCount / total
     const isHighTension = warmRatio > 0.52
-    const activeScale = isHighTension ? SCALES.huracanTense : SCALES.huracanCalm
+    const activeScale = getSelectedScale(
+      isHighTension ? SCALES.huracanTense : SCALES.huracanCalm
+    )
 
     const idx = Math.min(
       activeScale.length - 1,
@@ -1035,7 +1087,7 @@ export function useSonifier() {
       telemetry = synthesizePlanetarySamples([{ yNorm, r, g, b }], 'legendario')
     } else if (mode === 'espacial') {
       const sum = r + g + b
-      const highScale = SCALES.espacialHigh
+      const highScale = getSelectedScale(SCALES.espacialHigh)
       const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
       const noteIdx = Math.min(highScale.length - 1, Math.floor(yNorm * highScale.length))
       const primaryNote = highScale[noteIdx]
@@ -1200,6 +1252,8 @@ export function useSonifier() {
     isRunning,
     activeMode,
     activeRarity,
+    activeNoteType,
+    noteTypeOptions: NOTE_TYPE_OPTIONS,
     loadDisc,
     start,
     stop,

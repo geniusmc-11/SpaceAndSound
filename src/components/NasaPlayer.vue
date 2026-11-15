@@ -20,6 +20,14 @@ const showUploader = ref(false)
 const topicInfo = ref(null)
 const isLoadingTopic = ref(false)
 const isHoverProbing = ref(false)
+const selectedNoteType = computed({
+  get: () => sonifier.activeNoteType.value,
+  set: (value) => {
+    if (sonifier.noteTypeOptions[value]) {
+      sonifier.activeNoteType.value = value
+    }
+  },
+})
 
 let unsubscribeScan = null
 let unsubscribeFrame = null
@@ -260,6 +268,24 @@ function handleLegendaryHoverLeave() {
         >
           ◄ BACK TO GAME [2/A]
         </button>
+        <label
+          class="flex items-center gap-2 border border-[#31515A] bg-[#1D303B] px-2 py-1 text-[10px] font-bold uppercase text-[#E7D5AC]"
+        >
+          <span class="text-[#D18C39]">♫ NOTE TYPE</span>
+          <select
+            v-model="selectedNoteType"
+            class="bg-[#101820] px-1.5 py-1 text-[10px] text-[#E7D5AC] outline-none"
+            aria-label="Seleccionar tipo de notas musicales"
+          >
+            <option
+              v-for="(noteType, noteTypeId) in sonifier.noteTypeOptions"
+              :key="noteTypeId"
+              :value="noteTypeId"
+            >
+              {{ noteType.label }}
+            </option>
+          </select>
+        </label>
       </div>
     </header>
 

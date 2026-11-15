@@ -24,6 +24,7 @@ import {
   synthesizeNasaColumn,
   synthesizePlanetarySamples,
   isBlackPixel,
+  useSonifier,
 } from '@/composables/useSonifier'
 import { EnemyFactory } from '@/game/EnemyFactory'
 import { GIF_SPRITE_PATHS } from '@/game/GifSpriteLoader'
@@ -270,6 +271,91 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     for (const id of ['5154', '5149', '5152', '5150', '5148', '4095', '2900']) {
       expect(COLORBAR_PROFILES[id].stops.length).toBeGreaterThanOrEqual(4)
     }
+  })
+
+  it('cambia la síntesis a la escala pentatónica menor cuando se selecciona', () => {
+    const sonifier = useSonifier()
+    const samples = [
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+    ]
+
+    sonifier.activeNoteType.value = 'current'
+    const currentResult = synthesizeNasaColumn(samples, 'comun')
+    sonifier.activeNoteType.value = 'pentatonic'
+    const pentatonicResult = synthesizeNasaColumn(samples, 'comun')
+    sonifier.activeNoteType.value = 'current'
+
+    expect(currentResult.mode).toBe('nasa')
+    expect(pentatonicResult.mode).toBe('nasa')
+    expect(pentatonicResult.primaryNote).not.toBe(currentResult.primaryNote)
+  })
+
+  it('cambia la síntesis a la escala de guitarra cuando se selecciona', () => {
+    const sonifier = useSonifier()
+    const samples = [
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+    ]
+
+    sonifier.activeNoteType.value = 'guitar'
+    const guitarResult = synthesizeNasaColumn(samples, 'comun')
+    sonifier.activeNoteType.value = 'current'
+
+    expect(guitarResult.mode).toBe('nasa')
+    expect([
+      'E2',
+      'G2',
+      'A2',
+      'Bb2',
+      'B2',
+      'D3',
+      'E3',
+      'G3',
+      'A3',
+      'Bb3',
+      'B3',
+      'D4',
+      'E4',
+      'G4',
+      'A4',
+      'Bb4',
+      'B4',
+      'D5',
+      'E5',
+    ])
+      .toContain(guitarResult.primaryNote)
+  })
+
+  it('cambia la síntesis a la escala de campana cuando se selecciona', () => {
+    const sonifier = useSonifier()
+    const samples = [
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+      { yNorm: 0.5, r: 128, g: 128, b: 128 },
+    ]
+
+    sonifier.activeNoteType.value = 'bell'
+    const bellResult = synthesizeNasaColumn(samples, 'comun')
+    sonifier.activeNoteType.value = 'current'
+
+    expect(bellResult.mode).toBe('nasa')
+    expect([
+      'C4',
+      'D4',
+      'E4',
+      'G4',
+      'A4',
+      'C5',
+      'D5',
+      'E5',
+      'G5',
+      'A5',
+      'C6',
+      'D6',
+      'E6',
+      'G6',
+      'A6',
+    ]).toContain(bellResult.primaryNote)
   })
 
   it('muestra el progreso total del catálogo (recolectados / 20) en DiscVault', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const teamLogoPath = '/images/AvatarC.jpg';
+const teamLogoPath = '/images/logoSS.svg';
 const projectLogoPath = '/images/avatar.png';
 </script>
 
