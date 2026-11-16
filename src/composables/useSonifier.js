@@ -98,6 +98,8 @@ let activeMapProfileId = 'default'
 let activeAmbientStyle = 'maritimo'
 let activeSonificationMode = 'maps'
 let loadedDiscId = null
+let loadingDiscId = null
+let loadingDiscPromise = null
 let loadGeneration = 0
 
 let canvasWidth = 256
@@ -108,8 +110,11 @@ let frameTimerId = null
 let orbitTimerId = null
 let orbitAngle = 0
 let audioInitialized = false
+let audioInitPromise = null
+let gestureListenersAttached = false
 let lastHoverSoundAt = 0
 let hoverPausedAutoScan = false
+const lastSynthTriggerTime = new WeakMap()
 
 // Instancias de Tone.js (estrictamente fuera de Vue Reactivity)
 let leadSynth = null
@@ -180,142 +185,203 @@ function update8DOrbitPosition(angleRad) {
   }
 }
 
-async function ensureAudioGraph() {
-  if (audioInitialized) return true
-  try {
-    await Tone.start()
-
-    // Nodo 8D HRTF orbital conectado a destino
-    spatial8DPanner = new Tone.Panner3D({
-      panningModel: 'HRTF',
-      distanceModel: 'inverse',
-      refDistance: 1.0,
-      rolloffFactor: 0.9,
-      positionX: 0,
-      positionY: 0,
-      positionZ: -2,
-    }).toDestination()
-
-    filterNode = new Tone.Filter({
-      frequency: 2800,
-      type: 'lowpass',
-      rolloff: -12,
-    }).toDestination()
-
-    reverbNode = new Tone.Reverb({
-      decay: 3.2,
-      wet: 0.36,
-    }).connect(filterNode)
-
-    // Eco estéreo PingPong conectado al Panner 8D para envolvente espacial
-    pingPongDelay = new Tone.PingPongDelay({
-      delayTime: '8n',
-      feedback: 0.32,
-      wet: 0.28,
-    }).connect(spatial8DPanner)
-
-    leadSynth = new Tone.Synth({
-      oscillator: { type: 'triangle8' },
-      envelope: { attack: 0.008, decay: 0.14, sustain: 0.22, release: 0.28 },
-      volume: -9,
-    }).connect(reverbNode)
-
-    harmonySynth = new Tone.Synth({
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.015, decay: 0.18, sustain: 0.25, release: 0.38 },
-      volume: -13,
-    }).connect(reverbNode)
-
-    bassDrone = new Tone.MonoSynth({
-      oscillator: { type: 'sawtooth' },
-      envelope: { attack: 0.05, decay: 0.2, sustain: 0.6, release: 0.4 },
-      volume: -16,
-    }).connect(filterNode)
-
-    pluckSynth = new Tone.Synth({
-      oscillator: { type: 'triangle' },
-      envelope: { attack: 0.002, decay: 0.22, sustain: 0.0, release: 0.25 },
-      volume: -8,
-    }).connect(pingPongDelay)
-
-    // Sintetizador FM cristalino conectado al Panner 8D
-    shimmerSynth = new Tone.FMSynth({
-      harmonicity: 3.01,
-      modulationIndex: 4.8,
-      oscillator: { type: 'sine' },
-      modulation: { type: 'triangle' },
-      envelope: { attack: 0.003, decay: 0.25, sustain: 0.05, release: 0.45 },
-      modulationEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.1, release: 0.3 },
-      volume: -10,
-    }).connect(pingPongDelay)
-
-    padPolySynth = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.06, decay: 0.32, sustain: 0.45, release: 0.75 },
-      volume: -14,
-    }).connect(spatial8DPanner)
-
-    // --- Melodía 2: Bajo tipo Theremin con portamento y vibrato LFO para profundidad ---
-    thereminFilter = new Tone.Filter({
-      frequency: 420,
-      type: 'lowpass',
-      rolloff: -12,
-    }).connect(reverbNode)
-
-    thereminBass = new Tone.Synth({
-      oscillator: { type: 'sine' },
-      envelope: { attack: 0.14, decay: 0.2, sustain: 0.78, release: 0.45 },
-      portamento: 0.24,
-      volume: -13,
-    }).connect(thereminFilter)
-
-    thereminVibratoLFO = new Tone.LFO({
-      frequency: 5.2,
-      min: -16,
-      max: 16,
-    })
-      .connect(thereminBass.detune)
-      .start()
-
-    // --- Ruido de fondo base para TODOS los discos ---
-    baseAmbientGain = new Tone.Gain(0.0).toDestination()
-    baseAmbientFilter = new Tone.AutoFilter({
-      frequency: 0.08,
-      baseFrequency: 110,
-      octaves: 1.8,
-      depth: 0.6,
-    })
-      .connect(baseAmbientGain)
-      .start()
-
-    baseAmbientNoise = new Tone.Noise('brown').connect(baseAmbientFilter)
-    baseAmbientNoise.volume.value = -24
-
-    // --- Segundo Sonido de Fondo temático (para discos 'raro', 'epico', 'legendario') ---
-    oceanGain = new Tone.Gain(0.0).toDestination()
-    oceanAutoFilter = new Tone.AutoFilter({
-      frequency: 0.14,
-      baseFrequency: 170,
-      octaves: 2.3,
-      depth: 0.85,
-    })
-      .connect(oceanGain)
-      .start()
-
-    oceanNoise = new Tone.Noise('pink').connect(oceanAutoFilter)
-    oceanNoise.volume.value = -22
-
-    spaceBgDrone = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: 'sine' },
-      envelope: { attack: 1.2, decay: 0.5, sustain: 0.85, release: 1.8 },
-      volume: -23,
-    }).connect(spatial8DPanner)
-
-    audioInitialized = true
-    return true
-  } catch {
-    return false
+function attachGlobalAudioUnlock() {
+  if (gestureListenersAttached || typeof window === 'undefined') return
+  gestureListenersAttached = true
+  const unlock = () => {
+    try {
+      Tone.start()
+    } catch {
+      // noop
+    }
   }
+  window.addEventListener('pointerdown', unlock, { passive: true })
+  window.addEventListener('keydown', unlock, { passive: true })
+  window.addEventListener('touchstart', unlock, { passive: true })
+}
+
+function safeTriggerAttackRelease(synth, note, duration) {
+  if (!synth || !note) return
+  try {
+    const rawNow = typeof Tone.now === 'function' ? Tone.now() : undefined
+    if (typeof rawNow === 'number' && Number.isFinite(rawNow)) {
+      const prev = lastSynthTriggerTime.get(synth) ?? -1
+      const safeTime = rawNow <= prev ? prev + 0.005 : rawNow
+      lastSynthTriggerTime.set(synth, safeTime)
+      synth.triggerAttackRelease(note, duration, safeTime)
+    } else {
+      synth.triggerAttackRelease(note, duration)
+    }
+  } catch {
+    try {
+      synth.triggerAttackRelease(note, duration)
+    } catch {
+      // Ignorar colisiones de tiempo en Web Audio
+    }
+  }
+}
+
+async function ensureAudioGraph() {
+  attachGlobalAudioUnlock()
+  if (audioInitialized) {
+    try {
+      const ctx = Tone.getContext?.()
+      if (ctx && ctx.state && ctx.state !== 'running') {
+        await Promise.race([
+          Tone.start(),
+          new Promise((resolve) => setTimeout(resolve, 25)),
+        ])
+      }
+    } catch {
+      // noop
+    }
+    return true
+  }
+  if (audioInitPromise) return audioInitPromise
+
+  audioInitPromise = (async () => {
+    try {
+      await Promise.race([
+        Tone.start(),
+        new Promise((resolve) => setTimeout(resolve, 35)),
+      ])
+
+      // Nodo 8D HRTF orbital conectado a destino
+      spatial8DPanner = new Tone.Panner3D({
+        panningModel: 'HRTF',
+        distanceModel: 'inverse',
+        refDistance: 1.0,
+        rolloffFactor: 0.9,
+        positionX: 0,
+        positionY: 0,
+        positionZ: -2,
+      }).toDestination()
+
+      filterNode = new Tone.Filter({
+        frequency: 2800,
+        type: 'lowpass',
+        rolloff: -12,
+      }).toDestination()
+
+      reverbNode = new Tone.Reverb({
+        decay: 3.2,
+        wet: 0.36,
+      }).connect(filterNode)
+
+      // Eco estéreo PingPong conectado al Panner 8D para envolvente espacial
+      pingPongDelay = new Tone.PingPongDelay({
+        delayTime: '8n',
+        feedback: 0.32,
+        wet: 0.28,
+      }).connect(spatial8DPanner)
+
+      leadSynth = new Tone.Synth({
+        oscillator: { type: 'triangle8' },
+        envelope: { attack: 0.008, decay: 0.14, sustain: 0.22, release: 0.28 },
+        volume: -7,
+      }).connect(reverbNode)
+
+      harmonySynth = new Tone.Synth({
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.015, decay: 0.18, sustain: 0.25, release: 0.38 },
+        volume: -11,
+      }).connect(reverbNode)
+
+      bassDrone = new Tone.MonoSynth({
+        oscillator: { type: 'sawtooth' },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.6, release: 0.4 },
+        volume: -16,
+      }).connect(filterNode)
+
+      pluckSynth = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.002, decay: 0.22, sustain: 0.15, release: 0.25 },
+        volume: -7,
+      }).connect(pingPongDelay)
+
+      // Sintetizador FM cristalino conectado al Panner 8D
+      shimmerSynth = new Tone.FMSynth({
+        harmonicity: 3.01,
+        modulationIndex: 4.8,
+        oscillator: { type: 'sine' },
+        modulation: { type: 'triangle' },
+        envelope: { attack: 0.003, decay: 0.25, sustain: 0.25, release: 0.45 },
+        modulationEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.15, release: 0.3 },
+        volume: -4,
+      }).connect(pingPongDelay)
+
+      padPolySynth = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.06, decay: 0.32, sustain: 0.45, release: 0.75 },
+        volume: -14,
+      }).connect(spatial8DPanner)
+
+      // --- Melodía 2: Bajo tipo Theremin con portamento y vibrato LFO para profundidad ---
+      thereminFilter = new Tone.Filter({
+        frequency: 420,
+        type: 'lowpass',
+        rolloff: -12,
+      }).connect(reverbNode)
+
+      thereminBass = new Tone.Synth({
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.14, decay: 0.2, sustain: 0.78, release: 0.45 },
+        portamento: 0.24,
+        volume: -13,
+      }).connect(thereminFilter)
+
+      thereminVibratoLFO = new Tone.LFO({
+        frequency: 5.2,
+        min: -16,
+        max: 16,
+      })
+        .connect(thereminBass.detune)
+        .start()
+
+      // --- Ruido de fondo base para TODOS los discos ---
+      baseAmbientGain = new Tone.Gain(0.0).toDestination()
+      baseAmbientFilter = new Tone.AutoFilter({
+        frequency: 0.08,
+        baseFrequency: 110,
+        octaves: 1.8,
+        depth: 0.6,
+      })
+        .connect(baseAmbientGain)
+        .start()
+
+      baseAmbientNoise = new Tone.Noise('brown').connect(baseAmbientFilter)
+      baseAmbientNoise.volume.value = -24
+
+      // --- Segundo Sonido de Fondo temático (para discos 'raro', 'epico', 'legendario') ---
+      oceanGain = new Tone.Gain(0.0).toDestination()
+      oceanAutoFilter = new Tone.AutoFilter({
+        frequency: 0.14,
+        baseFrequency: 170,
+        octaves: 2.3,
+        depth: 0.85,
+      })
+        .connect(oceanGain)
+        .start()
+
+      oceanNoise = new Tone.Noise('pink').connect(oceanAutoFilter)
+      oceanNoise.volume.value = -22
+
+      spaceBgDrone = new Tone.PolySynth(Tone.Synth, {
+        oscillator: { type: 'sine' },
+        envelope: { attack: 1.2, decay: 0.5, sustain: 0.85, release: 1.8 },
+        volume: -23,
+      }).connect(spatial8DPanner)
+
+      audioInitialized = true
+      return true
+    } catch {
+      return false
+    } finally {
+      audioInitPromise = null
+    }
+  })()
+
+  return audioInitPromise
 }
 
 function resolveAmbientStyle(disc) {
@@ -469,7 +535,12 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorN
   }
 
   if (filterNode) {
-    if (activeMode.value === 'espacial' || activeMode.value === 'planetario') {
+    if (
+      activeMode.value === 'espacial' ||
+      activeMode.value === 'planetario' ||
+      activeSonificationMode === 'espacial' ||
+      activeSonificationMode === 'planetario'
+    ) {
       filterNode.frequency.value = 9500
     } else if (rarity === 'epico' || rarity === 'legendario') {
       const cutoff = 480 + Math.floor(Math.max(0, Math.min(1, normValue)) * 4200)
@@ -480,7 +551,7 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorN
   }
 
   if (primaryNote) {
-    leadSynth.triggerAttackRelease(primaryNote, '16n')
+    safeTriggerAttackRelease(leadSynth, primaryNote, '16n')
   }
 
   if (
@@ -488,11 +559,11 @@ function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorN
     harmonyNote &&
     harmonySynth
   ) {
-    harmonySynth.triggerAttackRelease(harmonyNote, '8n')
+    safeTriggerAttackRelease(harmonySynth, harmonyNote, '8n')
   }
 
   if ((rarity === 'epico' || rarity === 'legendario') && mirrorNote && pluckSynth) {
-    pluckSynth.triggerAttackRelease(mirrorNote, '16n')
+    safeTriggerAttackRelease(pluckSynth, mirrorNote, '16n')
   }
 
   return thereminNote
@@ -998,8 +1069,13 @@ export function useSonifier() {
       notifyFrameListeners()
       return
     }
+    if (loadingDiscId === disc.id && loadingDiscPromise) {
+      await loadingDiscPromise
+      return
+    }
 
     loadedDiscId = disc.id
+    loadingDiscId = disc.id
     const myGen = ++loadGeneration
     scanX = 0
     currentFrameIndex = 0
@@ -1014,39 +1090,52 @@ export function useSonifier() {
           : []
 
     if (!ctx || !hiddenCanvas || sources.length === 0) {
+      loadingDiscId = null
+      loadingDiscPromise = null
       notifyFrameListeners()
       return
     }
 
-    const firstImg = await loadImageElement(sources[0])
-    if (myGen !== loadGeneration) return
-    if (firstImg) {
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-      ctx.drawImage(firstImg, 0, 0, canvasWidth, canvasHeight)
+    loadingDiscPromise = (async () => {
       try {
-        const firstData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
-        frameBuffers[0] = firstData
-        pixelBuffer = firstData
-      } catch {
-        // Ignorar si falla lectura
-      }
-    }
-    notifyFrameListeners()
+        const firstImg = await loadImageElement(sources[0])
+        if (myGen !== loadGeneration) return
+        if (firstImg) {
+          ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+          ctx.drawImage(firstImg, 0, 0, canvasWidth, canvasHeight)
+          try {
+            const firstData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
+            frameBuffers[0] = firstData
+            pixelBuffer = firstData
+          } catch {
+            // Ignorar si falla lectura
+          }
+        }
+        notifyFrameListeners()
 
-    for (let i = 1; i < sources.length; i++) {
-      const img = await loadImageElement(sources[i])
-      if (myGen !== loadGeneration) return
-      if (img) {
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight)
-        ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
-        try {
-          frameBuffers[i] = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
-        } catch {
-          // Ignorar fotograma si falla lectura
+        for (let i = 1; i < sources.length; i++) {
+          const img = await loadImageElement(sources[i])
+          if (myGen !== loadGeneration) return
+          if (img) {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+            ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
+            try {
+              frameBuffers[i] = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data
+            } catch {
+              // Ignorar fotograma si falla lectura
+            }
+          }
+        }
+        notifyFrameListeners()
+      } finally {
+        if (loadingDiscId === disc.id) {
+          loadingDiscId = null
+          loadingDiscPromise = null
         }
       }
-    }
-    notifyFrameListeners()
+    })()
+
+    await loadingDiscPromise
   }
 
   function setFrameIndex(idx) {
@@ -1069,6 +1158,9 @@ export function useSonifier() {
 
   function setHoverActive(active) {
     hoverPausedAutoScan = Boolean(active)
+    if (!active && !isRunning.value) {
+      silenceThereminBass()
+    }
   }
 
   /**
@@ -1077,6 +1169,12 @@ export function useSonifier() {
    * @param {Record<string, any> | null} [disc=null]
    */
   async function probeHoverPixel(normX, normY, disc = null) {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    if (now - lastHoverSoundAt < 58) {
+      return null
+    }
+    lastHoverSoundAt = now
+
     if (disc) {
       if (disc.rarity !== 'legendario') return null
       if (loadedDiscId !== disc.id || !pixelBuffer) {
@@ -1087,12 +1185,6 @@ export function useSonifier() {
     }
 
     if (!pixelBuffer) return null
-
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-    if (now - lastHoverSoundAt < 58) {
-      return null
-    }
-    lastHoverSoundAt = now
 
     await ensureAudioGraph()
     orbitAngle = (orbitAngle + 0.22) % (Math.PI * 2)
@@ -1121,25 +1213,27 @@ export function useSonifier() {
       const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
       telemetry = synthesizePlanetarySamples([{ yNorm, r, g, b }], 'legendario')
     } else if (mode === 'espacial') {
+      activeMode.value = 'espacial'
+      activeSonificationMode = 'espacial'
       const sum = r + g + b
       const highScale = getSelectedScale(SCALES.espacialHigh)
+      const melodicScale = getSelectedScale(SCALES.nasa)
       const yNorm = 1 - py / Math.max(1, canvasHeight - 1)
       const noteIdx = Math.min(highScale.length - 1, Math.floor(yNorm * highScale.length))
+      const melodicIdx = Math.min(melodicScale.length - 1, Math.floor(yNorm * melodicScale.length))
       const primaryNote = highScale[noteIdx]
-      let thereminNote = lastThereminNote
+      const leadMelodicNote = melodicScale[melodicIdx]
+      const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
       if (filterNode) filterNode.frequency.value = 9500
+      const thereminNote = applyRarityScaling(
+        'legendario',
+        leadMelodicNote,
+        chord[2] || primaryNote,
+        sum / 765,
+        primaryNote
+      )
       if (sum > 480 && audioInitialized && shimmerSynth) {
-        shimmerSynth.triggerAttackRelease(primaryNote, '16n')
-        thereminNote = triggerThereminBass(sum / 765)
-      } else {
-        const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
-        thereminNote = applyRarityScaling(
-          'legendario',
-          primaryNote,
-          chord[2],
-          sum / 765,
-          chord[3] || primaryNote
-        )
+        safeTriggerAttackRelease(shimmerSynth, primaryNote, '16n')
       }
       telemetry = {
         mode: 'espacial',

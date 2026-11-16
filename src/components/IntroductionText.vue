@@ -38,6 +38,7 @@ async function sonifyAtPointer(event: MouseEvent) {
 function stopHoverSonify() {
   isHovering.value = false
   hoverNote.value = ''
+  sonifier.setHoverActive(false)
 }
 </script>
 
