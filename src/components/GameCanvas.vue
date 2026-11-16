@@ -9,7 +9,7 @@ import {
   RARITY_CONFIG,
 } from '@/stores/useGameStore'
 import { EnemyFactory } from '@/game/EnemyFactory'
-import { createAnimatedGifSpriteMaterial, GIF_SPRITE_PATHS } from '@/game/GifSpriteLoader'
+import { createAnimatedGifSpriteMaterial, GIF_SPRITE_PATHS, preloadGifSprites } from '@/game/GifSpriteLoader'
 import {
   CONTROL_STATION_GRID,
   PLAYER_BULLET_SPEED,
@@ -581,6 +581,12 @@ function updateEnemiesAndSpatialAudio(dtMs) {
         // Descends onto the player
         enemy.sprite.position.set(px * CELL_SIZE, 0.9, pz * CELL_SIZE)
         gameStore.startStalkerQTE(enemy.id, 6)
+        spatialAudio.playStalkerFootstep(
+          { x: enemy.gridX, z: enemy.gridZ },
+          { x: px, z: pz },
+          pyaw
+        )
+        audioCueBanner.value = '🕸️ CEILING STALKER GRABBED YOU! MASH [SPACE]'
       }
     }
 
@@ -728,7 +734,7 @@ function updateProjectilesAndExplosions(dtMs) {
       b.traveled >= b.maxDist
 
     if (hitConsole || outOfBounds) {
-      // Al chocar con una pared o el punto de control, dispara bullet1.gif
+      // Al chocar con una pared o el punto de control, dispara bullet2.gif
       if (hitConsole || b.traveled < b.maxDist) {
         spawnAnimatedEffectSprite('bulletImpact', pos.clone(), 1.15, 380)
       }
@@ -914,7 +920,6 @@ let mouseEdgeTurnVelocity = 0
 function lockPointerInGame() {
   if (
     gameStore.activeSection !== 1 ||
-    gameStore.qteActive ||
     gameStore.isGameOver ||
     !canvasRef.value
   ) {
@@ -953,7 +958,7 @@ function onCanvasMouseEnter(e) {
 }
 
 function onCanvasMouseMove(e) {
-  if (gameStore.activeSection !== 1 || gameStore.qteActive || gameStore.isGameOver) return
+  if (gameStore.activeSection !== 1 || gameStore.isGameOver) return
 
   const locked =
     typeof document !== 'undefined' && document.pointerLockElement === canvasRef.value
@@ -1002,9 +1007,9 @@ function onCanvasMouseLeave() {
 }
 
 watch(
-  () => [gameStore.qteActive, gameStore.isGameOver, gameStore.activeSection],
-  ([qte, over, sec]) => {
-    if (qte || over || sec !== 1) {
+  () => [gameStore.isGameOver, gameStore.activeSection],
+  ([over, sec]) => {
+    if (over || sec !== 1) {
       releasePointerLock()
     }
   }
@@ -1062,6 +1067,7 @@ onMounted(() => {
     renderer.setPixelRatio(1)
 
     buildSpaceshipEnvironment()
+    preloadGifSprites()
     spawnInitialWave()
     syncDiscMeshesWithStore()
 
@@ -1275,37 +1281,32 @@ onBeforeUnmount(() => {
     </header>
 
     <!-- ================================================================== -->
-    <!-- QTE MODAL: TRAPPED BY CEILING STALKER (MASH SPACEBAR)              -->
+    <!-- NON-BLOCKING STALKER QTE ALERT (KEEPS POINTER LOCK INTACT)         -->
     <!-- ================================================================== -->
     <div
       v-if="gameStore.qteActive"
-      class="relative z-20 mx-auto my-auto flex max-w-md flex-col items-center border-4 border-[#D18C39] bg-[#101820]/95 p-5 text-center shadow-[0_0_40px_rgba(209,140,57,0.8)]"
-      data-testid="qte-modal"
+      class="pointer-events-none absolute inset-0 z-20 animate-pulse border-4 border-rose-500/85 shadow-[inset_0_0_50px_rgba(244,63,94,0.45)]"
+      aria-hidden="true"
+    ></div>
+    <div
+      v-if="gameStore.qteActive"
+      class="pointer-events-none relative z-20 mx-auto mt-2 flex w-fit max-w-sm flex-col items-center border-2 border-rose-500 bg-[#101820]/90 px-4 py-2 text-center shadow-[4px_4px_0px_#000]"
+      data-testid="qte-hud-alert"
+      role="status"
+      aria-live="assertive"
     >
-      <p class="animate-pulse text-sm font-black uppercase tracking-widest text-[#D18C39]">
-        ⚠️ TRAPPED BY CEILING STALKER! ⚠️
+      <p class="animate-pulse text-xs font-black uppercase tracking-widest text-rose-400">
+        CEILING STALKER GRAB! MASH [SPACE]
       </p>
-      <p class="mt-1 text-xs text-[#E7D5AC]">
-        Rapidly press <kbd class="border border-[#E7D5AC] px-1.5 py-0.5">SPACE</kbd> or the button below to break free and detonate it:
-      </p>
-
-      <div class="mt-3 h-4 w-full border-2 border-[#31515A] bg-[#1D303B] p-0.5">
+      <div class="mt-1.5 h-2.5 w-48 border border-rose-500/70 bg-[#1D303B] p-0.5">
         <div
-          class="h-full bg-[#D18C39] transition-all duration-75"
+          class="h-full bg-rose-500 transition-all duration-75"
           :style="{ width: `${(gameStore.qteProgress / gameStore.qteTarget) * 100}%` }"
         ></div>
       </div>
-      <p class="mt-1 text-[11px] font-bold text-[#D18C39]">
-        QTE PROGRESS: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }}
+      <p class="mt-1 text-[10px] font-bold text-[#E7D5AC]">
+        ESCAPE: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }}
       </p>
-
-      <button
-        type="button"
-        class="mt-3 w-full border-2 border-[#31515A] bg-[#D18C39] py-2.5 text-sm font-black uppercase text-[#101820] active:scale-95"
-        @click="handleSpaceQTEAction"
-      >
-        MASH [SPACEBAR] FAST!
-      </button>
     </div>
 
     <!-- Game Over Modal -->
@@ -1330,7 +1331,7 @@ onBeforeUnmount(() => {
 
     <!-- Direct Collect Button when a Holographic Disc is in the scene -->
     <div
-      v-if="gameStore.pendingDrops.length > 0 && !gameStore.qteActive"
+      v-if="gameStore.pendingDrops.length > 0"
       class="relative z-10 mx-auto my-auto flex flex-col items-center gap-2"
     >
       <button

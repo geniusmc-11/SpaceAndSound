@@ -1,4 +1,45 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useSonifier } from '@/composables/useSonifier'
+import printImgUrl from './print.jpg'
+
+const sonifier = useSonifier()
+
+const INTRO_STAR_DISC = {
+  id: 'intro-globular-cluster',
+  title: 'Globular Star Cluster',
+  category: 'espacial',
+  sonificationMode: 'espacial',
+  rarity: 'legendario',
+  imageUrl: printImgUrl,
+}
+
+const isHovering = ref(false)
+const hoverNormX = ref(0.5)
+const hoverNormY = ref(0.5)
+const hoverNote = ref('')
+
+async function sonifyAtPointer(event: MouseEvent) {
+  const target = event.currentTarget as HTMLElement | null
+  if (!target) return
+  const rect = target.getBoundingClientRect()
+  const normX = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width)))
+  const normY = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(1, rect.height)))
+  hoverNormX.value = normX
+  hoverNormY.value = normY
+  isHovering.value = true
+
+  const telemetry = await sonifier.probeHoverPixel(normX, normY, INTRO_STAR_DISC)
+  if (telemetry?.primaryNote) {
+    hoverNote.value = telemetry.primaryNote
+  }
+}
+
+function stopHoverSonify() {
+  isHovering.value = false
+  hoverNote.value = ''
+}
+</script>
 
 <template>
   <div class="relative mx-auto w-[calc(100%-2rem)] max-w-[1040px] py-6 md:py-10">
@@ -160,6 +201,10 @@
 
             <figure
               class="pixel-hover group relative cursor-pointer border-4 border-[#31515A] bg-[#1D303B] p-3 shadow-[8px_8px_0px_#000000] transition-colors hover:border-[#D18C39]"
+              @mouseenter="sonifyAtPointer"
+              @mousemove="sonifyAtPointer"
+              @click="sonifyAtPointer"
+              @mouseleave="stopHoverSonify"
             >
               <!-- Imagen intacta, pero con contenedor recto -->
               <div class="relative overflow-hidden border-2 border-[#101820]">
@@ -167,8 +212,25 @@
                 <img
                   src="./print.jpg"
                   alt="Globular star cluster"
-                  class="block aspect-video w-full object-cover"
+                  class="block aspect-video w-full object-cover transition-all duration-150"
+                  :class="isHovering ? 'brightness-110 contrast-125 saturate-150' : ''"
                 />
+
+                <!-- Visualización sonificada al hacer hover (línea de escaneo + mira) -->
+                <div
+                  v-if="isHovering"
+                  aria-hidden="true"
+                  class="pointer-events-none absolute inset-0 bg-[#D18C39]/10"
+                >
+                  <div
+                    class="absolute top-0 bottom-0 w-0.5 bg-[#D18C39] shadow-[0_0_8px_#D18C39]"
+                    :style="{ left: `${hoverNormX * 100}%` }"
+                  ></div>
+                  <div
+                    class="absolute right-0 left-0 h-px bg-[#E7D5AC]/50"
+                    :style="{ top: `${hoverNormY * 100}%` }"
+                  ></div>
+                </div>
 
                 <!-- Retícula HUD 8-bits -->
                 <span class="absolute top-0 left-0 h-4 w-4 border-t-4 border-l-4 border-[#E7D5AC] transition-colors group-hover:border-[#D18C39]"></span>
@@ -183,7 +245,7 @@
               >
                 <span>>_ IMG_DATA</span>
                 <span class="flex items-center gap-2">
-                  <span>SONIFIED</span>
+                  <span>{{ isHovering && hoverNote ? `♪ ${hoverNote}` : 'SONIFIED' }}</span>
                   <span class="block h-2 w-2 bg-[#31515A] group-hover:bg-[#D18C39]"></span>
                 </span>
               </figcaption>

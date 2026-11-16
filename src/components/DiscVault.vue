@@ -12,6 +12,41 @@ const sonifier = useSonifier()
 
 const showUploader = ref(false)
 const canvasRefs = new Map()
+const exportingDiscId = ref(null)
+const exportProgress = ref(0)
+const exportError = ref('')
+const exportErrorDiscId = ref(null)
+
+async function downloadDiscMp3(disc) {
+  if (!disc || exportingDiscId.value) return
+
+  exportingDiscId.value = disc.id
+  exportProgress.value = 0
+  exportError.value = ''
+  exportErrorDiscId.value = null
+  try {
+    const mp3 = await sonifier.exportDiscAsMp3(disc, (progress) => {
+      exportProgress.value = progress
+    })
+    const url = URL.createObjectURL(mp3)
+    const link = document.createElement('a')
+    const filename = disc.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || `nasa-svs-${disc.svsId || 'sonification'}`
+    link.href = url
+    link.download = `${filename}.mp3`
+    document.body.append(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (error) {
+    exportError.value = error?.message || 'MP3 export failed.'
+    exportErrorDiscId.value = disc.id
+  } finally {
+    exportingDiscId.value = null
+  }
+}
 
 function setThumbnailCanvas(el, disc) {
   if (el && disc) {
@@ -237,6 +272,43 @@ function handleVaultLegendaryHover(event, disc) {
               </h2>
               <p class="truncate text-[10px] text-[#E7D5AC]/70">
                 {{ disc.instrument }}
+              </p>
+
+              <div class="mt-1.5 flex items-center justify-between gap-2 border-t border-[#31515A]/60 pt-1.5">
+                <button
+                  type="button"
+                  data-testid="disc-mp3-download-btn"
+                  :disabled="Boolean(exportingDiscId)"
+                  :aria-label="
+                    exportingDiscId === disc.id
+                      ? 'Generating MP3 sonification'
+                      : `Download ${disc.title} sonification as MP3`
+                  "
+                  :title="
+                    exportingDiscId === disc.id
+                      ? `Generating MP3: ${Math.round(exportProgress * 100)}%`
+                      : 'Download sonification as MP3'
+                  "
+                  class="inline-flex w-full cursor-pointer items-center justify-center gap-1 border border-[#31515A] bg-[#1D303B] px-2 py-1 text-[10px] font-bold uppercase text-[#D18C39] transition-colors hover:border-[#D18C39] hover:bg-[#D18C39]/15 disabled:cursor-wait disabled:opacity-60"
+                  @click.stop="downloadDiscMp3(disc)"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="currentColor" class="h-3 w-3 shrink-0">
+                    <path d="M7 1h2v7l2.5-2.5L13 7l-5 5-5-5 1.5-1.5L7 8V1Z" />
+                    <path d="M2 13h12v2H2z" />
+                  </svg>
+                  {{
+                    exportingDiscId === disc.id
+                      ? `EXPORTING ${Math.round(exportProgress * 100)}%`
+                      : 'DOWNLOAD MP3'
+                  }}
+                </button>
+              </div>
+              <p
+                v-if="exportError && exportErrorDiscId === disc.id"
+                role="alert"
+                class="mt-1 text-[9px] font-semibold text-red-300"
+              >
+                {{ exportError }}
               </p>
             </div>
           </div>

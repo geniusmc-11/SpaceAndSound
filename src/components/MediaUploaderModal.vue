@@ -6,6 +6,7 @@ import {
   convertImageToDirectDiscMedia,
   buildDiscRecord,
 } from '@/game/MediaFrameConverter'
+import { sanitizeExternalUrl, validateUploadedMediaFile } from '@/game/SecurityUtils'
 import { COLORBAR_PROFILES } from '@/game/ColorbarMapper'
 
 const emit = defineEmits(['close', 'added'])
@@ -30,9 +31,15 @@ function handleFileChange(event) {
   errorMessage.value = ''
   const file = event.target.files?.[0]
   if (!file) return
+  const check = validateUploadedMediaFile(file, inputType.value)
+  if (!check.valid) {
+    selectedFile.value = null
+    errorMessage.value = check.error
+    return
+  }
   selectedFile.value = file
   if (!title.value.trim()) {
-    title.value = file.name.replace(/\.[^.]+$/, '')
+    title.value = file.name.replace(/\.[^.]+$/, '').slice(0, 80)
   }
 }
 
@@ -42,6 +49,11 @@ async function handleSubmit() {
   if (inputType.value === 'video') {
     if (!selectedFile.value) {
       errorMessage.value = 'Please select a video file (.mp4, .webm, .mov).'
+      return
+    }
+    const fileCheck = validateUploadedMediaFile(selectedFile.value, 'video')
+    if (!fileCheck.valid) {
+      errorMessage.value = fileCheck.error
       return
     }
     isProcessing.value = true
@@ -79,9 +91,23 @@ async function handleSubmit() {
     }
   } else {
     // Direct Image (File or URL)
-    const source = selectedFile.value || externalImageUrl.value.trim()
+    let source = selectedFile.value
+    if (source) {
+      const fileCheck = validateUploadedMediaFile(source, 'image')
+      if (!fileCheck.valid) {
+        errorMessage.value = fileCheck.error
+        return
+      }
+    } else if (externalImageUrl.value.trim()) {
+      const safeUrl = sanitizeExternalUrl(externalImageUrl.value, { allowHttp: false })
+      if (!safeUrl) {
+        errorMessage.value = 'Enter a valid HTTPS image URL (https://...).'
+        return
+      }
+      source = safeUrl
+    }
     if (!source) {
-      errorMessage.value = 'Select a local image or paste a CORS-enabled image URL.'
+      errorMessage.value = 'Select a local image or paste a CORS-enabled HTTPS image URL.'
       return
     }
 

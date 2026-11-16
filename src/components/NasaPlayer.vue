@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useGameStore, RARITY_CONFIG } from '@/stores/useGameStore'
 import { useSonifier } from '@/composables/useSonifier'
+import { sanitizeExternalUrl } from '@/game/SecurityUtils'
 import { renderDiscFrameToCanvas, fetchSvsTopicInfo } from '@/game/NasaDatasetGenerator'
 import MediaUploaderModal from '@/components/MediaUploaderModal.vue'
 
@@ -507,12 +508,12 @@ function handleLegendaryHoverLeave() {
 
         <!-- Official NASA Source Links -->
         <div
-          v-if="topicInfo?.svsUrl || topicInfo?.moreInfoUrl"
+          v-if="sanitizeExternalUrl(topicInfo?.svsUrl, { allowHttp: true }) || sanitizeExternalUrl(topicInfo?.moreInfoUrl, { allowHttp: true })"
           class="mt-4 flex flex-wrap gap-2 border-t border-[#31515A] pt-3"
         >
           <a
-            v-if="topicInfo?.svsUrl"
-            :href="topicInfo.svsUrl"
+            v-if="sanitizeExternalUrl(topicInfo?.svsUrl, { allowHttp: true })"
+            :href="sanitizeExternalUrl(topicInfo?.svsUrl, { allowHttp: true })"
             target="_blank"
             rel="noopener noreferrer"
             class="border border-[#D18C39] bg-[#101820] px-2.5 py-1.5 text-[11px] font-bold uppercase text-[#E7D5AC] hover:bg-[#D18C39] hover:text-[#101820]"
@@ -520,8 +521,8 @@ function handleLegendaryHoverLeave() {
             VIEW ON NASA SVS ↗
           </a>
           <a
-            v-if="topicInfo?.moreInfoUrl"
-            :href="topicInfo.moreInfoUrl"
+            v-if="sanitizeExternalUrl(topicInfo?.moreInfoUrl, { allowHttp: true })"
+            :href="sanitizeExternalUrl(topicInfo?.moreInfoUrl, { allowHttp: true })"
             target="_blank"
             rel="noopener noreferrer"
             class="border border-[#31515A] bg-[#101820] px-2.5 py-1.5 text-[11px] font-bold uppercase text-[#D18C39] hover:border-[#D18C39]"

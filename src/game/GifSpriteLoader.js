@@ -15,37 +15,45 @@ export const GIF_SPRITE_PATHS = {
   explosion: '/sprites/explotionenemy.gif',
   gravityArea: '/sprites/AreaExplotionEnemy.gif',
   bullet: '/sprites/bullet2.gif',
-  bulletImpact: '/sprites/bullet1.gif',
+  bulletImpact: '/sprites/bullet2.gif',
   // Slots extensibles para llegar a 5 subtipos de enemigos
   crawler: '/sprites/SpyderEnemy.gif',
   phaser: '/sprites/r1.gif',
 }
 
+const CANVAS_SIZE = 128
+
 /**
- * Tipos de enemigo que usan EXCLUSIVAMENTE su .gif real: nunca dibujan arte placeholder
- * (mock) ni variantes; mientras el .gif carga permanecen totalmente transparentes.
+ * Tipos que usan EXCLUSIVAMENTE su .gif real: nunca dibujan arte placeholder
+ * (mock) ni variantes; mientras el .gif carga permanecen transparentes.
  */
-export const REAL_ARTWORK_ONLY_TYPES = new Set(['stalker', 'shooter'])
+export const REAL_ARTWORK_ONLY_TYPES = new Set(['stalker', 'shooter', 'bullet', 'bulletImpact'])
 
 /**
  * Dibuja un placeholder en blanco/transparente o con silueta pixel-art 32-bits temporal
- * sobre un canvas de 32x32 píxeles.
+ * sobre el canvas fijo de 128x128 (escalado desde 32x32 píxeles).
  */
 export function drawEnemyPlaceholderFrame(ctx, type, frameIndex = 0, showVisualDesign = true) {
   const size = 32
-  ctx.clearRect(0, 0, size, size)
+  const w = ctx.canvas?.width || CANVAS_SIZE
+  const h = ctx.canvas?.height || CANVAS_SIZE
+  ctx.clearRect(0, 0, w, h)
 
-  // Ceiling Stalker / Hidden Sniper: sin mocks, solo su textura .gif real
+  // Ceiling Stalker / Hidden Sniper / Balas: sin mocks, solo su textura .gif real
   if (REAL_ARTWORK_ONLY_TYPES.has(type)) {
-    ctx.clearRect(0, 0, ctx.canvas?.width || size, ctx.canvas?.height || size)
     return
   }
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.scale(w / size, h / size)
 
   // Si se solicita placeholder estrictamente en blanco/transparente puro:
   if (!showVisualDesign) {
     // Deja el canvas transparente con un píxel central casi imperceptible para mantener el buffer activo
     ctx.fillStyle = 'rgba(255, 255, 255, 0.02)'
     ctx.fillRect(15, 15, 2, 2)
+    ctx.restore()
     return
   }
 
@@ -90,6 +98,100 @@ export function drawEnemyPlaceholderFrame(ctx, type, frameIndex = 0, showVisualD
     ctx.fillStyle = '#2dd4bf'
     ctx.fillRect(10, 8, 12, 16)
   }
+  ctx.restore()
+}
+
+// Caché compartida de cuadros ya decodificados (como canvas) para que los enemigos
+// y balas aparezcan al instante sin ventanas invisibles ni cierres prematuros al hacer dispose()
+const decodedGifCache = new Map()
+const resolvedGifCache = new Map()
+
+function rasterizeFrameToCanvas(frame, width, height) {
+  const frameCanvas = document.createElement('canvas')
+  frameCanvas.width = width
+  frameCanvas.height = height
+  const frameCtx = frameCanvas.getContext('2d')
+  if (frameCtx) {
+    frameCtx.imageSmoothingEnabled = false
+    frameCtx.drawImage(frame, 0, 0, width, height)
+  }
+  return frameCanvas
+}
+
+async function loadDecodedGifEntry(gifUrl) {
+  if (decodedGifCache.has(gifUrl)) {
+    return decodedGifCache.get(gifUrl)
+  }
+
+  const promise = (async () => {
+    try {
+      const res = await fetch(gifUrl)
+      if (!res.ok) return null
+      const buffer = await res.arrayBuffer()
+      if (!buffer) return null
+
+      if ('ImageDecoder' in window) {
+        const decoder = new window.ImageDecoder({ data: buffer, type: 'image/gif' })
+        await decoder.tracks.ready
+        const track = decoder.tracks.selectedTrack
+        const count = track?.frameCount || 1
+        const frames = []
+        let targetW = 32
+        let targetH = 32
+        for (let i = 0; i < count; i++) {
+          const result = await decoder.decode({ frameIndex: i })
+          if (result.image.displayWidth > 4 && result.image.displayHeight > 4) {
+            if (frames.length === 0) {
+              targetW = Math.min(128, Math.max(16, result.image.displayWidth || 32))
+              targetH = Math.min(128, Math.max(16, result.image.displayHeight || 32))
+            }
+            frames.push(rasterizeFrameToCanvas(result.image, targetW, targetH))
+          }
+          result.image.close()
+        }
+        if (frames.length > 0) {
+          const entry = { width: targetW, height: targetH, frames }
+          resolvedGifCache.set(gifUrl, entry)
+          return entry
+        }
+      }
+
+      // Fallback compatible si ImageDecoder no está disponible en el navegador
+      const blob = new Blob([buffer], { type: 'image/gif' })
+      const objectUrl = URL.createObjectURL(blob)
+      return await new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl)
+          if (img.naturalWidth > 4 && img.naturalHeight > 4) {
+            const w = Math.min(128, Math.max(16, img.naturalWidth))
+            const h = Math.min(128, Math.max(16, img.naturalHeight))
+            const entry = { width: w, height: h, frames: [rasterizeFrameToCanvas(img, w, h)] }
+            resolvedGifCache.set(gifUrl, entry)
+            resolve(entry)
+          } else {
+            resolve(null)
+          }
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl)
+          resolve(null)
+        }
+        img.src = objectUrl
+      })
+    } catch {
+      return null
+    }
+  })()
+
+  decodedGifCache.set(gifUrl, promise)
+  return promise
+}
+
+export function preloadGifSprites() {
+  if (typeof window === 'undefined' || typeof fetch !== 'function') return Promise.resolve()
+  const uniqueUrls = new Set(Object.values(GIF_SPRITE_PATHS))
+  return Promise.all(Array.from(uniqueUrls, (url) => loadDecodedGifEntry(url)))
 }
 
 /**
@@ -101,8 +203,8 @@ export function createAnimatedGifSpriteMaterial(
   options = { showVisualPlaceholder: true }
 ) {
   const canvas = document.createElement('canvas')
-  canvas.width = 32
-  canvas.height = 32
+  canvas.width = CANVAS_SIZE
+  canvas.height = CANVAS_SIZE
   const ctx = canvas.getContext('2d')
 
   let frameIndex = 0
@@ -110,9 +212,21 @@ export function createAnimatedGifSpriteMaterial(
   let hasRealGifArtwork = false
   let showVisualPlaceholder = options.showVisualPlaceholder !== false
 
-  // Dibujar frame inicial de placeholder (transparente / 32-bits)
+  const cachedEntry = gifUrl ? resolvedGifCache.get(gifUrl) : null
+  if (cachedEntry && cachedEntry.frames.length > 0) {
+    decodedFrames = cachedEntry.frames
+    hasRealGifArtwork = true
+  }
+
+  // Dibujar frame inicial (real si ya está en caché, o placeholder)
   if (ctx) {
-    drawEnemyPlaceholderFrame(ctx, type, 0, showVisualPlaceholder)
+    ctx.imageSmoothingEnabled = false
+    if (hasRealGifArtwork && decodedFrames.length > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(decodedFrames[0], 0, 0, canvas.width, canvas.height)
+    } else {
+      drawEnemyPlaceholderFrame(ctx, type, 0, showVisualPlaceholder)
+    }
   }
 
   const texture = new THREE.CanvasTexture(canvas)
@@ -128,60 +242,17 @@ export function createAnimatedGifSpriteMaterial(
     transparent: true,
     alphaTest: 0.01,
     depthWrite: false,
+    fog: true,
   })
 
-  // Intentar cargar y decodificar el archivo .gif real si contiene frames > 4x4 px
-  if (typeof window !== 'undefined' && gifUrl && typeof fetch === 'function') {
-    fetch(gifUrl)
-      .then((res) => (res.ok ? res.arrayBuffer() : null))
-      .then(async (buffer) => {
-        if (!buffer) return
-        if ('ImageDecoder' in window) {
-          const decoder = new window.ImageDecoder({ data: buffer, type: 'image/gif' })
-          await decoder.tracks.ready
-          const track = decoder.tracks.selectedTrack
-          const count = track?.frameCount || 1
-          const frames = []
-          for (let i = 0; i < count; i++) {
-            const result = await decoder.decode({ frameIndex: i })
-            if (result.image.displayWidth > 4 && result.image.displayHeight > 4) {
-              frames.push(result.image)
-            } else {
-              result.image.close()
-            }
-          }
-          if (frames.length > 0) {
-            const w = Math.min(128, Math.max(16, frames[0].displayWidth || 32))
-            const h = Math.min(128, Math.max(16, frames[0].displayHeight || 32))
-            canvas.width = w
-            canvas.height = h
-            decodedFrames = frames
-            hasRealGifArtwork = true
-            stepAnimation()
-            return
-          }
-        }
-
-        // Fallback compatible si ImageDecoder no está disponible en el navegador
-        const blob = new Blob([buffer], { type: 'image/gif' })
-        const objectUrl = URL.createObjectURL(blob)
-        const img = new Image()
-        img.onload = () => {
-          if (img.naturalWidth > 4 && img.naturalHeight > 4) {
-            canvas.width = Math.min(128, Math.max(16, img.naturalWidth))
-            canvas.height = Math.min(128, Math.max(16, img.naturalHeight))
-            decodedFrames = [img]
-            hasRealGifArtwork = true
-            stepAnimation()
-          }
-          URL.revokeObjectURL(objectUrl)
-        }
-        img.onerror = () => URL.revokeObjectURL(objectUrl)
-        img.src = objectUrl
-      })
-      .catch(() => {
-        // Mantiene el placeholder en blanco/32-bits si aún no existe el .gif artístico
-      })
+  // Cargar y decodificar (con caché compartida) el archivo .gif real si aún no estaba listo
+  if (!hasRealGifArtwork && typeof window !== 'undefined' && gifUrl && typeof fetch === 'function') {
+    loadDecodedGifEntry(gifUrl).then((entry) => {
+      if (!entry || entry.frames.length === 0) return
+      decodedFrames = entry.frames
+      hasRealGifArtwork = true
+      stepAnimation()
+    })
   }
 
   function stepAnimation() {
@@ -205,9 +276,7 @@ export function createAnimatedGifSpriteMaterial(
   }
 
   function dispose() {
-    decodedFrames.forEach((f) => {
-      if (typeof f.close === 'function') f.close()
-    })
+    decodedFrames = []
     texture.dispose()
     material.dispose()
   }

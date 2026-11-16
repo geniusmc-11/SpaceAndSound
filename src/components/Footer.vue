@@ -1,10 +1,60 @@
 <script setup>
+import { ref } from 'vue'
 import { CURATED_NASA_DISCS } from '@/game/NasaDatasetGenerator'
 
-defineProps({
-  galleryAvailable: { type: Boolean, default: false },
-})
-const emit = defineEmits(['open-gallery'])
+const nasaOpen = ref(false)
+const toolsOpen = ref(false)
+
+const TECH_CREDITS = [
+  {
+    name: 'Web Audio API',
+    role: 'Spatial HRTF & AudioWorklet PCM',
+    url: 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API',
+    badge: 'API',
+  },
+  {
+    name: 'Tone.js',
+    role: '8D Synths, Filters & Reverb',
+    url: 'https://tonejs.github.io/',
+    badge: 'v15',
+  },
+  {
+    name: 'Three.js',
+    role: '2.5D WebGL Ship & Sprites',
+    url: 'https://threejs.org/',
+    badge: '3D',
+  },
+  {
+    name: 'lamejs',
+    role: 'In-Browser MP3 Encoding',
+    url: 'https://github.com/breezystack/lamejs',
+    badge: 'MP3',
+  },
+  {
+    name: 'Vue 3 & Pinia',
+    role: 'Reactive UI & Game State',
+    url: 'https://vuejs.org/',
+    badge: 'CORE',
+  },
+  {
+    name: 'ImageDecoder & Canvas 2D',
+    role: 'GIF Sprites & RGB Sonification',
+    url: 'https://developer.mozilla.org/en-US/docs/Web/API/ImageDecoder',
+    badge: 'WEB',
+  },
+  {
+    name: 'Web Speech API',
+    role: 'Legendary Disc Narration',
+    url: 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API',
+    badge: 'TTS',
+  },
+  {
+    name: 'Tailwind CSS & Vite',
+    role: 'Retro CRT UI & Bundling',
+    url: 'https://tailwindcss.com/',
+    badge: 'UI',
+  },
+]
 
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -91,60 +141,99 @@ const scrollToTop = () => {
         </div>
       </div>
 
-      <div class="relative z-10 mt-4 flex flex-col-reverse items-start gap-3 border-t border-[#31515A]/70 pt-3 sm:flex-row sm:justify-between">
-      <details class="min-w-0 flex-1">
-        <summary
-          class="w-fit cursor-pointer text-xs font-bold tracking-wider text-[#E7D5AC]/85 transition-colors hover:text-[#D18C39] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D18C39]"
+      <div class="relative z-10 mt-4 grid grid-cols-1 gap-4 border-t border-[#31515A]/70 pt-3 md:grid-cols-2">
+        <details
+          :class="nasaOpen && !toolsOpen ? 'md:col-span-2' : ''"
+          @toggle="nasaOpen = $event.target.open"
         >
-          NASA Data Credits
-          <span class="font-normal text-[#E7D5AC]/60">
-            — NASA Scientific Visualization Studio ({{ CURATED_NASA_DISCS.length }} datasets)
-          </span>
-        </summary>
-        <ul class="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
-          <li
-            v-for="disc in CURATED_NASA_DISCS"
-            :key="disc.svsId"
-            class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-[#31515A]/50 bg-[#101820]/35 px-3 py-2"
+          <summary
+            class="w-fit cursor-pointer text-xs font-bold tracking-wider text-[#E7D5AC]/85 transition-colors hover:text-[#D18C39] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D18C39]"
           >
-            <a
-              :href="disc.svsUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              :aria-label="`${disc.title} on NASA SVS (opens in a new tab)`"
-              class="min-w-0 truncate text-[#E7D5AC]/85 underline decoration-[#D18C39]/50 underline-offset-2 transition-colors hover:text-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+            NASA Data Credits
+            <span class="font-normal text-[#E7D5AC]/60">
+              — NASA Scientific Visualization Studio ({{ CURATED_NASA_DISCS.length }} datasets)
+            </span>
+          </summary>
+          <ul
+            class="mt-3 grid grid-cols-1 gap-2 text-xs"
+            :class="nasaOpen && toolsOpen ? '' : 'sm:grid-cols-2 lg:grid-cols-3'"
+          >
+            <li
+              v-for="disc in CURATED_NASA_DISCS"
+              :key="disc.svsId"
+              class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-[#31515A]/50 bg-[#101820]/35 px-3 py-2"
             >
-              {{ disc.title }}
-            </a>
-            <a
-              :href="disc.svsApiUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              :aria-label="`NASA SVS API record ${disc.svsId} (opens in a new tab)`"
-              class="shrink-0 rounded border border-[#31515A] px-1.5 py-1 font-mono text-[0.65rem] text-[#D18C39] transition-colors hover:border-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
-            >
-              API ↗
-            </a>
-          </li>
-        </ul>
-        <p class="mt-3 text-[0.7rem] leading-relaxed text-[#E7D5AC]/60">
-          Dataset descriptions, imagery, and scientific context are provided by NASA SVS. Each
-          source page and corresponding API record is linked above.
-        </p>
-      </details>
+              <a
+                :href="disc.svsUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="`${disc.title} on NASA SVS (opens in a new tab)`"
+                class="min-w-0 truncate text-[#E7D5AC]/85 underline decoration-[#D18C39]/50 underline-offset-2 transition-colors hover:text-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+              >
+                {{ disc.title }}
+              </a>
+              <a
+                :href="disc.svsApiUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                :aria-label="`NASA SVS API record ${disc.svsId} (opens in a new tab)`"
+                class="shrink-0 rounded border border-[#31515A] px-1.5 py-1 font-mono text-[0.65rem] text-[#D18C39] transition-colors hover:border-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+              >
+                API ↗
+              </a>
+            </li>
+          </ul>
+          <p class="mt-3 text-[0.7rem] leading-relaxed text-[#E7D5AC]/60">
+            Dataset descriptions, imagery, and scientific context are provided by NASA SVS. Each
+            source page and corresponding API record is linked above.
+          </p>
+        </details>
 
-        <!-- Gallery access (moved from the game screen edge) -->
-        <button
-          type="button"
-          data-testid="footer-gallery-btn"
-          :disabled="!galleryAvailable"
-          :title="galleryAvailable ? 'Open Disc Gallery [G/1]' : 'Collect a disc in the game to unlock the Gallery'"
-          aria-label="Open Disc Gallery"
-          class="retro-text inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-2 border-[#D18C39] bg-[#101820]/80 px-3 py-1 text-xs font-black tracking-widest text-[#E7D5AC] uppercase shadow-[3px_3px_0px_#000] transition-colors hover:bg-[#D18C39] hover:text-[#101820] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39] disabled:cursor-not-allowed disabled:border-[#31515A] disabled:text-[#E7D5AC]/40 disabled:hover:bg-[#101820]/80 disabled:hover:text-[#E7D5AC]/40"
-          @click="emit('open-gallery')"
+        <details
+          :class="toolsOpen && !nasaOpen ? 'md:col-span-2' : ''"
+          @toggle="toolsOpen = $event.target.open"
         >
-          ◄ GALLERY [G/1]
-        </button>
+          <summary
+            class="w-fit cursor-pointer text-xs font-bold tracking-wider text-[#E7D5AC]/85 transition-colors hover:text-[#D18C39] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D18C39] md:ml-auto"
+          >
+            Audio &amp; Tech Credits
+            <span class="font-normal text-[#E7D5AC]/60">
+              — Web Audio API &amp; Core Stack ({{ TECH_CREDITS.length }} tools)
+            </span>
+          </summary>
+          <ul
+            class="mt-3 grid grid-cols-1 gap-2 text-xs"
+            :class="nasaOpen && toolsOpen ? '' : 'sm:grid-cols-2 lg:grid-cols-3'"
+          >
+            <li
+              v-for="tool in TECH_CREDITS"
+              :key="tool.name"
+              class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-[#31515A]/50 bg-[#101820]/35 px-3 py-2"
+            >
+              <div class="min-w-0">
+                <a
+                  :href="tool.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :aria-label="`${tool.name} documentation (opens in a new tab)`"
+                  class="block truncate font-semibold text-[#E7D5AC]/90 underline decoration-[#D18C39]/50 underline-offset-2 transition-colors hover:text-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+                >
+                  {{ tool.name }}
+                </a>
+                <p class="truncate text-[0.68rem] text-[#E7D5AC]/60">
+                  {{ tool.role }}
+                </p>
+              </div>
+              <span class="shrink-0 rounded border border-[#31515A] px-1.5 py-1 font-mono text-[0.65rem] text-[#D18C39]">
+                {{ tool.badge }}
+              </span>
+            </li>
+          </ul>
+          <p class="mt-3 text-[0.7rem] leading-relaxed text-[#E7D5AC]/60">
+            Real-time sonification, 3D spatial audio, WebGL rendering, and client-side MP3 export
+            are powered by these open web standards and libraries.
+          </p>
+        </details>
       </div>
 
     </footer>
