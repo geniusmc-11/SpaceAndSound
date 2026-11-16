@@ -15,8 +15,10 @@ const sonifier = useSonifier()
 const carouselRef = ref(null)
 const jukeboxScreenRef = ref(null)
 
-// Fullscreen state for the "Try it out!" button
+// Power and fullscreen state for the game screen
 const isGameFullscreen = ref(false)
+const isGamePoweredOn = ref(false)
+const isPoweringOff = ref(false)
 
 // Left and right Fallout jukebox console buttons that illuminate when pressed
 const leftButtonLit = ref(false)
@@ -38,12 +40,23 @@ function realignCarouselInstant() {
 }
 
 async function handleTryItOutFullscreen() {
-  isGameFullscreen.value = true
+  if (isGamePoweredOn.value) {
+    isPoweringOff.value = true
+    isGamePoweredOn.value = false
+    return
+  }
+
+  isGamePoweredOn.value = true
   await nextTick()
-  realignCarouselInstant()
+  if (gameStore.layoutUnlocked) {
+    scrollToSection(1, false)
+  } else {
+    realignCarouselInstant()
+  }
 
   if (jukeboxScreenRef.value && typeof jukeboxScreenRef.value.requestFullscreen === 'function') {
     try {
+      isGameFullscreen.value = true
       if (!document.fullscreenElement) {
         await jukeboxScreenRef.value.requestFullscreen()
       }
@@ -51,6 +64,11 @@ async function handleTryItOutFullscreen() {
       // Fallback to fixed CSS fullscreen if Fullscreen API is blocked in current environment
     }
   }
+}
+
+function handleGamePowerOffAnimationEnd() {
+  isPoweringOff.value = false
+  exitGameFullscreen()
 }
 
 async function exitGameFullscreen() {
@@ -324,7 +342,7 @@ onBeforeUnmount(() => {
         >
           <!-- Exit Fullscreen Button when in Fullscreen Mode -->
           <button
-            v-if="isGameFullscreen"
+            v-if="isGameFullscreen && isGamePoweredOn"
             type="button"
             data-testid="exit-fullscreen-btn"
             class="fixed top-3 left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border-2 border-[#D18C39] bg-[#101820]/95 px-4 py-1 text-xs font-extrabold tracking-wider text-[#E7D5AC] uppercase shadow-[0_0_16px_rgba(209,140,57,0.5)] hover:bg-[#D18C39] hover:text-[#101820]"
@@ -333,15 +351,22 @@ onBeforeUnmount(() => {
             ✕ Exit Fullscreen [ESC]
           </button>
 
-          <!-- Main Horizontal Carousel (Gallery [0] | 3D Game [1] | LAB [2]) -->
-          <main
-            ref="carouselRef"
-            data-testid="main-carousel"
-            class="no-scrollbar flex h-full w-full snap-x snap-mandatory"
-            :class="gameStore.layoutUnlocked ? 'overflow-x-auto' : 'overflow-x-hidden'"
-            style="scroll-snap-type: x mandatory"
-            @scroll.passive="handleCarouselScroll"
-          >
+          <div class="relative h-full w-full overflow-hidden">
+            <!-- Main Horizontal Carousel (Gallery [0] | 3D Game [1] | LAB [2]) -->
+            <Transition
+              name="crt-power"
+              :duration="420"
+              @after-leave="handleGamePowerOffAnimationEnd"
+            >
+              <main
+                v-if="isGamePoweredOn"
+                ref="carouselRef"
+                data-testid="main-carousel"
+                class="crt-power-screen no-scrollbar absolute inset-0 flex h-full w-full snap-x snap-mandatory"
+                :class="gameStore.layoutUnlocked ? 'overflow-x-auto' : 'overflow-x-hidden'"
+                style="scroll-snap-type: x mandatory"
+                @scroll.passive="handleCarouselScroll"
+              >
             <!-- LEFT SECTION (Index 0): Disc Gallery (Hidden initially with v-show) -->
             <div
               v-show="gameStore.layoutUnlocked"
@@ -376,10 +401,25 @@ onBeforeUnmount(() => {
                 @navigate-to-vault="scrollToSection(0, true)"
               />
             </div>
-          </main>
+              </main>
+            </Transition>
+
+            <div
+              v-if="!isGamePoweredOn && !isPoweringOff"
+              data-testid="game-off-screen"
+              aria-label="Game powered off"
+              class="crt-scanlines absolute inset-0 grid place-items-center bg-[#030506] text-xs font-bold tracking-[0.4em] text-[#D18C39]/40"
+            >
+              SYSTEM STANDBY
+              <span
+                aria-hidden="true"
+                class="absolute right-5 bottom-5 h-2 w-2 rounded-full bg-[#D18C39]/70 shadow-[0_0_8px_rgba(209,140,57,0.65)]"
+              ></span>
+            </div>
+          </div>
 
           <!-- 32-Bit Edge Navigation Buttons (Touch + Keyboard Shortcut Indicators after unlocking first disc) -->
-          <template v-if="gameStore.layoutUnlocked">
+          <template v-if="isGamePoweredOn && gameStore.layoutUnlocked">
             <!-- Left Edge Indicator -->
             <button
               v-if="gameStore.activeSection > 0"
@@ -412,69 +452,81 @@ onBeforeUnmount(() => {
           <button
             type="button"
             data-testid="jukebox-btn-left"
+            aria-label="Tube A knob"
             :aria-pressed="leftButtonLit"
-            class="group inline-flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-2.5 text-xs font-extrabold tracking-widest uppercase transition-all duration-200 active:scale-95 active:border-[#D18C39] active:bg-[#D18C39]/30 active:text-[#E7D5AC] active:shadow-[0_0_24px_rgba(209,140,57,0.85)]"
+            class="inline-flex h-16 w-16 cursor-pointer items-center justify-center rounded-full p-0 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
             :class="
               leftButtonLit
-                ? 'border-[#D18C39] bg-[#D18C39]/25 text-[#E7D5AC] shadow-[0_0_22px_rgba(209,140,57,0.65),inset_0_0_12px_rgba(209,140,57,0.35)]'
-                : 'border-[#31515A] bg-[#1D303B] text-[#E7D5AC]/75 hover:border-[#D18C39]/70 hover:text-[#E7D5AC]'
+                ? 'drop-shadow-[0_0_12px_rgba(209,140,57,0.9)]'
+                : 'hover:drop-shadow-[0_0_8px_rgba(209,140,57,0.65)]'
             "
             @click="toggleLeftJukeboxButton"
           >
-            <span
-              aria-hidden="true"
-              class="h-2.5 w-2.5 rounded-full transition-all duration-200"
-              :class="
-                leftButtonLit
-                  ? ' scale-125 bg-[#D18C39] shadow-[0_0_12px_#D18C39]'
-                  : 'bg-[#31515A] group-active:bg-[#D18C39] group-active:shadow-[0_0_12px_#D18C39]'
-              "
-            ></span>
-            <span>TUBE A</span>
+            <img
+              src="/sprites/perilla1.gif"
+              alt="Tube A knob"
+              class="pixelated h-full w-full object-contain"
+            />
           </button>
 
           <!-- Center "Try it out!" Play / Fullscreen Button -->
           <button
             type="button"
             data-testid="jukebox-try-it-out-btn"
-            aria-label="Try it out in fullscreen"
+            :aria-label="isGamePoweredOn ? 'Turn game off' : 'Try it out in fullscreen'"
+            :aria-pressed="isGamePoweredOn"
             class="inline-flex cursor-pointer items-center gap-2.5 rounded-xl border-2 border-[#E7D5AC]/40 bg-[#D18C39] px-7 py-3 text-sm font-black tracking-wider text-[#101820] uppercase shadow-[0_0_24px_rgba(209,140,57,0.55),inset_0_1px_1px_rgba(231,213,172,0.5)] transition-all duration-200 hover:scale-105 hover:brightness-110 hover:shadow-[0_0_32px_rgba(209,140,57,0.85)] active:scale-95 sm:text-base"
             @click="handleTryItOutFullscreen"
           >
             <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
-              fill="currentColor"
               class="h-5 w-5 shrink-0"
             >
-              <path d="M8 5v14l11-7z" />
+              <path
+                v-if="!isGamePoweredOn"
+                d="M8 5v14l11-7z"
+                fill="currentColor"
+              />
+              <template v-else>
+                <path
+                  d="M12 2v10"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-width="2.5"
+                />
+                <path
+                  d="M18.36 6.64a8 8 0 1 1-12.72 0"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-width="2.5"
+                />
+              </template>
             </svg>
-            <span>Try it out!</span>
+            <span>{{ isGamePoweredOn ? 'Turn off' : 'Try it out!' }}</span>
           </button>
 
           <!-- Right Fallout Jukebox Button (Illuminates when pressed) -->
           <button
             type="button"
             data-testid="jukebox-btn-right"
+            aria-label="Tube B knob"
             :aria-pressed="rightButtonLit"
-            class="group inline-flex cursor-pointer items-center gap-2.5 rounded-xl border-2 px-4 py-2.5 text-xs font-extrabold tracking-widest uppercase transition-all duration-200 active:scale-95 active:border-[#D18C39] active:bg-[#D18C39]/30 active:text-[#E7D5AC] active:shadow-[0_0_24px_rgba(209,140,57,0.85)]"
+            class="inline-flex h-16 w-16 cursor-pointer items-center justify-center rounded-full p-0 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
             :class="
               rightButtonLit
-                ? 'border-[#D18C39] bg-[#D18C39]/25 text-[#E7D5AC] shadow-[0_0_22px_rgba(209,140,57,0.65),inset_0_0_12px_rgba(209,140,57,0.35)]'
-                : 'border-[#31515A] bg-[#1D303B] text-[#E7D5AC]/75 hover:border-[#D18C39]/70 hover:text-[#E7D5AC]'
+                ? 'drop-shadow-[0_0_12px_rgba(209,140,57,0.9)]'
+                : 'hover:drop-shadow-[0_0_8px_rgba(209,140,57,0.65)]'
             "
             @click="toggleRightJukeboxButton"
           >
-            <span>TUBE B</span>
-            <span
-              aria-hidden="true"
-              class="h-2.5 w-2.5 rounded-full transition-all duration-200"
-              :class="
-                rightButtonLit
-                  ? 'scale-125 bg-[#D18C39] shadow-[0_0_12px_#D18C39]'
-                  : 'bg-[#31515A] group-active:bg-[#D18C39] group-active:shadow-[0_0_12px_#D18C39]'
-              "
-            ></span>
+            <img
+              src="/sprites/perilla2.gif"
+              alt="Tube B knob"
+              class="pixelated h-full w-full object-contain"
+            />
           </button>
         </div>
       </div>

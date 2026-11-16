@@ -10,6 +10,7 @@
     "test:unit": "vitest"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@tailwindcss/vite": "^4.3.5",
     "pinia": "^4.0.3",
     "tailwindcss": "^4.3.5",

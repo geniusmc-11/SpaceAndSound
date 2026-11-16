@@ -562,14 +562,23 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     await rightBtn.trigger('click')
     expect(rightBtn.attributes('aria-pressed')).toBe('true')
 
-    // Botón central "Try it out!" que pone el canvas en pantalla completa
+    // Botón central que enciende y apaga el juego con transición CRT
     const tryBtn = appWrapper.get('[data-testid="jukebox-try-it-out-btn"]')
     expect(tryBtn.text()).toContain('Try it out!')
+    expect(tryBtn.attributes('aria-pressed')).toBe('false')
+    expect(appWrapper.find('[data-testid="game-off-screen"]').exists()).toBe(true)
+
     await tryBtn.trigger('click')
 
     const jukeboxScreen = appWrapper.get('[data-testid="jukebox-screen"]')
     expect(jukeboxScreen.classes()).toContain('fixed')
+    expect(tryBtn.attributes('aria-pressed')).toBe('true')
+    expect(appWrapper.find('[data-testid="game-off-screen"]').exists()).toBe(false)
     expect(appWrapper.find('[data-testid="exit-fullscreen-btn"]').exists()).toBe(true)
+
+    await tryBtn.trigger('click')
+    expect(tryBtn.attributes('aria-pressed')).toBe('false')
+    expect(appWrapper.find('[data-testid="section-game"]').exists()).toBe(false)
 
     appWrapper.unmount()
   })

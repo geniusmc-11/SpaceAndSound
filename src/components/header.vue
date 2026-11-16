@@ -31,7 +31,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
         class="nebula-drift-2 pointer-events-none absolute -top-8 left-1/3 h-24 w-48 rounded-full bg-[#D18C39]/[0.1] blur-2xl motion-reduce:animate-none"
       ></div>
 
-      <!-- Cosmic starfield, mini spiral galaxy & shooting star -->
+      <!-- ESTRELLAS PIXELADAS: Solo esta sección tiene el estilo 8-bit -->
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
@@ -40,104 +40,113 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
           viewBox="0 0 1040 80"
           preserveAspectRatio="xMidYMid slice"
           class="h-full w-full"
+          shape-rendering="crispEdges"
         >
           <defs>
-            <!-- Unique IDs to prevent DOM collisions with other sections -->
-            <filter id="header-star-glow" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="1.3" result="blur" />
+            <filter id="pixel-bloom" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="1.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-
-            <radialGradient id="header-galaxy-amber" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#E7D5AC" stop-opacity="0.85" />
-              <stop offset="28%" stop-color="#D18C39" stop-opacity="0.45" />
-              <stop offset="65%" stop-color="#31515A" stop-opacity="0.2" />
-              <stop offset="100%" stop-color="#101820" stop-opacity="0" />
-            </radialGradient>
-
-            <linearGradient id="header-meteor-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#E7D5AC" stop-opacity="0" />
-              <stop offset="75%" stop-color="#D18C39" stop-opacity="0.6" />
-              <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.95" />
-            </linearGradient>
           </defs>
 
-          <!-- Compact Spiral Galaxy tucked in the right breathing zone -->
-          <g
-            transform="translate(738, 42) rotate(-20)"
-            class="galaxy-pulse motion-reduce:animate-none"
-          >
-            <ellipse cx="0" cy="0" rx="34" ry="12" fill="url(#header-galaxy-amber)" />
-            <path
-              d="M -3 -1 C -12 -6, -25 -3, -29 2 M 3 1 C 12 6, 25 3, 29 -2"
-              fill="none"
-              stroke="#E7D5AC"
-              stroke-width="0.85"
-              stroke-linecap="round"
-              opacity="0.55"
-            />
-            <circle cx="0" cy="0" r="1.5" fill="#E7D5AC" />
+          <!-- Galaxia Espiral 8-bit -->
+          <g transform="translate(738, 42)" class="galaxy-rotate motion-reduce:animate-none">
+            <!-- Núcleo brillante -->
+            <rect x="-4" y="-4" width="8" height="8" fill="#E7D5AC" filter="url(#pixel-bloom)" />
+            <!-- Brazos principales -->
+            <rect x="4" y="-2" width="6" height="4" fill="#D18C39" />
+            <rect x="10" y="2" width="4" height="6" fill="#D18C39" />
+            <rect x="-10" y="-2" width="6" height="4" fill="#D18C39" />
+            <rect x="-14" y="-8" width="4" height="6" fill="#D18C39" />
+            <!-- Polvo estelar pixelado -->
+            <rect x="14" y="8" width="2" height="2" fill="#31515A" />
+            <rect x="-16" y="-12" width="2" height="2" fill="#31515A" />
+            <rect x="-2" y="8" width="4" height="4" fill="#31515A" />
           </g>
 
-          <!-- Layer 1: Bright twinkling beige stars -->
-          <g class="star-twinkle-1 motion-reduce:animate-none" fill="#E7D5AC">
-            <circle cx="155" cy="16" r="1.2" opacity="0.75" />
-            <circle cx="272" cy="22" r="1.6" filter="url(#header-star-glow)" />
-            <circle cx="348" cy="58" r="1.4" opacity="0.85" />
-            <circle cx="495" cy="14" r="1.2" opacity="0.65" />
-            <circle cx="655" cy="20" r="1.5" filter="url(#header-star-glow)" />
-            <circle cx="792" cy="62" r="1.3" opacity="0.8" />
-            <circle cx="885" cy="18" r="1.2" opacity="0.7" />
+          <!-- Capa 1: Estrellas brillantes y cruces (destellos) -->
+          <g class="star-blink-1 motion-reduce:animate-none" fill="#E7D5AC">
+            <!-- Originales -->
+            <path d="M154 16h4v4h-4z M156 14h-2v-4h4v4z M156 20h-2v4h4v-4z M152 16h-4v4h4v-4z M158 16h4v4h-4v-4z" transform="translate(110, 5)" opacity="0.9" filter="url(#pixel-bloom)" />
+            <rect x="348" y="58" width="4" height="4" opacity="0.85" />
+            <rect x="495" y="14" width="2" height="2" opacity="0.65" />
+            <path d="M654 20h4v4h-4z M656 18h-2v-4h4v4z M656 24h-2v4h4v-4z M652 20h-4v4h4v-4z M658 20h4v4h-4v-4z" opacity="0.9" filter="url(#pixel-bloom)" />
+            <rect x="885" y="18" width="4" height="4" opacity="0.7" />
+            <!-- Nuevas estrellas brillantes -->
+            <rect x="30" y="25" width="2" height="2" opacity="0.8" />
+            <rect x="90" y="70" width="4" height="4" opacity="0.9" filter="url(#pixel-bloom)" />
+            <rect x="420" y="10" width="2" height="2" opacity="0.85" />
+            <rect x="520" y="45" width="4" height="4" opacity="0.75" />
+            <rect x="710" y="35" width="2" height="2" opacity="0.9" />
+            <rect x="850" y="55" width="4" height="4" filter="url(#pixel-bloom)" />
+            <rect x="950" y="25" width="2" height="2" opacity="0.8" />
+            <rect x="1010" y="60" width="2" height="2" opacity="0.7" />
+            <!-- Nuevas cruces destellantes -->
+            <path d="M424 40h4v4h-4z M426 38h-2v-4h4v4z M426 44h-2v4h4v-4z M422 40h-4v4h4v-4z M428 40h4v4h-4v-4z" opacity="0.7" filter="url(#pixel-bloom)" />
+            <path d="M824 30h4v4h-4z M826 28h-2v-4h4v4z M826 34h-2v4h4v-4z M822 30h-4v4h4v-4z M828 30h4v4h-4v-4z" opacity="0.6" filter="url(#pixel-bloom)" />
+            <path d="M74 46h4v4h-4z M76 44h-2v-4h4v4z M76 50h-2v4h4v-4z M72 46h-4v4h4v-4z M78 46h4v4h-4v-4z" opacity="0.8" filter="url(#pixel-bloom)" />
           </g>
 
-          <!-- Layer 2: Staggered secondary micro-stars -->
-          <g class="star-twinkle-2 motion-reduce:animate-none" fill="#E7D5AC">
-            <circle cx="110" cy="64" r="1.1" opacity="0.65" />
-            <circle cx="242" cy="54" r="1.3" opacity="0.8" />
-            <circle cx="385" cy="26" r="1.2" opacity="0.75" />
-            <circle cx="565" cy="66" r="1.1" opacity="0.6" />
-            <circle cx="688" cy="60" r="1.4" opacity="0.8" />
-            <circle cx="812" cy="24" r="1.5" filter="url(#header-star-glow)" />
+          <!-- Capa 2: Estrellas lejanas simples (Capa muy densa) -->
+          <g class="star-blink-2 motion-reduce:animate-none" fill="#E7D5AC">
+            <!-- Originales -->
+            <rect x="110" y="64" width="2" height="2" opacity="0.5" />
+            <rect x="242" y="54" width="2" height="2" opacity="0.7" />
+            <rect x="385" y="26" width="2" height="2" opacity="0.6" />
+            <rect x="565" y="66" width="4" height="4" opacity="0.5" />
+            <rect x="792" y="62" width="2" height="2" opacity="0.8" />
+            <!-- Nuevas estrellas lejanas -->
+            <rect x="15" y="40" width="2" height="2" opacity="0.6" />
+            <rect x="55" y="15" width="2" height="2" opacity="0.4" />
+            <rect x="180" y="75" width="2" height="2" opacity="0.5" />
+            <rect x="210" y="20" width="4" height="4" opacity="0.3" />
+            <rect x="290" y="45" width="2" height="2" opacity="0.7" />
+            <rect x="320" y="65" width="2" height="2" opacity="0.4" />
+            <rect x="450" y="30" width="2" height="2" opacity="0.5" />
+            <rect x="480" y="70" width="4" height="4" opacity="0.3" />
+            <rect x="580" y="15" width="2" height="2" opacity="0.6" />
+            <rect x="620" y="55" width="2" height="2" opacity="0.4" />
+            <rect x="675" y="25" width="2" height="2" opacity="0.5" />
+            <rect x="730" y="20" width="2" height="2" opacity="0.5" />
+            <rect x="760" y="75" width="4" height="4" opacity="0.4" />
+            <rect x="880" y="45" width="2" height="2" opacity="0.6" />
+            <rect x="920" y="10" width="2" height="2" opacity="0.5" />
+            <rect x="980" y="65" width="2" height="2" opacity="0.7" />
+            <rect x="1020" y="35" width="4" height="4" opacity="0.3" />
           </g>
 
-          <!-- Layer 3: Warm amber glints & 4-point sparkles -->
-          <g class="star-twinkle-3 motion-reduce:animate-none" fill="#D18C39">
-            <circle cx="315" cy="18" r="1.5" filter="url(#header-star-glow)" />
-            <circle cx="668" cy="46" r="1.4" opacity="0.85" />
-            <circle cx="775" cy="16" r="1.6" filter="url(#header-star-glow)" />
-
-            <!-- 4-point star sparkles in open gaps -->
-            <path
-              d="M302 42 L303.2 46.8 L308 48 L303.2 49.2 L302 54 L300.8 49.2 L296 48 L300.8 46.8 Z"
-              filter="url(#header-star-glow)"
-            />
-            <path
-              d="M682 14 L683 18 L687 19 L683 20 L682 24 L681 20 L677 19 L681 18 Z"
-              fill="#E7D5AC"
-              filter="url(#header-star-glow)"
-            />
+          <!-- Capa 3: Estrellas Ámbar (Destellos cálidos) -->
+          <g class="star-blink-3 motion-reduce:animate-none" fill="#D18C39">
+            <!-- Originales -->
+            <rect x="315" y="18" width="4" height="4" filter="url(#pixel-bloom)" />
+            <rect x="668" y="46" width="2" height="2" opacity="0.85" />
+            <rect x="775" y="16" width="4" height="4" opacity="0.7" />
+            <!-- Nuevas estrellas ámbar -->
+            <rect x="40" y="60" width="2" height="2" opacity="0.8" />
+            <rect x="130" y="30" width="4" height="4" filter="url(#pixel-bloom)" opacity="0.9" />
+            <rect x="260" y="10" width="2" height="2" opacity="0.7" />
+            <rect x="400" y="55" width="4" height="4" filter="url(#pixel-bloom)" opacity="0.8" />
+            <rect x="550" y="25" width="2" height="2" opacity="0.9" />
+            <rect x="690" y="70" width="2" height="2" opacity="0.7" />
+            <rect x="860" y="35" width="4" height="4" filter="url(#pixel-bloom)" opacity="0.8" />
+            <rect x="990" y="15" width="2" height="2" opacity="0.9" />
           </g>
 
-          <!-- Periodic micro shooting star -->
-          <g class="header-shooting-star motion-reduce:hidden">
-            <line
-              x1="245"
-              y1="14"
-              x2="310"
-              y2="34"
-              stroke="url(#header-meteor-grad)"
-              stroke-width="1.2"
-              stroke-linecap="round"
-            />
-            <circle cx="310" cy="34" r="1.3" fill="#FFFFFF" filter="url(#header-star-glow)" />
+          <!-- Cometa / Estrella Fugaz en pasos (8-bit style) -->
+          <g class="pixel-meteor motion-reduce:hidden">
+            <rect x="230" y="15" width="4" height="4" fill="#31515A" opacity="0.2"/>
+            <rect x="238" y="19" width="4" height="4" fill="#31515A" opacity="0.4"/>
+            <rect x="246" y="23" width="6" height="6" fill="#D18C39" opacity="0.6"/>
+            <rect x="256" y="28" width="6" height="6" fill="#E7D5AC" opacity="0.8"/>
+            <rect x="266" y="33" width="8" height="8" fill="#FFFFFF" filter="url(#pixel-bloom)"/>
           </g>
         </svg>
       </div>
 
-      <!-- Subtle continuous acoustic wave inside the glass -->
+      <!-- Subtle continuous acoustic wave inside the glass (ORIGINAL SMOOTH) -->
       <div
         aria-hidden="true"
         class="pointer-events-none absolute inset-0 overflow-hidden opacity-60 [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
@@ -187,7 +196,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
         class="absolute top-1/2 right-3 hidden h-1.5 w-1.5 -translate-y-1/2 rounded-full border border-[#31515A] bg-[#101820] sm:block"
       ></span>
 
-      <!-- Left Module: Project Identity -->
+      <!-- Left Module: Project Identity (ORIGINAL REDONDEADO) -->
       <div class="relative z-10 flex items-center gap-3">
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D18C39]/85 bg-[#101820]/75 p-0.5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.25),0_0_14px_rgba(209,140,57,0.28)] backdrop-blur-md"
@@ -222,36 +231,18 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
         </div>
       </div>
 
-      <!-- Center Module: Acoustic Telemetry -->
+      <!-- Center Module: Acoustic Telemetry (ORIGINAL FLUIDO) -->
       <div
         aria-hidden="true"
         class="relative z-10 hidden items-center gap-1 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 px-4 py-1.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md md:flex"
       >
         <div class="flex h-3.5 items-center gap-[3px]">
-          <span
-            class="eq-bar h-3 w-0.5 rounded-full bg-[#31515A] motion-reduce:animate-none"
-            style="animation-delay: 0ms"
-          ></span>
-          <span
-            class="eq-bar h-3 w-0.5 rounded-full bg-[#D18C39]/75 motion-reduce:animate-none"
-            style="animation-delay: 180ms"
-          ></span>
-          <span
-            class="eq-bar h-3.5 w-0.5 rounded-full bg-[#D18C39] shadow-[0_0_6px_#D18C39] motion-reduce:animate-none"
-            style="animation-delay: 360ms"
-          ></span>
-          <span
-            class="eq-bar h-3 w-0.5 rounded-full bg-[#E7D5AC]/80 motion-reduce:animate-none"
-            style="animation-delay: 540ms"
-          ></span>
-          <span
-            class="eq-bar h-3 w-0.5 rounded-full bg-[#D18C39]/75 motion-reduce:animate-none"
-            style="animation-delay: 720ms"
-          ></span>
-          <span
-            class="eq-bar h-2.5 w-0.5 rounded-full bg-[#31515A] motion-reduce:animate-none"
-            style="animation-delay: 900ms"
-          ></span>
+          <span class="eq-bar h-3 w-0.5 rounded-full bg-[#31515A]" style="animation-delay: 0ms"></span>
+          <span class="eq-bar h-3 w-0.5 rounded-full bg-[#D18C39]/75" style="animation-delay: 180ms"></span>
+          <span class="eq-bar h-3.5 w-0.5 rounded-full bg-[#D18C39] shadow-[0_0_6px_#D18C39]" style="animation-delay: 360ms"></span>
+          <span class="eq-bar h-3 w-0.5 rounded-full bg-[#E7D5AC]/80" style="animation-delay: 540ms"></span>
+          <span class="eq-bar h-3 w-0.5 rounded-full bg-[#D18C39]/75" style="animation-delay: 720ms"></span>
+          <span class="eq-bar h-2.5 w-0.5 rounded-full bg-[#31515A]" style="animation-delay: 900ms"></span>
         </div>
         <span
           class="ml-2 font-mono text-[0.65rem] font-semibold tracking-[0.2em] text-[#E7D5AC]/70 uppercase"
@@ -260,7 +251,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
         </span>
       </div>
 
-      <!-- Right Module: Team Identity -->
+      <!-- Right Module: Team Identity (ORIGINAL REDONDEADO) -->
       <div
         class="relative z-10 flex items-center gap-2.5 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70"
       >
@@ -291,115 +282,60 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 </template>
 
 <style scoped>
-.wave-flow-fast {
-  animation: acoustic-drift 9s linear infinite;
-}
-
-.wave-flow-slow {
-  animation: acoustic-drift 15s linear infinite reverse;
-}
-
+/* =========================
+   ANIMACIONES FLUIDAS (UI Original) 
+   ========================= */
+.wave-flow-fast { animation: acoustic-drift 9s linear infinite; }
+.wave-flow-slow { animation: acoustic-drift 15s linear infinite reverse; }
 .eq-bar {
   transform-origin: center;
   animation: eq-breathe 1.6s ease-in-out infinite;
 }
-
-.star-twinkle-1 {
-  animation: star-twinkle 4s ease-in-out infinite;
-}
-
-.star-twinkle-2 {
-  animation: star-twinkle 5.5s ease-in-out infinite 1.4s;
-}
-
-.star-twinkle-3 {
-  animation: star-twinkle 4.6s ease-in-out infinite 0.7s;
-}
-
-.galaxy-pulse {
-  animation: galaxy-breathe 8s ease-in-out infinite;
-}
-
-.nebula-drift-1 {
-  animation: nebula-fluctuate 10s ease-in-out infinite;
-}
-
-.nebula-drift-2 {
-  animation: nebula-fluctuate 13s ease-in-out infinite reverse;
-}
-
-.header-shooting-star {
-  animation: header-meteor 11s cubic-bezier(0.25, 0.1, 0.25, 1) infinite 3s;
-}
+.nebula-drift-1 { animation: nebula-fluctuate 10s ease-in-out infinite; }
+.nebula-drift-2 { animation: nebula-fluctuate 13s ease-in-out infinite reverse; }
 
 @keyframes acoustic-drift {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
-
 @keyframes eq-breathe {
-  0%,
-  100% {
-    transform: scaleY(0.35);
-    opacity: 0.65;
-  }
-  50% {
-    transform: scaleY(1);
-    opacity: 1;
-  }
+  0%, 100% { transform: scaleY(0.35); opacity: 0.65; }
+  50% { transform: scaleY(1); opacity: 1; }
 }
-
-@keyframes star-twinkle {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes galaxy-breathe {
-  0%,
-  100% {
-    opacity: 0.72;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
 @keyframes nebula-fluctuate {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.75;
-  }
-  50% {
-    transform: translate3d(12px, -4px, 0) scale(1.12);
-    opacity: 1;
-  }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.75; }
+  50% { transform: translate3d(12px, -4px, 0) scale(1.12); opacity: 1; }
 }
 
-@keyframes header-meteor {
-  0%,
-  80% {
-    transform: translate3d(-30px, -10px, 0);
+/* =========================
+   ANIMACIONES 8-BIT / PIXEL (Solo para el fondo)
+   ========================= */
+.star-blink-1 { animation: star-blink 2s steps(2, start) infinite; }
+.star-blink-2 { animation: star-blink 3s steps(2, start) infinite 1s; }
+.star-blink-3 { animation: star-blink 2.5s steps(2, start) infinite 0.5s; }
+.galaxy-rotate { animation: pixel-spin 6s steps(8, end) infinite; }
+.pixel-meteor { animation: meteor-dash 8s steps(12, end) infinite 3s; }
+
+@keyframes star-blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+@keyframes pixel-spin {
+  0% { transform: translate(738px, 42px) rotate(0deg); }
+  100% { transform: translate(738px, 42px) rotate(360deg); }
+}
+@keyframes meteor-dash {
+  0%, 80% {
+    transform: translate3d(-60px, -20px, 0);
     opacity: 0;
   }
-  84% {
+  81% { opacity: 1; }
+  94% {
+    transform: translate3d(140px, 45px, 0);
     opacity: 1;
   }
-  94% {
-    transform: translate3d(110px, 32px, 0);
-    opacity: 0;
-  }
-  100% {
-    transform: translate3d(110px, 32px, 0);
+  95%, 100% {
+    transform: translate3d(140px, 45px, 0);
     opacity: 0;
   }
 }

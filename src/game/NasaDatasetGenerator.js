@@ -131,6 +131,48 @@ function extractFirstUrl(text) {
   return match ? match[0] : null
 }
 
+function toSvsTopicInfo(data, svsId, fallback) {
+  const creditsList = []
+  if (data.main_credits && typeof data.main_credits === 'object') {
+    Object.values(data.main_credits).forEach((entries) => {
+      if (Array.isArray(entries)) {
+        entries.forEach((entry) => {
+          if (entry?.name) {
+            creditsList.push(
+              entry.employer ? `${entry.name} (${entry.employer})` : entry.name
+            )
+          }
+        })
+      }
+    })
+  }
+
+  const mediaGroups = Array.isArray(data.media_groups) ? data.media_groups : []
+  const htmlGroup = mediaGroups.find((group) => group.widget === 'Basic text with HTML')
+  const infoGroup = mediaGroups.find(
+    (group) => group.widget === 'Basic text' && /more information/i.test(group.title || '')
+  )
+  const apiParagraphs = stripHtmlToParagraphs(htmlGroup?.description || '')
+
+  return {
+    svsId: Number(svsId),
+    source: 'api-live',
+    title: data.title || fallback?.title || `NASA SVS #${svsId}`,
+    summary: data.description || fallback?.summary || '',
+    releaseDate: (data.release_date || '').slice(0, 10) || fallback?.releaseDate || '',
+    credits: creditsList.length > 0 ? creditsList : fallback?.credits || [],
+    keywords: Array.isArray(data.keywords) ? data.keywords : fallback?.keywords || [],
+    paragraphs:
+      Number(svsId) === 5153 && fallback?.paragraphs?.length
+        ? fallback.paragraphs
+        : apiParagraphs,
+    rawApiParagraphs: apiParagraphs,
+    moreInfoUrl:
+      extractFirstUrl(infoGroup?.description || '') || fallback?.moreInfoUrl || null,
+    svsUrl: `https://svs.gsfc.nasa.gov/${svsId}/`,
+  }
+}
+
 /**
  * Consulta la API de NASA SVS (/svs-api/:id en desarrollo con proxy Vite)
  * para integrar información científica en tiempo real acerca del tema.
@@ -153,51 +195,7 @@ export async function fetchSvsTopicInfo(svsId) {
     if (!response.ok) return fallback
     const data = await response.json()
 
-    const creditsList = []
-    if (data.main_credits && typeof data.main_credits === 'object') {
-      Object.values(data.main_credits).forEach((entries) => {
-        if (Array.isArray(entries)) {
-          entries.forEach((entry) => {
-            if (entry?.name) {
-              creditsList.push(
-                entry.employer ? `${entry.name} (${entry.employer})` : entry.name
-              )
-            }
-          })
-        }
-      })
-    }
-
-    const htmlGroup = Array.isArray(data.media_groups)
-      ? data.media_groups.find((g) => g.widget === 'Basic text with HTML')
-      : null
-    const infoGroup = Array.isArray(data.media_groups)
-      ? data.media_groups.find(
-          (g) => g.widget === 'Basic text' && /more information/i.test(g.title || '')
-        )
-      : null
-
-    const apiParagraphs = stripHtmlToParagraphs(htmlGroup?.description || '')
-    const moreInfoUrl =
-      extractFirstUrl(infoGroup?.description || '') || fallback?.moreInfoUrl || null
-
-    return {
-      svsId: Number(svsId),
-      source: 'api-live',
-      title: data.title || fallback?.title || `NASA SVS #${svsId}`,
-      summary: data.description || fallback?.summary || '',
-      releaseDate: (data.release_date || '').slice(0, 10) || fallback?.releaseDate || '',
-      credits: creditsList.length > 0 ? creditsList : fallback?.credits || [],
-      keywords: Array.isArray(data.keywords) ? data.keywords : fallback?.keywords || [],
-      // Conservamos los párrafos de la API o los traducidos si coincide con SVS #5153
-      paragraphs:
-        Number(svsId) === 5153 && fallback?.paragraphs?.length
-          ? fallback.paragraphs
-          : apiParagraphs,
-      rawApiParagraphs: apiParagraphs,
-      moreInfoUrl,
-      svsUrl: `https://svs.gsfc.nasa.gov/${svsId}/`,
-    }
+    return toSvsTopicInfo(data, svsId, fallback)
   } catch {
     return fallback
   }

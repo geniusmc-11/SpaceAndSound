@@ -1,4 +1,6 @@
 <script setup>
+import { CURATED_NASA_DISCS } from '@/game/NasaDatasetGenerator'
+
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -18,7 +20,7 @@ const scrollToTop = () => {
 
     <footer
       aria-label="SpaceAndSound project footer"
-      class="relative overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/60 border-b-[#31515A]/40 border-l-[#E7D5AC]/15 bg-[#1D303B]/40 px-5 py-4 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_16px_36px_rgba(0,0,0,0.5)] backdrop-blur-xl backdrop-saturate-150 sm:rounded-full sm:px-6 sm:py-3"
+      class="relative overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/60 border-b-[#31515A]/40 border-l-[#E7D5AC]/15 bg-[#1D303B]/40 px-5 py-4 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_16px_36px_rgba(0,0,0,0.5)] backdrop-blur-xl backdrop-saturate-150 sm:px-6 sm:py-4"
     >
       <!-- Diagonal glass specular reflection -->
       <div
@@ -83,6 +85,48 @@ const scrollToTop = () => {
           </button>
         </div>
       </div>
+
+      <details class="relative z-10 mt-4 border-t border-[#31515A]/70 pt-3">
+        <summary
+          class="w-fit cursor-pointer text-xs font-bold tracking-wider text-[#E7D5AC]/85 transition-colors hover:text-[#D18C39] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D18C39]"
+        >
+          NASA Data Credits
+          <span class="font-normal text-[#E7D5AC]/60">
+            — NASA Scientific Visualization Studio ({{ CURATED_NASA_DISCS.length }} datasets)
+          </span>
+        </summary>
+        <ul class="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+          <li
+            v-for="disc in CURATED_NASA_DISCS"
+            :key="disc.svsId"
+            class="flex min-w-0 items-center justify-between gap-2 rounded-lg border border-[#31515A]/50 bg-[#101820]/35 px-3 py-2"
+          >
+            <a
+              :href="disc.svsUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="`${disc.title} on NASA SVS (opens in a new tab)`"
+              class="min-w-0 truncate text-[#E7D5AC]/85 underline decoration-[#D18C39]/50 underline-offset-2 transition-colors hover:text-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+            >
+              {{ disc.title }}
+            </a>
+            <a
+              :href="disc.svsApiUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              :aria-label="`NASA SVS API record ${disc.svsId} (opens in a new tab)`"
+              class="shrink-0 rounded border border-[#31515A] px-1.5 py-1 font-mono text-[0.65rem] text-[#D18C39] transition-colors hover:border-[#D18C39] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+            >
+              API ↗
+            </a>
+          </li>
+        </ul>
+        <p class="mt-3 text-[0.7rem] leading-relaxed text-[#E7D5AC]/60">
+          Dataset descriptions, imagery, and scientific context are provided by NASA SVS. Each
+          source page and corresponding API record is linked above.
+        </p>
+      </details>
+
     </footer>
   </div>
 </template>
