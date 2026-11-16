@@ -586,7 +586,7 @@ function updateEnemiesAndSpatialAudio(dtMs) {
           { x: px, z: pz },
           pyaw
         )
-        audioCueBanner.value = '🕸️ CEILING STALKER GRABBED YOU! MASH [SPACE]'
+        audioCueBanner.value = '🕸️ CEILING STALKER GRABBED YOU! MASH [SPACE] OR TAP SCREEN'
       }
     }
 
@@ -883,7 +883,12 @@ function handleKeyDown(e) {
 }
 
 // Giro táctil suave al deslizar el dedo sobre el visor 3D en dispositivos móviles
+// Si el Acechador de Techo atrapó al jugador, tocar la pantalla cuenta como QTE para liberarse
 function onCanvasTouchStart(e) {
+  if (gameStore.qteActive) {
+    handleSpaceQTEAction()
+    return
+  }
   if (e.touches.length === 1) {
     const t = e.touches[0]
     touchLookId = t.identifier
@@ -1290,13 +1295,16 @@ onBeforeUnmount(() => {
     ></div>
     <div
       v-if="gameStore.qteActive"
-      class="pointer-events-none relative z-20 mx-auto mt-2 flex w-fit max-w-sm flex-col items-center border-2 border-rose-500 bg-[#101820]/90 px-4 py-2 text-center shadow-[4px_4px_0px_#000]"
+      class="pointer-events-auto relative z-20 mx-auto mt-2 flex w-fit max-w-sm cursor-pointer select-none flex-col items-center border-2 border-rose-500 bg-[#101820]/90 px-4 py-2 text-center shadow-[4px_4px_0px_#000]"
       data-testid="qte-hud-alert"
-      role="status"
+      role="button"
+      tabindex="0"
       aria-live="assertive"
+      @touchstart.stop.prevent="handleSpaceQTEAction"
+      @click.stop="handleSpaceQTEAction"
     >
       <p class="animate-pulse text-xs font-black uppercase tracking-widest text-rose-400">
-        CEILING STALKER GRAB! MASH [SPACE]
+        CEILING STALKER GRAB! MASH [SPACE] OR TAP SCREEN
       </p>
       <div class="mt-1.5 h-2.5 w-48 border border-rose-500/70 bg-[#1D303B] p-0.5">
         <div
@@ -1305,7 +1313,7 @@ onBeforeUnmount(() => {
         ></div>
       </div>
       <p class="mt-1 text-[10px] font-bold text-[#E7D5AC]">
-        ESCAPE: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }}
+        ESCAPE: {{ gameStore.qteProgress }} / {{ gameStore.qteTarget }} — TAP TO BREAK FREE
       </p>
     </div>
 

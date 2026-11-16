@@ -1071,6 +1071,11 @@ export function useSonifier() {
     hoverPausedAutoScan = Boolean(active)
   }
 
+  /**
+   * @param {number} normX
+   * @param {number} normY
+   * @param {Record<string, any> | null} [disc=null]
+   */
   async function probeHoverPixel(normX, normY, disc = null) {
     if (disc) {
       if (disc.rarity !== 'legendario') return null

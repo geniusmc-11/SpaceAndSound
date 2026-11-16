@@ -4,7 +4,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 </script>
 
 <template>
-  <div class="relative mx-auto w-[calc(80%-2rem)] max-w-[1040px]">
+  <div class="relative mx-auto w-[calc(100%-1.5rem)] max-w-[1040px] sm:w-[calc(90%-2rem)] md:w-[calc(80%-2rem)]">
     <!-- Fluctuating ambient glows behind the glass for refraction -->
     <div
       aria-hidden="true"
@@ -17,7 +17,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
     <header
       aria-label="SpaceAndSound project and SynapseTrinity team identity"
-      class="relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-4 py-3 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 sm:rounded-full sm:px-8"
+      class="relative flex items-center justify-between gap-2 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-3 py-2.5 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 sm:gap-4 sm:rounded-full sm:px-8 sm:py-3"
     >
       <!-- Internal technical micro-grid -->
       <div
@@ -197,9 +197,9 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
       ></span>
 
       <!-- Left Module: Project Identity (ORIGINAL REDONDEADO) -->
-      <div class="relative z-10 flex items-center gap-3">
+      <div class="relative z-10 flex min-w-0 items-center gap-2 sm:gap-3">
         <div
-          class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D18C39]/85 bg-[#101820]/75 p-0.5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.25),0_0_14px_rgba(209,140,57,0.28)] backdrop-blur-md"
+          class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D18C39]/85 bg-[#101820]/75 p-0.5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.25),0_0_14px_rgba(209,140,57,0.28)] backdrop-blur-md sm:h-10 sm:w-10"
         >
           <img
             v-if="projectLogoPath"
@@ -219,7 +219,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
                 class="relative inline-flex h-2 w-2 rounded-full bg-[#D18C39] shadow-[0_0_8px_#D18C39]"
               ></span>
             </span>
-            <span class="text-sm font-extrabold tracking-wide text-[#E7D5AC] sm:text-base">
+            <span class="truncate text-xs font-extrabold tracking-wide text-[#E7D5AC] sm:text-base">
               SpaceAndSound
             </span>
           </div>
@@ -253,21 +253,21 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
       <!-- Right Module: Team Identity (ORIGINAL REDONDEADO) -->
       <div
-        class="relative z-10 flex items-center gap-2.5 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1.5 pl-4 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70"
+        class="relative z-10 flex shrink-0 items-center gap-2 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1 pl-2.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70 sm:gap-2.5 sm:pr-1.5 sm:pl-4"
       >
         <div class="flex flex-col text-right">
           <span
-            class="font-mono text-[0.58rem] font-bold tracking-widest text-[#D18C39] uppercase"
+            class="font-mono text-[0.52rem] font-bold tracking-widest text-[#D18C39] uppercase sm:text-[0.58rem]"
           >
             Team
           </span>
-          <span class="text-xs font-extrabold tracking-wide text-[#E7D5AC] sm:text-sm">
+          <span class="text-[0.7rem] font-extrabold tracking-wide text-[#E7D5AC] sm:text-sm">
             SynapseTrinity
           </span>
         </div>
 
         <div
-          class="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#D18C39]/45 bg-[#1D303B]/80 shadow-[0_0_10px_rgba(0,0,0,0.4)]"
+          class="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-[#D18C39]/45 bg-[#1D303B]/80 shadow-[0_0_10px_rgba(0,0,0,0.4)] sm:h-8 sm:w-8"
         >
           <img
             v-if="teamLogoPath"

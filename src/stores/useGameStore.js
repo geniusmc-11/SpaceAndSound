@@ -355,7 +355,7 @@ export const useGameStore = defineStore('game', () => {
     qteTarget.value = requiredPresses
     trappingEnemyId.value = enemyId
     statusMessage.value =
-      'TRAPPED BY CEILING STALKER! RAPIDLY PRESS [SPACE] TO BREAK FREE'
+      'TRAPPED BY CEILING STALKER! MASH [SPACE] OR TAP SCREEN TO BREAK FREE'
   }
 
   function pressSpaceQTE(enemyPosition = null) {
