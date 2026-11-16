@@ -1250,6 +1250,9 @@ export function useSonifier() {
     return telemetry
   }
 
+  /**
+   * @param {Record<string, any> | null} [disc=null]
+   */
   async function start(disc = null) {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {

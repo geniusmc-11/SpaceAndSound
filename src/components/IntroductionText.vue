@@ -3,6 +3,13 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useSonifier } from '@/composables/useSonifier'
 import printImgUrl from './print.jpg'
 
+type IntroScanStep = {
+  normalizedX: number
+  telemetry?: {
+    primaryNote?: string
+  } | null
+}
+
 const sonifier = useSonifier()
 
 const INTRO_STAR_DISC = {
@@ -38,7 +45,7 @@ async function toggleIntroSonification() {
 }
 
 onMounted(() => {
-  unsubscribeScan = sonifier.onScanStep(({ normalizedX, telemetry }) => {
+  unsubscribeScan = sonifier.onScanStep(({ normalizedX, telemetry }: IntroScanStep) => {
     if (!isPlayingPreview.value) return
     if (typeof normalizedX === 'number') {
       scanNormX.value = normalizedX
