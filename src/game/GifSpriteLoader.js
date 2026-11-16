@@ -9,17 +9,23 @@
 import * as THREE from 'three'
 
 export const GIF_SPRITE_PATHS = {
-  stalker: '/sprites/nave.gif',
-  shooter: '/sprites/naveenemy.gif',
+  stalker: '/sprites/SpyderEnemy.gif',
+  shooter: '/sprites/r1.gif',
   gravity: '/sprites/colisionenemy.gif',
   explosion: '/sprites/explotionenemy.gif',
   gravityArea: '/sprites/AreaExplotionEnemy.gif',
   bullet: '/sprites/bullet2.gif',
   bulletImpact: '/sprites/bullet1.gif',
   // Slots extensibles para llegar a 5 subtipos de enemigos
-  crawler: '/sprites/nave.gif',
-  phaser: '/sprites/naveenemy.gif',
+  crawler: '/sprites/SpyderEnemy.gif',
+  phaser: '/sprites/r1.gif',
 }
+
+/**
+ * Tipos de enemigo que usan EXCLUSIVAMENTE su .gif real: nunca dibujan arte placeholder
+ * (mock) ni variantes; mientras el .gif carga permanecen totalmente transparentes.
+ */
+export const REAL_ARTWORK_ONLY_TYPES = new Set(['stalker', 'shooter'])
 
 /**
  * Dibuja un placeholder en blanco/transparente o con silueta pixel-art 32-bits temporal
@@ -28,6 +34,12 @@ export const GIF_SPRITE_PATHS = {
 export function drawEnemyPlaceholderFrame(ctx, type, frameIndex = 0, showVisualDesign = true) {
   const size = 32
   ctx.clearRect(0, 0, size, size)
+
+  // Ceiling Stalker / Hidden Sniper: sin mocks, solo su textura .gif real
+  if (REAL_ARTWORK_ONLY_TYPES.has(type)) {
+    ctx.clearRect(0, 0, ctx.canvas?.width || size, ctx.canvas?.height || size)
+    return
+  }
 
   // Si se solicita placeholder estrictamente en blanco/transparente puro:
   if (!showVisualDesign) {
@@ -50,37 +62,7 @@ export function drawEnemyPlaceholderFrame(ctx, type, frameIndex = 0, showVisualD
   ctx.fillRect(25, 29, 5, 1)
   ctx.fillRect(29, 25, 1, 5)
 
-  if (type === 'stalker') {
-    // Acechador de Techo: Arácnido/trampa biomecánica colgante (Rojo/Ámbar)
-    ctx.fillStyle = pulse ? '#ef4444' : '#f97316'
-    ctx.fillRect(14, 0, 4, 8) // Cable/tendón al techo
-    ctx.fillRect(9, 8, 14, 7) // Carapacho superior
-    // Garras descendentes
-    const clawOffset = pulse ? 2 : 0
-    ctx.fillRect(6, 14 + clawOffset, 3, 9)
-    ctx.fillRect(23, 14 + clawOffset, 3, 9)
-    ctx.fillRect(11, 15, 3, 7)
-    ctx.fillRect(18, 15, 3, 7)
-    // Ojos brillantes
-    ctx.fillStyle = '#fef08a'
-    ctx.fillRect(11, 10, 3, 3)
-    ctx.fillRect(18, 10, 3, 3)
-  } else if (type === 'shooter') {
-    // Francotirador Oculto: Centinela con visor láser (Cian/Esmeralda)
-    ctx.fillStyle = '#0f172a'
-    ctx.fillRect(10, 7, 12, 18)
-    ctx.fillStyle = pulse ? '#38bdf8' : '#22d3ee'
-    ctx.fillRect(9, 6, 14, 2)
-    ctx.fillRect(8, 12, 16, 8)
-    // Mirilla telescópica central brillante
-    ctx.fillStyle = pulse ? '#f43f5e' : '#fb7185'
-    ctx.fillRect(13, 9, 6, 4)
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(15, 10, 2, 2)
-    // Cañón de plasma
-    ctx.fillStyle = '#94a3b8'
-    ctx.fillRect(19, 15, 8, 3)
-  } else if (type === 'gravity') {
+  if (type === 'gravity') {
     // Anomalía Gravitatoria: Singularidad con anillos orbitales (Violeta/Magenta)
     ctx.fillStyle = pulse ? '#a855f7' : '#d946ef'
     ctx.fillRect(10, 10, 12, 12)

@@ -234,7 +234,8 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(store.layoutUnlocked).toBe(true)
     expect(carousel.classes()).toContain('overflow-x-auto')
     expect(store.activeSection).toBe(1)
-    expect(wrapper.find('[data-testid="edge-indicator-left"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="edge-indicator-left"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="footer-gallery-btn"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="edge-indicator-right"]').exists()).toBe(true)
     wrapper.unmount()
   })
@@ -458,8 +459,8 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     expect(GIF_SPRITE_PATHS.explosion).toBe('/sprites/explotionenemy.gif')
     expect(GIF_SPRITE_PATHS.bullet).toBe('/sprites/bullet2.gif')
     expect(GIF_SPRITE_PATHS.bulletImpact).toBe('/sprites/bullet1.gif')
-    expect(GIF_SPRITE_PATHS.stalker).toBe('/sprites/nave.gif')
-    expect(GIF_SPRITE_PATHS.shooter).toBe('/sprites/naveenemy.gif')
+    expect(GIF_SPRITE_PATHS.stalker).toBe('/sprites/SpyderEnemy.gif')
+    expect(GIF_SPRITE_PATHS.shooter).toBe('/sprites/r1.gif')
 
     // Perfiles acústicos distintos para cada enemigo principal
     expect(ENEMY_SOUND_PROFILES.stalker.baseFreq).not.toBe(ENEMY_SOUND_PROFILES.shooter.baseFreq)
@@ -510,7 +511,7 @@ describe('useGameStore - NASA Space Apps (20 Discos SVS + Opción B)', () => {
     await nextTick()
 
     const rightBtn = appWrapper.find('[data-testid="edge-indicator-right"]')
-    const leftBtn = appWrapper.find('[data-testid="edge-indicator-left"]')
+    const leftBtn = appWrapper.find('[data-testid="footer-gallery-btn"]')
     expect(leftBtn.text()).toContain('GALLERY')
     expect(rightBtn.text()).toContain('LAB')
     expect(rightBtn.text()).not.toContain('NASA LAB')

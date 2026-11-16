@@ -1,6 +1,11 @@
 <script setup>
 import { CURATED_NASA_DISCS } from '@/game/NasaDatasetGenerator'
 
+defineProps({
+  galleryAvailable: { type: Boolean, default: false },
+})
+const emit = defineEmits(['open-gallery'])
+
 const scrollToTop = () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
@@ -86,7 +91,8 @@ const scrollToTop = () => {
         </div>
       </div>
 
-      <details class="relative z-10 mt-4 border-t border-[#31515A]/70 pt-3">
+      <div class="relative z-10 mt-4 flex flex-col-reverse items-start gap-3 border-t border-[#31515A]/70 pt-3 sm:flex-row sm:justify-between">
+      <details class="min-w-0 flex-1">
         <summary
           class="w-fit cursor-pointer text-xs font-bold tracking-wider text-[#E7D5AC]/85 transition-colors hover:text-[#D18C39] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#D18C39]"
         >
@@ -126,6 +132,20 @@ const scrollToTop = () => {
           source page and corresponding API record is linked above.
         </p>
       </details>
+
+        <!-- Gallery access (moved from the game screen edge) -->
+        <button
+          type="button"
+          data-testid="footer-gallery-btn"
+          :disabled="!galleryAvailable"
+          :title="galleryAvailable ? 'Open Disc Gallery [G/1]' : 'Collect a disc in the game to unlock the Gallery'"
+          aria-label="Open Disc Gallery"
+          class="retro-text inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-2 border-[#D18C39] bg-[#101820]/80 px-3 py-1 text-xs font-black tracking-widest text-[#E7D5AC] uppercase shadow-[3px_3px_0px_#000] transition-colors hover:bg-[#D18C39] hover:text-[#101820] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39] disabled:cursor-not-allowed disabled:border-[#31515A] disabled:text-[#E7D5AC]/40 disabled:hover:bg-[#101820]/80 disabled:hover:text-[#E7D5AC]/40"
+          @click="emit('open-gallery')"
+        >
+          ◄ GALLERY [G/1]
+        </button>
+      </div>
 
     </footer>
   </div>

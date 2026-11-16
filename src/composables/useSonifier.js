@@ -14,7 +14,7 @@
 
 import { ref } from 'vue'
 import * as Tone from 'tone'
-import { encodeAudioBlobAsMp3, recordMediaStream } from '@/game/Mp3Exporter'
+import { capturePcm, encodePcmAsMp3 } from '@/game/Mp3Exporter'
 import { loadImageElement } from '@/game/NasaDatasetGenerator'
 import { mapRgbPixelToNormalizedValue } from '@/game/ColorbarMapper'
 
@@ -954,9 +954,9 @@ function notifyFrameListeners() {
 export function useSonifier() {
   async function exportDiscAsMp3(disc, onProgress) {
     if (!disc) throw new Error('Select a disc before exporting its sonification.')
-    if (typeof MediaRecorder === 'undefined') {
-      throw new Error('Audio recording is not supported in this browser.')
-    }
+
+    // Reanudar el AudioContext dentro del gesto del usuario (clic en el botón)
+    await Tone.start()
 
     const durationMs = Math.max(
       12000,
@@ -968,29 +968,15 @@ export function useSonifier() {
       throw new Error('The sonification audio engine could not be started.')
     }
 
-    const context = Tone.getContext().rawContext
-    if (typeof context.createMediaStreamDestination !== 'function') {
-      throw new Error('This browser cannot capture the sonification audio.')
-    }
-
-    const mediaDestination = context.createMediaStreamDestination()
+    const toneContext = Tone.getContext()
     const toneDestination = Tone.getDestination()
+    // Nodo de salida final de Tone (todo el audio audible pasa por aquí)
+    const outputNode = toneDestination.output || toneDestination
     try {
-      toneDestination.connect(mediaDestination)
       if (!wasRunning) await start(disc)
-      const recording = await recordMediaStream(
-        mediaDestination.stream,
-        durationMs,
-        onProgress
-      )
-      return await encodeAudioBlobAsMp3(recording)
+      const pcm = await capturePcm(toneContext, outputNode, durationMs, onProgress)
+      return await encodePcmAsMp3(pcm)
     } finally {
-      try {
-        toneDestination.disconnect(mediaDestination)
-      } catch {
-        // The destination may not have been connected if recording setup failed.
-      }
-      mediaDestination.stream.getTracks().forEach((track) => track.stop())
       if (!wasRunning) stop()
     }
   }

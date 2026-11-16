@@ -142,6 +142,12 @@ function scrollToSection(sectionIndex, smooth = true) {
   gameStore.setActiveSection(clamped)
 }
 
+function openGalleryFromFooter() {
+  if (!gameStore.layoutUnlocked) return
+  jukeboxScreenRef.value?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+  scrollToSection(0, true)
+}
+
 function handleCarouselScroll() {
   if (!gameStore.layoutUnlocked || !carouselRef.value) return
   const viewportWidth = carouselRef.value.clientWidth || window.innerWidth
@@ -408,14 +414,15 @@ onBeforeUnmount(() => {
 
             <!-- 32-Bit Edge Navigation Buttons -->
             <template v-if="isGamePoweredOn && gameStore.layoutUnlocked">
+              <!-- From the game, GALLERY is accessed from the footer (next to NASA Data Credits) -->
               <button
-                v-if="gameStore.activeSection > 0"
+                v-if="gameStore.activeSection === 2"
                 type="button"
                 data-testid="edge-indicator-left"
                 class="retro-text absolute top-1/2 left-2 z-30 -translate-y-1/2 border-4 border-[#D18C39] bg-[#101820]/95 px-3 py-4 text-xs font-black uppercase tracking-widest text-[#E7D5AC] shadow-[4px_4px_0px_#000] transition-colors hover:bg-[#D18C39] hover:text-[#101820]"
                 @click="scrollToSection(gameStore.activeSection - 1, true)"
               >
-                ◄ {{ gameStore.activeSection === 1 ? 'GALLERY [G/1]' : 'GAME [2]' }}
+                ◄ GAME [2]
               </button>
 
               <button
@@ -522,7 +529,10 @@ onBeforeUnmount(() => {
     <ConclusionSection />
 
     <!-- 5. Footer -->
-    <FooterBar />
+    <FooterBar
+      :gallery-available="isGamePoweredOn && gameStore.layoutUnlocked"
+      @open-gallery="openGalleryFromFooter"
+    />
   </div>
 </template>
 
