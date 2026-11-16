@@ -8,25 +8,25 @@ interface PilarConclusion {
 
 const pilaresConclusion: PilarConclusion[] = [
   {
-    id: 'inclusion',
-    codigo: 'SLOT_01 // ACCESS',
-    titulo: 'Universal Sensory Accessibility',
+    id: 'percepcion',
+    codigo: 'SLOT_01 // SENSE',
+    titulo: 'Multisensory Perception',
     descripcion:
-      'Transforming visual data into soundscapes removes the barriers of optical perception, allowing people who are blind or have low vision to experience the vastness of the cosmos and the biodiversity of different ecosystems.'
+      'Planetary science is filled with vital signals—shifting temperatures and atmospheric dynamics—that we usually try to understand using only our eyes. We transform them into an auditory landscape.'
   },
   {
     id: 'sonificacion',
-    codigo: 'SLOT_02 // BRIDGE',
-    titulo: 'The Jukebox as a Data Bridge',
+    codigo: 'SLOT_02 // TRANSLATE',
+    titulo: 'Earth Jukebox & Sound Lab',
     descripcion:
-      'Reinterpreting the classic jukebox concept toward image sonification demonstrates that art, science, and web engineering can transform pixels, light spectra, and textures into immersive auditory experiences.'
+      'Instead of passive dashboards, we created a real-time system that translates color, brightness, and frame motion from Earth observation imagery into harmonic soundscapes and narrated insights.'
   },
   {
-    id: 'empatia',
-    codigo: 'SLOT_03 // PURPOSE',
-    titulo: 'Technology with Human Purpose',
+    id: 'descubrimiento',
+    codigo: 'SLOT_03 // EXPLORE',
+    titulo: 'Gamified Discovery',
     descripcion:
-      'The true value of digital innovation lies not merely in its technical complexity, but in its ability to democratize wonder and connect all people with the environment around them.'
+      'An immersive 3D experience where users navigate low-visibility environments to recover fragmented planetary data discs, proving that space can be truly understood by active exploration.'
   }
 ];
 </script>
@@ -270,13 +270,11 @@ const pilaresConclusion: PilarConclusion[] = [
         </h2>
 
         <p class="text-sm leading-relaxed text-[#E7D5AC]/90 sm:text-base">
-          This project demonstrates that the modern web can transcend the purely visual. By fusing
-          the interactive nostalgia of an
-          <strong class="bg-[#D18C39]/20 px-1.5 py-0.5 font-bold text-[#D18C39]">8-bit jukebox</strong>
-          with
-          <strong class="bg-[#D18C39]/20 px-1.5 py-0.5 font-bold text-[#D18C39]">image sonification</strong>
-          algorithms, we succeed in translating the silent beauty of outer space and terrestrial
-          ecosystems into a universal language: sound.
+          Planetary science is filled with vital signals we usually try to understand using only our eyes. 
+          <strong class="bg-[#D18C39]/20 px-1.5 py-0.5 font-bold text-[#D18C39]">Space&Sound</strong> 
+          reimagines how we perceive outer space and our own living planet by transforming Earth observation imagery into a 
+          <strong class="bg-[#D18C39]/20 px-1.5 py-0.5 font-bold text-[#D18C39]">multisensory experience</strong>, 
+          proving that we can truly understand our universe when we learn to hear the invisible.
         </p>
       </div>
 
@@ -337,8 +335,7 @@ const pilaresConclusion: PilarConclusion[] = [
         </div>
 
         <p class="m-0 font-mono text-sm leading-relaxed text-[#E7D5AC] sm:text-base">
-          “When we design with those who perceive the world differently in mind, we don't just build
-          accessible software; we expand the senses of all humanity.”
+          “By merging gamified discovery with live audio synthesis, we transcend passive dashboards. Space and our living planet reveal their deepest secrets when we learn to hear the invisible.”
           <span
             aria-hidden="true"
             class="ml-1 inline-block h-4 w-2.5 translate-y-0.5 bg-[#D18C39] star-blink-1"

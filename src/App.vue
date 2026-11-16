@@ -100,12 +100,6 @@ function handleFullscreenChange() {
   }
 }
 
-/**
- * Dynamic Horizontal Layout Unlock:
- * When the player collects their first disc, the side sections (v-show)
- * uncollapse in the DOM. We use nextTick() + instant scrollLeft adjustment
- * to the center index (1) so the 3D game view never jumps abruptly.
- */
 watch(
   () => gameStore.layoutUnlocked,
   async (unlocked) => {
@@ -132,12 +126,6 @@ watch(
   }
 )
 
-/**
- * Smooth scroll to the target section:
- * 0 = Left (Disc Gallery)
- * 1 = Center (3D 2.5D Game)
- * 2 = Right (LAB / NASA Visualizer)
- */
 function scrollToSection(sectionIndex, smooth = true) {
   if (!gameStore.layoutUnlocked || !carouselRef.value) return
   const clamped = Math.max(0, Math.min(2, sectionIndex))
@@ -164,13 +152,6 @@ function handleCarouselScroll() {
   }
 }
 
-/**
- * Keyboard navigation between sections:
- * - '1' / 'G': Gallery (0) — or back to Game if already in Gallery with 'G'
- * - '2': 3D Game (1)
- * - '3' / 'L': LAB (2) — or back to Game if already in LAB with 'L'
- * - 'A' / 'D': left/right in side sections or when navMode is active.
- */
 function handleMenuKeyNavigation(e) {
   if (e.code === 'Escape' && isGameFullscreen.value && !document.fullscreenElement) {
     exitGameFullscreen()
@@ -232,233 +213,244 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="min-h-dvh w-full bg-[#101820] text-[#E7D5AC]">
+  <div class="pixel-global min-h-dvh w-full bg-[#101820] text-[#E7D5AC]">
     <!-- 1. Project & Team Header -->
     <HeaderBar />
 
     <!-- 2. Introduction Text -->
     <IntroductionText />
 
-    <!-- 3. Fallout / Deep Space Operations Jukebox Cabinet containing the Game Canvas (Centered with low padding) -->
+    <!-- 3. Pixel Art Deep Space Operations Jukebox Cabinet con Fondo Estelar -->
     <section
       aria-label="Interactive Cosmic Sonification Jukebox"
-      class="mx-auto w-[calc(100%-1rem)] max-w-[1040px] px-1 py-2 sm:px-2 sm:py-4"
+      class="star-bg relative mx-auto w-full px-1 py-10 sm:px-2"
     >
+      <!-- El contenedor de la máquina -->
       <div
         data-testid="jukebox-cabinet"
-        class="relative overflow-hidden rounded-t-[2.75rem] rounded-b-3xl border-2 border-[#31515A] bg-[#1D303B] p-2 sm:p-3 shadow-[0_24px_60px_rgba(0,0,0,0.75),inset_0_2px_0_rgba(231,213,172,0.2)]"
+        class="relative mx-auto max-w-[1040px] border-4 border-[#31515A] bg-[#1D303B] p-2 shadow-[16px_16px_0px_rgba(0,0,0,0.6)] sm:p-4 z-10"
       >
-        <!-- Ambient Fallout Vacuum-Tube Glows -->
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute -top-10 left-1/2 h-28 w-3/4 -translate-x-1/2 rounded-full bg-[#D18C39]/20 blur-3xl"
-        ></div>
 
-        <!-- SVG Fallout Jukebox Arch Crown & Speaker Grille -->
-        <div class="relative mb-2 overflow-hidden rounded-t-[2.2rem] border border-[#31515A] bg-[#101820] px-3 py-2">
+        <!-- SVG 8-Bit Jukebox Arch Crown & Speaker Grille -->
+        <div class="relative mb-4 bg-[#101820] px-3 py-3 border-4 border-[#31515A]">
           <svg
             aria-hidden="true"
             viewBox="0 0 800 68"
             class="h-11 w-full sm:h-14"
             fill="none"
+            shape-rendering="crispEdges"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <!-- Outer Metallic Arch -->
+            <!-- Outer Blocky Arch -->
             <path
-              d="M8 62 C8 22, 120 6, 400 6 C680 6, 792 22, 792 62 Z"
+              d="M 20 68 L 20 36 L 60 36 L 60 16 L 140 16 L 140 4 L 660 4 L 660 16 L 740 16 L 740 36 L 780 36 L 780 68"
               fill="#1D303B"
               stroke="#31515A"
-              stroke-width="3"
+              stroke-width="4"
             />
-            <!-- Glowing Amber Jukebox Neon Tube Arch -->
+            <!-- Glowing Amber Jukebox Neon Tube (Stepped Dashed) -->
             <path
-              d="M28 58 C28 28, 140 14, 400 14 C660 14, 772 28, 772 58"
+              d="M 36 68 L 36 44 L 76 44 L 76 24 L 156 24 L 156 12 L 644 12 L 644 24 L 724 24 L 724 44 L 764 44 L 764 68"
               stroke="#D18C39"
-              stroke-width="2.5"
-              stroke-dasharray="14 6"
+              stroke-width="4"
+              stroke-dasharray="16 8"
             />
             <!-- Left Speaker Grille Ribs -->
-            <g stroke="#31515A" stroke-width="2.5" stroke-linecap="round">
-              <line x1="75" y1="36" x2="175" y2="36" />
-              <line x1="65" y1="44" x2="175" y2="44" />
-              <line x1="55" y1="52" x2="175" y2="52" />
-              <!-- Right Speaker Grille Ribs -->
-              <line x1="625" y1="36" x2="725" y2="36" />
-              <line x1="625" y1="44" x2="735" y2="44" />
-              <line x1="625" y1="52" x2="745" y2="52" />
-            </g>
-            <!-- Left & Right Vacuum Tube Indicators -->
-            <circle
-              cx="210"
-              cy="42"
-              r="7"
+            <rect x="90" y="32" width="90" height="4" fill="#31515A" />
+            <rect x="80" y="44" width="100" height="4" fill="#31515A" />
+            <rect x="70" y="56" width="110" height="4" fill="#31515A" />
+            
+            <!-- Right Speaker Grille Ribs -->
+            <rect x="620" y="32" width="90" height="4" fill="#31515A" />
+            <rect x="620" y="44" width="100" height="4" fill="#31515A" />
+            <rect x="620" y="56" width="110" height="4" fill="#31515A" />
+
+            <!-- Left & Right Square Vacuum Tube Indicators -->
+            <rect
+              x="200"
+              y="40"
+              width="12"
+              height="12"
               :fill="leftButtonLit ? '#D18C39' : '#101820'"
               stroke="#D18C39"
-              stroke-width="2"
+              stroke-width="4"
             />
-            <circle
-              cx="590"
-              cy="42"
-              r="7"
+            <rect
+              x="588"
+              y="40"
+              width="12"
+              height="12"
               :fill="rightButtonLit ? '#D18C39' : '#101820'"
               stroke="#D18C39"
-              stroke-width="2"
+              stroke-width="4"
             />
-            <!-- Center Fallout / Deep Space Operations Badge Plate -->
+
+            <!-- Center Pixel Badge Plate -->
             <rect
-              x="245"
+              x="230"
               y="24"
-              width="310"
-              height="32"
-              rx="8"
+              width="340"
+              height="36"
               fill="#101820"
               stroke="#D18C39"
-              stroke-width="2"
+              stroke-width="4"
             />
             <text
               x="400"
-              y="44"
+              y="48"
               text-anchor="middle"
               fill="#E7D5AC"
-              font-family="monospace"
-              font-size="13"
-              font-weight="bold"
-              letter-spacing="3"
+              font-family="'VT323', monospace"
+              font-size="20"
+              letter-spacing="2"
             >
               DEEP SPACE // JUKEBOX MK-IV
             </text>
           </svg>
         </div>
 
-        <!-- Jukebox CRT Screen Frame (Contains the 3D Game Canvas & Horizontal Sections) -->
-        <div
-          ref="jukeboxScreenRef"
-          data-testid="jukebox-screen"
-          :class="
-            isGameFullscreen
-              ? 'fixed inset-0 z-50 flex h-dvh w-screen flex-col bg-[#101820]'
-              : 'relative h-[520px] w-full overflow-hidden rounded-xl border-2 border-[#31515A] bg-[#101820] shadow-[inset_0_0_24px_rgba(0,0,0,0.85)] sm:h-[600px] md:h-[650px]'
-          "
-        >
-          <!-- Exit Fullscreen Button when in Fullscreen Mode -->
-          <button
-            v-if="isGameFullscreen && isGamePoweredOn"
-            type="button"
-            data-testid="exit-fullscreen-btn"
-            class="fixed top-3 left-1/2 z-50 -translate-x-1/2 cursor-pointer rounded-full border-2 border-[#D18C39] bg-[#101820]/95 px-4 py-1 text-xs font-extrabold tracking-wider text-[#E7D5AC] uppercase shadow-[0_0_16px_rgba(209,140,57,0.5)] hover:bg-[#D18C39] hover:text-[#101820]"
-            @click="exitGameFullscreen"
-          >
-            ✕ Exit Fullscreen [ESC]
-          </button>
-
-          <div class="relative h-full w-full overflow-hidden">
-            <!-- Main Horizontal Carousel (Gallery [0] | 3D Game [1] | LAB [2]) -->
-            <Transition
-              name="crt-power"
-              :duration="420"
-              @after-leave="handleGamePowerOffAnimationEnd"
-            >
-              <main
-                v-if="isGamePoweredOn"
-                ref="carouselRef"
-                data-testid="main-carousel"
-                class="crt-power-screen no-scrollbar absolute inset-0 flex h-full w-full snap-x snap-mandatory"
-                :class="gameStore.layoutUnlocked ? 'overflow-x-auto' : 'overflow-x-hidden'"
-                style="scroll-snap-type: x mandatory"
-                @scroll.passive="handleCarouselScroll"
-              >
-            <!-- LEFT SECTION (Index 0): Disc Gallery (Hidden initially with v-show) -->
-            <div
-              v-show="gameStore.layoutUnlocked"
-              data-testid="section-vault"
-              class="h-full w-full shrink-0 snap-center"
-            >
-              <DiscVault
-                @navigate-to-game="scrollToSection(1, true)"
-                @navigate-to-player="scrollToSection(2, true)"
-              />
-            </div>
-
-            <!-- CENTER SECTION (Index 1): 3D 2.5D Game -->
-            <div
-              data-testid="section-game"
-              class="h-full w-full shrink-0 snap-center"
-            >
-              <GameCanvas
-                @navigate-left="scrollToSection(0, true)"
-                @navigate-right="scrollToSection(2, true)"
-              />
-            </div>
-
-            <!-- RIGHT SECTION (Index 2): LAB / NASA Visualizer (Hidden initially with v-show) -->
-            <div
-              v-show="gameStore.layoutUnlocked"
-              data-testid="section-player"
-              class="h-full w-full shrink-0 snap-center"
-            >
-              <NasaPlayer
-                @navigate-to-game="scrollToSection(1, true)"
-                @navigate-to-vault="scrollToSection(0, true)"
-              />
-            </div>
-              </main>
-            </Transition>
-
-            <div
-              v-if="!isGamePoweredOn && !isPoweringOff"
-              data-testid="game-off-screen"
-              aria-label="Game powered off"
-              class="crt-scanlines absolute inset-0 grid place-items-center bg-[#030506] text-xs font-bold tracking-[0.4em] text-[#D18C39]/40"
-            >
-              SYSTEM STANDBY
-              <span
-                aria-hidden="true"
-                class="absolute right-5 bottom-5 h-2 w-2 rounded-full bg-[#D18C39]/70 shadow-[0_0_8px_rgba(209,140,57,0.65)]"
-              ></span>
-            </div>
+        <!-- Jukebox CRT Screen Frame with Plasma Pillars -->
+        <div class="flex flex-row gap-2">
+          <!-- Pilares Laterales Izquierdos (Estilo Rocola) -->
+          <div class="hidden w-6 sm:flex flex-col items-center justify-between border-4 border-[#101820] bg-[#101820] py-2 shadow-[inset_4px_4px_0px_rgba(0,0,0,0.85)]">
+            <div class="h-full w-2 bg-[#D18C39] opacity-80 plasma-tube blur-[1px]"></div>
           </div>
 
-          <!-- 32-Bit Edge Navigation Buttons (Touch + Keyboard Shortcut Indicators after unlocking first disc) -->
-          <template v-if="isGamePoweredOn && gameStore.layoutUnlocked">
-            <!-- Left Edge Indicator -->
+          <!-- PANTALLA PRINCIPAL -->
+          <div
+            ref="jukeboxScreenRef"
+            data-testid="jukebox-screen"
+            class="flex-1"
+            :class="
+              isGameFullscreen
+                ? 'fixed inset-0 z-50 flex h-dvh w-screen flex-col bg-[#101820]'
+                : 'relative h-[520px] w-full overflow-hidden border-4 border-[#101820] bg-[#101820] shadow-[inset_4px_4px_0px_rgba(0,0,0,0.85)] sm:h-[600px] md:h-[650px]'
+            "
+          >
+            <!-- Exit Fullscreen Button when in Fullscreen Mode -->
             <button
-              v-if="gameStore.activeSection > 0"
+              v-if="isGameFullscreen && isGamePoweredOn"
               type="button"
-              data-testid="edge-indicator-left"
-              class="absolute top-1/2 left-1.5 z-30 -translate-y-1/2 border-2 border-[#D18C39] bg-[#101820]/95 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-[#E7D5AC] shadow-[3px_3px_0px_#000] transition hover:bg-[#D18C39] hover:text-[#101820]"
-              @click="scrollToSection(gameStore.activeSection - 1, true)"
+              data-testid="exit-fullscreen-btn"
+              class="retro-text fixed top-4 left-1/2 z-50 -translate-x-1/2 cursor-pointer border-4 border-[#D18C39] bg-[#101820] px-6 py-2 text-sm font-bold tracking-widest text-[#E7D5AC] uppercase shadow-[6px_6px_0px_#000] hover:bg-[#D18C39] hover:text-[#101820]"
+              @click="exitGameFullscreen"
             >
-              ◄ {{ gameStore.activeSection === 1 ? 'GALLERY [G/1]' : 'GAME [2]' }}
+              ✕ Exit Fullscreen [ESC]
             </button>
 
-            <!-- Right Edge Indicator -->
-            <button
-              v-if="gameStore.activeSection < 2"
-              type="button"
-              data-testid="edge-indicator-right"
-              class="absolute top-1/2 right-1.5 z-30 -translate-y-1/2 border-2 border-[#D18C39] bg-[#101820]/95 px-2 py-3 text-[10px] font-black uppercase tracking-widest text-[#D18C39] shadow-[3px_3px_0px_#000] transition hover:bg-[#D18C39] hover:text-[#101820]"
-              @click="scrollToSection(gameStore.activeSection + 1, true)"
-            >
-              {{ gameStore.activeSection === 1 ? 'LAB [L/3]' : 'GAME [2]' }} ►
-            </button>
-          </template>
+            <div class="relative h-full w-full overflow-hidden">
+              <!-- Main Horizontal Carousel -->
+              <Transition
+                name="crt-power"
+                :duration="420"
+                @after-leave="handleGamePowerOffAnimationEnd"
+              >
+                <main
+                  v-if="isGamePoweredOn"
+                  ref="carouselRef"
+                  data-testid="main-carousel"
+                  class="crt-power-screen no-scrollbar absolute inset-0 flex h-full w-full snap-x snap-mandatory"
+                  :class="gameStore.layoutUnlocked ? 'overflow-x-auto' : 'overflow-x-hidden'"
+                  style="scroll-snap-type: x mandatory"
+                  @scroll.passive="handleCarouselScroll"
+                >
+                  <!-- LEFT SECTION (Index 0): Disc Gallery -->
+                  <div
+                    v-show="gameStore.layoutUnlocked"
+                    data-testid="section-vault"
+                    class="h-full w-full shrink-0 snap-center"
+                  >
+                    <DiscVault
+                      @navigate-to-game="scrollToSection(1, true)"
+                      @navigate-to-player="scrollToSection(2, true)"
+                    />
+                  </div>
+
+                  <!-- CENTER SECTION (Index 1): 3D 2.5D Game -->
+                  <div
+                    data-testid="section-game"
+                    class="h-full w-full shrink-0 snap-center"
+                  >
+                    <GameCanvas
+                      @navigate-left="scrollToSection(0, true)"
+                      @navigate-right="scrollToSection(2, true)"
+                    />
+                  </div>
+
+                  <!-- RIGHT SECTION (Index 2): LAB / NASA Visualizer -->
+                  <div
+                    v-show="gameStore.layoutUnlocked"
+                    data-testid="section-player"
+                    class="h-full w-full shrink-0 snap-center"
+                  >
+                    <NasaPlayer
+                      @navigate-to-game="scrollToSection(1, true)"
+                      @navigate-to-vault="scrollToSection(0, true)"
+                    />
+                  </div>
+                </main>
+              </Transition>
+
+              <!-- Retro Standby Screen -->
+              <div
+                v-if="!isGamePoweredOn && !isPoweringOff"
+                data-testid="game-off-screen"
+                aria-label="Game powered off"
+                class="retro-text absolute inset-0 grid place-items-center bg-[#030506] text-xl font-bold tracking-[0.2em] text-[#D18C39]/60"
+              >
+                SYSTEM_STANDBY...
+                <span
+                  aria-hidden="true"
+                  class="pixel-blink absolute right-6 bottom-6 block h-4 w-4 bg-[#D18C39]"
+                ></span>
+              </div>
+            </div>
+
+            <!-- 32-Bit Edge Navigation Buttons -->
+            <template v-if="isGamePoweredOn && gameStore.layoutUnlocked">
+              <button
+                v-if="gameStore.activeSection > 0"
+                type="button"
+                data-testid="edge-indicator-left"
+                class="retro-text absolute top-1/2 left-2 z-30 -translate-y-1/2 border-4 border-[#D18C39] bg-[#101820]/95 px-3 py-4 text-xs font-black uppercase tracking-widest text-[#E7D5AC] shadow-[4px_4px_0px_#000] transition-colors hover:bg-[#D18C39] hover:text-[#101820]"
+                @click="scrollToSection(gameStore.activeSection - 1, true)"
+              >
+                ◄ {{ gameStore.activeSection === 1 ? 'GALLERY [G/1]' : 'GAME [2]' }}
+              </button>
+
+              <button
+                v-if="gameStore.activeSection < 2"
+                type="button"
+                data-testid="edge-indicator-right"
+                class="retro-text absolute top-1/2 right-2 z-30 -translate-y-1/2 border-4 border-[#D18C39] bg-[#101820]/95 px-3 py-4 text-xs font-black uppercase tracking-widest text-[#D18C39] shadow-[4px_4px_0px_#000] transition-colors hover:bg-[#D18C39] hover:text-[#101820]"
+                @click="scrollToSection(gameStore.activeSection + 1, true)"
+              >
+                {{ gameStore.activeSection === 1 ? 'LAB [L/3]' : 'GAME [2]' }} ►
+              </button>
+            </template>
+          </div>
+
+          <!-- Pilares Laterales Derechos -->
+          <div class="hidden w-6 sm:flex flex-col items-center justify-between border-4 border-[#101820] bg-[#101820] py-2 shadow-[inset_4px_4px_0px_rgba(0,0,0,0.85)]">
+            <div class="h-full w-2 bg-[#D18C39] opacity-80 plasma-tube blur-[1px]" style="animation-delay: -1s;"></div>
+          </div>
         </div>
 
-        <!-- Bottom Jukebox Control Deck: Left Illuminated Button + Center "Try it out!" Fullscreen Play Button + Right Illuminated Button -->
+        <!-- Bottom Jukebox Control Deck (Pixel Art Buttons) -->
         <div
-          class="mt-2.5 flex flex-wrap items-center justify-between gap-3 rounded-b-2xl border border-[#31515A] bg-[#101820] px-4 py-3 sm:px-8"
+          class="mt-4 flex flex-wrap items-center justify-between gap-4 border-t-4 border-[#101820] bg-[#101820] px-4 py-4 sm:px-8"
         >
-          <!-- Left Fallout Jukebox Button (Illuminates when pressed) -->
+          <!-- Left Fallout Jukebox Button -->
           <button
             type="button"
             data-testid="jukebox-btn-left"
             aria-label="Tube A knob"
             :aria-pressed="leftButtonLit"
-            class="inline-flex h-16 w-16 cursor-pointer items-center justify-center rounded-full p-0 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+            class="group flex h-16 w-16 cursor-pointer items-center justify-center border-4 bg-[#1D303B] p-1 transition-all"
             :class="
               leftButtonLit
-                ? 'drop-shadow-[0_0_12px_rgba(209,140,57,0.9)]'
-                : 'hover:drop-shadow-[0_0_8px_rgba(209,140,57,0.65)]'
+                ? 'border-[#D18C39] shadow-[0_0_0_4px_#D18C39]'
+                : 'border-[#31515A] hover:border-[#E7D5AC]'
             "
             @click="toggleLeftJukeboxButton"
           >
@@ -469,56 +461,50 @@ onBeforeUnmount(() => {
             />
           </button>
 
-          <!-- Center "Try it out!" Play / Fullscreen Button -->
-          <button
-            type="button"
-            data-testid="jukebox-try-it-out-btn"
-            :aria-label="isGamePoweredOn ? 'Turn game off' : 'Try it out in fullscreen'"
-            :aria-pressed="isGamePoweredOn"
-            class="inline-flex cursor-pointer items-center gap-2.5 rounded-xl border-2 border-[#E7D5AC]/40 bg-[#D18C39] px-7 py-3 text-sm font-black tracking-wider text-[#101820] uppercase shadow-[0_0_24px_rgba(209,140,57,0.55),inset_0_1px_1px_rgba(231,213,172,0.5)] transition-all duration-200 hover:scale-105 hover:brightness-110 hover:shadow-[0_0_32px_rgba(209,140,57,0.85)] active:scale-95 sm:text-base"
-            @click="handleTryItOutFullscreen"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              class="h-5 w-5 shrink-0"
+          <!-- Zona Central: Botón y Display de Créditos -->
+          <div class="flex flex-col items-center gap-2">
+            <!-- Center "Try it out!" Play / Fullscreen Button -->
+            <button
+              type="button"
+              data-testid="jukebox-try-it-out-btn"
+              :aria-label="isGamePoweredOn ? 'Turn game off' : 'Try it out in fullscreen'"
+              :aria-pressed="isGamePoweredOn"
+              class="retro-text inline-flex cursor-pointer items-center gap-3 border-4 border-[#101820] bg-[#D18C39] px-8 py-3 text-lg font-black tracking-wider text-[#101820] uppercase shadow-[6px_6px_0px_#31515A] transition-all hover:-translate-y-1 hover:-translate-x-1 hover:bg-[#E7D5AC] hover:shadow-[10px_10px_0px_#31515A] active:translate-x-[4px] active:translate-y-[4px] active:bg-[#D18C39] active:shadow-[2px_2px_0px_#31515A]"
+              @click="handleTryItOutFullscreen"
             >
-              <path
-                v-if="!isGamePoweredOn"
-                d="M8 5v14l11-7z"
-                fill="currentColor"
-              />
-              <template v-else>
-                <path
-                  d="M12 2v10"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="2.5"
-                />
-                <path
-                  d="M18.36 6.64a8 8 0 1 1-12.72 0"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="2.5"
-                />
-              </template>
-            </svg>
-            <span>{{ isGamePoweredOn ? 'Turn off' : 'Try it out!' }}</span>
-          </button>
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                class="h-6 w-6 shrink-0"
+                shape-rendering="crispEdges"
+              >
+                <path v-if="!isGamePoweredOn" d="M6 4 L6 20 L18 12 Z" fill="currentColor" />
+                <template v-else>
+                  <rect x="6" y="5" width="4" height="14" fill="currentColor" />
+                  <rect x="14" y="5" width="4" height="14" fill="currentColor" />
+                </template>
+              </svg>
+              <span>{{ isGamePoweredOn ? 'TURN OFF' : 'TRY IT OUT!' }}</span>
+            </button>
 
-          <!-- Right Fallout Jukebox Button (Illuminates when pressed) -->
+            <!-- Retro Coin / Credit Display -->
+            <div class="retro-text flex items-center justify-center border-2 border-[#31515A] bg-[#030506] px-4 py-1 text-sm tracking-widest text-[#D18C39]">
+              <span class="opacity-60">INSERT TOKEN</span>
+              <span class="pixel-blink ml-2 block h-3 w-3 bg-[#D18C39]"></span>
+            </div>
+          </div>
+
+          <!-- Right Fallout Jukebox Button -->
           <button
             type="button"
             data-testid="jukebox-btn-right"
             aria-label="Tube B knob"
             :aria-pressed="rightButtonLit"
-            class="inline-flex h-16 w-16 cursor-pointer items-center justify-center rounded-full p-0 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D18C39]"
+            class="group flex h-16 w-16 cursor-pointer items-center justify-center border-4 bg-[#1D303B] p-1 transition-all"
             :class="
               rightButtonLit
-                ? 'drop-shadow-[0_0_12px_rgba(209,140,57,0.9)]'
-                : 'hover:drop-shadow-[0_0_8px_rgba(209,140,57,0.65)]'
+                ? 'border-[#D18C39] shadow-[0_0_0_4px_#D18C39]'
+                : 'border-[#31515A] hover:border-[#E7D5AC]'
             "
             @click="toggleRightJukeboxButton"
           >
@@ -539,3 +525,63 @@ onBeforeUnmount(() => {
     <FooterBar />
   </div>
 </template>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+.retro-text {
+  font-family: 'VT323', monospace;
+}
+
+.pixelated, .pixel-global img {
+  image-rendering: pixelated;
+}
+
+/* Animación de parpadeo fuerte (Standby y Cursor) */
+@keyframes blink-step {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.pixel-blink {
+  animation: blink-step 1.2s steps(2, end) infinite;
+}
+
+/* Ocultar barra de scroll en Webkit pero mantener funcionalidad */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fondo Estelar 8-Bits Generado con CSS */
+@keyframes twinkle-bg {
+  0%, 100% { background-position: 0 0; opacity: 1; }
+  50% { opacity: 0.8; }
+}
+.star-bg {
+  background-color: #101820;
+  background-image: 
+    radial-gradient(2px 2px at 40px 60px, #E7D5AC, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 120px 20px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 200px 100px, #D18C39, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 280px 40px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 320px 180px, #E7D5AC, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 40px 220px, #D18C39, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 350px 350px;
+  animation: twinkle-bg 4s infinite alternate;
+}
+
+/* Animación de los tubos de plasma de la rocola */
+@keyframes plasma-flow {
+  0% { transform: scaleY(0.9); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(0.9); opacity: 0.6; }
+}
+.plasma-tube {
+  animation: plasma-flow 2s infinite ease-in-out;
+  box-shadow: 0 0 10px #D18C39;
+}
+</style>
