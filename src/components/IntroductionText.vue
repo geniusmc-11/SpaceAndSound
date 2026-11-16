@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useSonifier } from '@/composables/useSonifier'
 import printImgUrl from './print.jpg'
 
@@ -14,52 +14,50 @@ const INTRO_STAR_DISC = {
   imageUrl: printImgUrl,
 }
 
-const isHovering = ref(false)
-const hoverNormX = ref(0.5)
-const hoverNormY = ref(0.5)
-const hoverNote = ref('')
-let tapClearTimer: ReturnType<typeof setTimeout> | null = null
+const scanNormX = ref(0)
+const activeNote = ref('')
+let unsubscribeScan: (() => void) | null = null
 
-function clearTapTimer() {
-  if (tapClearTimer !== null) {
-    clearTimeout(tapClearTimer)
-    tapClearTimer = null
-  }
-}
+const isPlayingPreview = computed(
+  () =>
+    sonifier.isRunning.value &&
+    sonifier.activeDiscId.value === INTRO_STAR_DISC.id
+)
 
-async function sonifyAtPointer(event: MouseEvent | TouchEvent) {
-  const target = event.currentTarget as HTMLElement | null
-  if (!target) return
-  const point = 'touches' in event ? event.touches[0] || event.changedTouches[0] : event
-  if (!point) return
-
-  clearTapTimer()
-  const rect = target.getBoundingClientRect()
-  const normX = Math.max(0, Math.min(1, (point.clientX - rect.left) / Math.max(1, rect.width)))
-  const normY = Math.max(0, Math.min(1, (point.clientY - rect.top) / Math.max(1, rect.height)))
-  hoverNormX.value = normX
-  hoverNormY.value = normY
-  isHovering.value = true
-  sonifier.setHoverActive(true)
-
-  const telemetry = await sonifier.probeHoverPixel(normX, normY, INTRO_STAR_DISC)
-  if (isHovering.value && telemetry?.primaryNote) {
-    hoverNote.value = telemetry.primaryNote
+async function toggleIntroSonification() {
+  if (isPlayingPreview.value) {
+    sonifier.stop()
+    activeNote.value = ''
+    scanNormX.value = 0
+    return
   }
 
-  if (event.type === 'click' || event.type === 'touchstart') {
-    tapClearTimer = setTimeout(() => {
-      stopHoverSonify()
-    }, 650)
-  }
+  scanNormX.value = 0
+  activeNote.value = ''
+  await sonifier.start(INTRO_STAR_DISC)
 }
 
-function stopHoverSonify() {
-  clearTapTimer()
-  isHovering.value = false
-  hoverNote.value = ''
-  sonifier.setHoverActive(false)
-}
+onMounted(() => {
+  unsubscribeScan = sonifier.onScanStep(({ normalizedX, telemetry }) => {
+    if (!isPlayingPreview.value) return
+    if (typeof normalizedX === 'number') {
+      scanNormX.value = normalizedX
+    }
+    if (telemetry?.primaryNote) {
+      activeNote.value = telemetry.primaryNote
+    }
+  })
+})
+
+onBeforeUnmount(() => {
+  if (unsubscribeScan) {
+    unsubscribeScan()
+    unsubscribeScan = null
+  }
+  if (isPlayingPreview.value) {
+    sonifier.stop()
+  }
+})
 </script>
 
 <template>
@@ -221,12 +219,8 @@ function stopHoverSonify() {
             ></div>
 
             <figure
-              class="pixel-hover group relative cursor-pointer border-4 border-[#31515A] bg-[#1D303B] p-3 shadow-[8px_8px_0px_#000000] transition-colors hover:border-[#D18C39]"
-              @mouseenter="sonifyAtPointer"
-              @mousemove="sonifyAtPointer"
-              @click="sonifyAtPointer"
-              @touchstart.passive="sonifyAtPointer"
-              @mouseleave="stopHoverSonify"
+              class="pixel-hover group relative border-4 border-[#31515A] bg-[#1D303B] p-3 shadow-[8px_8px_0px_#000000] transition-colors hover:border-[#D18C39]"
+              :class="isPlayingPreview ? 'border-[#D18C39]' : ''"
             >
               <!-- Imagen intacta, pero con contenedor recto -->
               <div class="relative overflow-hidden border-2 border-[#101820]">
@@ -235,22 +229,18 @@ function stopHoverSonify() {
                   src="./print.jpg"
                   alt="Globular star cluster"
                   class="block aspect-video w-full object-cover transition-all duration-150"
-                  :class="isHovering ? 'brightness-110 contrast-125 saturate-150' : ''"
+                  :class="isPlayingPreview ? 'brightness-110 contrast-125 saturate-150' : ''"
                 />
 
-                <!-- Visualización sonificada al hacer hover (línea de escaneo + mira) -->
+                <!-- Visualización sonificada durante reproducción (línea de escaneo vertical) -->
                 <div
-                  v-if="isHovering"
+                  v-if="isPlayingPreview"
                   aria-hidden="true"
                   class="pointer-events-none absolute inset-0 bg-[#D18C39]/10"
                 >
                   <div
                     class="absolute top-0 bottom-0 w-0.5 bg-[#D18C39] shadow-[0_0_8px_#D18C39]"
-                    :style="{ left: `${hoverNormX * 100}%` }"
-                  ></div>
-                  <div
-                    class="absolute right-0 left-0 h-px bg-[#E7D5AC]/50"
-                    :style="{ top: `${hoverNormY * 100}%` }"
+                    :style="{ left: `${scanNormX * 100}%` }"
                   ></div>
                 </div>
 
@@ -263,13 +253,27 @@ function stopHoverSonify() {
 
               <!-- Pie de foto estilo Terminal -->
               <figcaption
-                class="mt-3 flex items-center justify-between border-t-2 border-dashed border-[#31515A] pt-2 retro-text text-sm text-[#E7D5AC] group-hover:text-[#D18C39]"
+                class="mt-3 flex flex-wrap items-center justify-between gap-2 border-t-2 border-dashed border-[#31515A] pt-2 retro-text text-sm text-[#E7D5AC]"
               >
-                <span>>_ IMG_DATA</span>
-                <span class="flex items-center gap-2">
-                  <span>{{ isHovering && hoverNote ? `♪ ${hoverNote}` : 'SONIFIED' }}</span>
-                  <span class="block h-2 w-2 bg-[#31515A] group-hover:bg-[#D18C39]"></span>
-                </span>
+                <span>&gt;_ IMG_DATA</span>
+                <div class="flex items-center gap-2">
+                  <span>{{ isPlayingPreview && activeNote ? `♪ ${activeNote}` : 'SONIFIED' }}</span>
+                  <button
+                    type="button"
+                    data-testid="intro-sonify-toggle-btn"
+                    :aria-pressed="isPlayingPreview"
+                    :aria-label="
+                      isPlayingPreview
+                        ? 'Stop globular star cluster sonification'
+                        : 'Play globular star cluster sonification'
+                    "
+                    class="cursor-pointer border-2 border-[#D18C39] bg-[#101820] px-2.5 py-0.5 text-xs font-bold tracking-wider uppercase transition-colors hover:bg-[#D18C39] hover:text-[#101820]"
+                    :class="isPlayingPreview ? 'bg-[#D18C39] text-[#101820]' : 'text-[#D18C39]'"
+                    @click="toggleIntroSonification"
+                  >
+                    {{ isPlayingPreview ? '■ STOP' : '▶ PLAY' }}
+                  </button>
+                </div>
               </figcaption>
             </figure>
           </div>

@@ -153,6 +153,7 @@ const isRunning = ref(false)
 const activeMode = ref('maps')
 const activeRarity = ref('legendario')
 const activeNoteType = ref('current')
+const activeDiscId = ref(null)
 
 function getSelectedScale(fallbackScale) {
   if (activeNoteType.value === 'pentatonic') return SCALES.pentatonic
@@ -1013,6 +1014,7 @@ export function useSonifier() {
   async function loadDisc(disc) {
     if (!disc) return
     const ctx = ensureHiddenCanvas()
+    activeDiscId.value = disc.id || null
     activeMode.value = disc.category || 'maps'
     activeRarity.value = disc.rarity || 'legendario'
     activeMapProfileId = String(disc.mapProfileId || disc.svsId || 'default')
@@ -1317,6 +1319,16 @@ export function useSonifier() {
     }
     silenceThereminBass()
     stopSecondaryAmbientBed()
+    try {
+      padPolySynth?.releaseAll?.()
+      leadSynth?.triggerRelease?.()
+      harmonySynth?.triggerRelease?.()
+      pluckSynth?.triggerRelease?.()
+      shimmerSynth?.triggerRelease?.()
+      bassDrone?.triggerRelease?.()
+    } catch {
+      // noop
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel()
@@ -1356,6 +1368,7 @@ export function useSonifier() {
     activeMode,
     activeRarity,
     activeNoteType,
+    activeDiscId,
     noteTypeOptions: NOTE_TYPE_OPTIONS,
     loadDisc,
     exportDiscAsMp3,
