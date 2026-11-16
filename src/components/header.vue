@@ -4,20 +4,20 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 </script>
 
 <template>
-  <div class="relative mx-auto w-[calc(100%-1.5rem)] max-w-[1040px] pt-3 sm:w-[calc(90%-2rem)] sm:pt-4 md:w-[calc(80%-2rem)]">
+  <div class="relative mx-auto w-[calc(100%-1.5rem)] max-w-[1040px] pt-3 sm:w-[calc(100%-2rem)] sm:pt-4">
     <!-- Fluctuating ambient glows behind the glass for refraction -->
     <div
       aria-hidden="true"
-      class="nebula-drift-1 pointer-events-none absolute -top-3 left-10 h-20 w-56 rounded-full bg-[#D18C39]/25 blur-2xl motion-reduce:animate-none"
+      class="nebula-drift-1 pointer-events-none absolute -top-3 left-4 h-20 w-40 rounded-full bg-[#D18C39]/25 blur-2xl motion-reduce:animate-none sm:left-10 sm:w-56"
     ></div>
     <div
       aria-hidden="true"
-      class="nebula-drift-2 pointer-events-none absolute -bottom-3 right-12 h-20 w-64 rounded-full bg-[#31515A]/55 blur-2xl motion-reduce:animate-none"
+      class="nebula-drift-2 pointer-events-none absolute -bottom-3 right-4 h-20 w-44 rounded-full bg-[#31515A]/55 blur-2xl motion-reduce:animate-none sm:right-12 sm:w-64"
     ></div>
 
     <header
       aria-label="SpaceAndSound project and SynapseTrinity team identity"
-      class="relative flex flex-col items-center justify-between gap-2.5 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-3 py-2.5 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 min-[420px]:flex-row min-[420px]:gap-3 sm:gap-4 sm:rounded-full sm:px-8 sm:py-3"
+      class="relative flex flex-wrap items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-3 py-2.5 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 min-[460px]:justify-between sm:gap-4 sm:rounded-full sm:px-6 sm:py-3 lg:flex-nowrap lg:px-8"
     >
       <!-- Internal technical micro-grid -->
       <div
@@ -197,7 +197,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
       ></span>
 
       <!-- Left Module: Project Identity (ORIGINAL REDONDEADO) -->
-      <div class="relative z-10 flex min-w-0 items-center gap-2 sm:gap-3">
+      <div class="relative z-10 flex max-w-full min-w-0 items-center gap-2 sm:gap-3">
         <div
           class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#D18C39]/85 bg-[#101820]/75 p-0.5 shadow-[inset_0_1px_1px_rgba(231,213,172,0.25),0_0_14px_rgba(209,140,57,0.28)] backdrop-blur-md sm:h-10 sm:w-10"
         >
@@ -211,7 +211,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
         <div class="flex min-w-0 flex-col">
           <div class="flex min-w-0 items-center gap-2">
-            <span class="relative flex h-2.5 w-2.5 items-center justify-center" aria-hidden="true">
+            <span class="relative flex h-2.5 w-2.5 shrink-0 items-center justify-center" aria-hidden="true">
               <span
                 class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D18C39] opacity-60"
               ></span>
@@ -234,7 +234,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
       <!-- Center Module: Acoustic Telemetry (ORIGINAL FLUIDO) -->
       <div
         aria-hidden="true"
-        class="relative z-10 hidden items-center gap-1 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 px-4 py-1.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md md:flex"
+        class="relative z-10 hidden shrink-0 items-center gap-1 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 px-4 py-1.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md lg:flex"
       >
         <div class="flex h-3.5 items-center gap-[3px]">
           <span class="eq-bar h-3 w-0.5 rounded-full bg-[#31515A]" style="animation-delay: 0ms"></span>
@@ -253,15 +253,15 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
       <!-- Right Module: Team Identity (ORIGINAL REDONDEADO) -->
       <div
-        class="relative z-10 flex max-w-full shrink-0 items-center gap-2 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1 pl-2.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70 sm:gap-2.5 sm:pr-1.5 sm:pl-4"
+        class="relative z-10 flex max-w-full min-w-0 items-center gap-2 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1 pl-2.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70 sm:gap-2.5 sm:pr-1.5 sm:pl-4"
       >
-        <div class="flex flex-col text-right">
+        <div class="flex min-w-0 flex-col text-right">
           <span
             class="font-mono text-[0.52rem] font-bold tracking-widest text-[#D18C39] uppercase sm:text-[0.58rem]"
           >
             Team
           </span>
-          <span class="text-[0.7rem] font-extrabold tracking-wide text-[#E7D5AC] sm:text-sm">
+          <span class="truncate text-[0.7rem] font-extrabold tracking-wide text-[#E7D5AC] sm:text-sm">
             SynapseTrinity
           </span>
         </div>

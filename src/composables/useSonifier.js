@@ -113,6 +113,7 @@ let audioInitialized = false
 let audioInitPromise = null
 let gestureListenersAttached = false
 let lastHoverSoundAt = 0
+let lastHoverPlayedNote = ''
 let hoverPausedAutoScan = false
 const lastSynthTriggerTime = new WeakMap()
 
@@ -264,79 +265,62 @@ async function ensureAudioGraph() {
       }).toDestination()
 
       reverbNode = new Tone.Reverb({
-        decay: 3.2,
-        wet: 0.36,
+        decay: 0.9,
+        wet: 0.14,
       }).connect(filterNode)
 
-      // Eco estéreo PingPong conectado al Panner 8D para envolvente espacial
+      // Eco estéreo PingPong sutil conectado al Panner 8D
       pingPongDelay = new Tone.PingPongDelay({
-        delayTime: '8n',
-        feedback: 0.32,
-        wet: 0.28,
+        delayTime: '16n',
+        feedback: 0.12,
+        wet: 0.08,
       }).connect(spatial8DPanner)
 
       leadSynth = new Tone.Synth({
         oscillator: { type: 'triangle' },
-        envelope: { attack: 0.02, decay: 0.2, sustain: 0.25, release: 0.45 },
+        envelope: { attack: 0.006, decay: 0.18, sustain: 0.04, release: 0.2 },
         volume: -8,
       }).connect(reverbNode)
 
       harmonySynth = new Tone.Synth({
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.03, decay: 0.22, sustain: 0.28, release: 0.5 },
-        volume: -12,
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.01, decay: 0.16, sustain: 0.02, release: 0.18 },
+        volume: -13,
       }).connect(reverbNode)
 
       bassDrone = new Tone.MonoSynth({
         oscillator: { type: 'triangle' },
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.45, release: 0.45 },
+        envelope: { attack: 0.02, decay: 0.18, sustain: 0.08, release: 0.2 },
         volume: -18,
       }).connect(filterNode)
 
       pluckSynth = new Tone.Synth({
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.008, decay: 0.24, sustain: 0.12, release: 0.35 },
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.003, decay: 0.15, sustain: 0.0, release: 0.16 },
         volume: -9,
       }).connect(pingPongDelay)
 
-      // Sintetizador FM cristalino conectado al Panner 8D (armónico consonante)
+      // Sintetizador FM tipo campana suave (sin sustain para evitar efecto theremin)
       shimmerSynth = new Tone.FMSynth({
         harmonicity: 2,
-        modulationIndex: 1.8,
-        oscillator: { type: 'sine' },
+        modulationIndex: 1.4,
+        oscillator: { type: 'triangle' },
         modulation: { type: 'sine' },
-        envelope: { attack: 0.01, decay: 0.28, sustain: 0.2, release: 0.5 },
-        modulationEnvelope: { attack: 0.01, decay: 0.18, sustain: 0.1, release: 0.35 },
-        volume: -8,
+        envelope: { attack: 0.004, decay: 0.16, sustain: 0.0, release: 0.18 },
+        modulationEnvelope: { attack: 0.003, decay: 0.12, sustain: 0.0, release: 0.14 },
+        volume: -10,
       }).connect(pingPongDelay)
 
       padPolySynth = new Tone.PolySynth(Tone.Synth, {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.08, decay: 0.32, sustain: 0.4, release: 0.8 },
-        volume: -15,
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.03, decay: 0.25, sustain: 0.08, release: 0.35 },
+        volume: -16,
       }).connect(spatial8DPanner)
 
-      // --- Melodía 2: Bajo armónico suave con auto-release ---
-      thereminFilter = new Tone.Filter({
-        frequency: 420,
-        type: 'lowpass',
-        rolloff: -12,
-      }).connect(reverbNode)
-
-      thereminBass = new Tone.Synth({
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.08, decay: 0.2, sustain: 0.35, release: 0.4 },
-        portamento: 0.08,
-        volume: -18,
-      }).connect(thereminFilter)
-
-      thereminVibratoLFO = new Tone.LFO({
-        frequency: 4.5,
-        min: -4,
-        max: 4,
-      })
-        .connect(thereminBass.detune)
-        .start()
+      // Theremin desactivado en audio (solo se mantiene el cálculo de nota para telemetría)
+      thereminFilter = null
+      thereminBass = null
+      thereminVibratoLFO = null
 
       // --- Ruido de fondo base para TODOS los discos ---
       baseAmbientGain = new Tone.Gain(0.0).toDestination()
@@ -505,7 +489,7 @@ function applyRarityScaling(
   }
 
   if (reverbNode) {
-    reverbNode.wet.value = rarity === 'comun' ? 0.08 : rarity === 'raro' ? 0.38 : 0.56
+    reverbNode.wet.value = rarity === 'comun' ? 0.06 : rarity === 'raro' ? 0.12 : 0.18
   }
 
   if (filterNode) {
@@ -1133,6 +1117,7 @@ export function useSonifier() {
   function setHoverActive(active) {
     hoverPausedAutoScan = Boolean(active)
     if (!active) {
+      lastHoverPlayedNote = ''
       silenceThereminBass()
     }
   }
@@ -1144,7 +1129,7 @@ export function useSonifier() {
    */
   async function probeHoverPixel(normX, normY, disc = null) {
     const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-    if (now - lastHoverSoundAt < 58) {
+    if (now - lastHoverSoundAt < 75) {
       return null
     }
     lastHoverSoundAt = now
@@ -1197,19 +1182,21 @@ export function useSonifier() {
       const melodicIdx = Math.min(melodicScale.length - 1, Math.floor(yNorm * melodicScale.length))
       const primaryNote = highScale[noteIdx]
       const leadMelodicNote = melodicScale[melodicIdx]
-      const chord = r > b ? SCALES.espacialIR[px % 4] : SCALES.espacialUV[px % 4]
+      const harmonyMelodicNote =
+        melodicScale[Math.min(melodicScale.length - 1, melodicIdx + 2)]
+      const thereminNote = triggerThereminBass(sum / 765, { silentAudio: true })
+
       if (filterNode) filterNode.frequency.value = 9500
-      const thereminNote = applyRarityScaling(
-        'legendario',
-        leadMelodicNote,
-        chord[2] || primaryNote,
-        sum / 765,
-        primaryNote,
-        { skipThereminAudio: true }
-      )
-      if (sum > 480 && audioInitialized && shimmerSynth) {
-        safeTriggerAttackRelease(shimmerSynth, primaryNote, '16n')
+      if (reverbNode) reverbNode.wet.value = 0.1
+
+      const shouldTriggerHoverNote =
+        primaryNote !== lastHoverPlayedNote || now - lastHoverSoundAt >= 180
+      if (audioInitialized && shouldTriggerHoverNote) {
+        lastHoverPlayedNote = primaryNote
+        if (leadSynth) safeTriggerAttackRelease(leadSynth, leadMelodicNote, '16n')
+        if (pluckSynth) safeTriggerAttackRelease(pluckSynth, harmonyMelodicNote, '16n')
       }
+
       telemetry = {
         mode: 'espacial',
         primaryNote,
