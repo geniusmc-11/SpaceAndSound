@@ -18,24 +18,44 @@ const isHovering = ref(false)
 const hoverNormX = ref(0.5)
 const hoverNormY = ref(0.5)
 const hoverNote = ref('')
+let tapClearTimer: ReturnType<typeof setTimeout> | null = null
 
-async function sonifyAtPointer(event: MouseEvent) {
+function clearTapTimer() {
+  if (tapClearTimer !== null) {
+    clearTimeout(tapClearTimer)
+    tapClearTimer = null
+  }
+}
+
+async function sonifyAtPointer(event: MouseEvent | TouchEvent) {
   const target = event.currentTarget as HTMLElement | null
   if (!target) return
+  const point = 'touches' in event ? event.touches[0] || event.changedTouches[0] : event
+  if (!point) return
+
+  clearTapTimer()
   const rect = target.getBoundingClientRect()
-  const normX = Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width)))
-  const normY = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(1, rect.height)))
+  const normX = Math.max(0, Math.min(1, (point.clientX - rect.left) / Math.max(1, rect.width)))
+  const normY = Math.max(0, Math.min(1, (point.clientY - rect.top) / Math.max(1, rect.height)))
   hoverNormX.value = normX
   hoverNormY.value = normY
   isHovering.value = true
+  sonifier.setHoverActive(true)
 
   const telemetry = await sonifier.probeHoverPixel(normX, normY, INTRO_STAR_DISC)
-  if (telemetry?.primaryNote) {
+  if (isHovering.value && telemetry?.primaryNote) {
     hoverNote.value = telemetry.primaryNote
+  }
+
+  if (event.type === 'click' || event.type === 'touchstart') {
+    tapClearTimer = setTimeout(() => {
+      stopHoverSonify()
+    }, 650)
   }
 }
 
 function stopHoverSonify() {
+  clearTapTimer()
   isHovering.value = false
   hoverNote.value = ''
   sonifier.setHoverActive(false)
@@ -205,6 +225,7 @@ function stopHoverSonify() {
               @mouseenter="sonifyAtPointer"
               @mousemove="sonifyAtPointer"
               @click="sonifyAtPointer"
+              @touchstart.passive="sonifyAtPointer"
               @mouseleave="stopHoverSonify"
             >
               <!-- Imagen intacta, pero con contenedor recto -->

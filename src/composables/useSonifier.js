@@ -276,47 +276,47 @@ async function ensureAudioGraph() {
       }).connect(spatial8DPanner)
 
       leadSynth = new Tone.Synth({
-        oscillator: { type: 'triangle8' },
-        envelope: { attack: 0.008, decay: 0.14, sustain: 0.22, release: 0.28 },
-        volume: -7,
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.02, decay: 0.2, sustain: 0.25, release: 0.45 },
+        volume: -8,
       }).connect(reverbNode)
 
       harmonySynth = new Tone.Synth({
         oscillator: { type: 'sine' },
-        envelope: { attack: 0.015, decay: 0.18, sustain: 0.25, release: 0.38 },
-        volume: -11,
+        envelope: { attack: 0.03, decay: 0.22, sustain: 0.28, release: 0.5 },
+        volume: -12,
       }).connect(reverbNode)
 
       bassDrone = new Tone.MonoSynth({
-        oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.05, decay: 0.2, sustain: 0.6, release: 0.4 },
-        volume: -16,
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.05, decay: 0.2, sustain: 0.45, release: 0.45 },
+        volume: -18,
       }).connect(filterNode)
 
       pluckSynth = new Tone.Synth({
-        oscillator: { type: 'triangle' },
-        envelope: { attack: 0.002, decay: 0.22, sustain: 0.15, release: 0.25 },
-        volume: -7,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.008, decay: 0.24, sustain: 0.12, release: 0.35 },
+        volume: -9,
       }).connect(pingPongDelay)
 
-      // Sintetizador FM cristalino conectado al Panner 8D
+      // Sintetizador FM cristalino conectado al Panner 8D (armónico consonante)
       shimmerSynth = new Tone.FMSynth({
-        harmonicity: 3.01,
-        modulationIndex: 4.8,
+        harmonicity: 2,
+        modulationIndex: 1.8,
         oscillator: { type: 'sine' },
-        modulation: { type: 'triangle' },
-        envelope: { attack: 0.003, decay: 0.25, sustain: 0.25, release: 0.45 },
-        modulationEnvelope: { attack: 0.002, decay: 0.15, sustain: 0.15, release: 0.3 },
-        volume: -4,
+        modulation: { type: 'sine' },
+        envelope: { attack: 0.01, decay: 0.28, sustain: 0.2, release: 0.5 },
+        modulationEnvelope: { attack: 0.01, decay: 0.18, sustain: 0.1, release: 0.35 },
+        volume: -8,
       }).connect(pingPongDelay)
 
       padPolySynth = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: 'sine' },
-        envelope: { attack: 0.06, decay: 0.32, sustain: 0.45, release: 0.75 },
-        volume: -14,
+        envelope: { attack: 0.08, decay: 0.32, sustain: 0.4, release: 0.8 },
+        volume: -15,
       }).connect(spatial8DPanner)
 
-      // --- Melodía 2: Bajo tipo Theremin con portamento y vibrato LFO para profundidad ---
+      // --- Melodía 2: Bajo armónico suave con auto-release ---
       thereminFilter = new Tone.Filter({
         frequency: 420,
         type: 'lowpass',
@@ -325,15 +325,15 @@ async function ensureAudioGraph() {
 
       thereminBass = new Tone.Synth({
         oscillator: { type: 'sine' },
-        envelope: { attack: 0.14, decay: 0.2, sustain: 0.78, release: 0.45 },
-        portamento: 0.24,
-        volume: -13,
+        envelope: { attack: 0.08, decay: 0.2, sustain: 0.35, release: 0.4 },
+        portamento: 0.08,
+        volume: -18,
       }).connect(thereminFilter)
 
       thereminVibratoLFO = new Tone.LFO({
-        frequency: 5.2,
-        min: -16,
-        max: 16,
+        frequency: 4.5,
+        min: -4,
+        max: 4,
       })
         .connect(thereminBass.detune)
         .start()
@@ -397,33 +397,14 @@ function startSecondaryAmbientBed(rarity, style) {
   stopSecondaryAmbientBed()
   if (!audioInitialized) return
 
-  // Ruido de fondo atmosférico presente en TODOS los discos (incluyendo 'comun')
-  if (baseAmbientNoise && baseAmbientGain) {
+  // Solo pad musical armónico suave (sin ruido blanco/marrón/rosa ni estática)
+  if (
+    (rarity === 'raro' || rarity === 'epico' || rarity === 'legendario') &&
+    style === 'espacial' &&
+    spaceBgDrone
+  ) {
     try {
-      if (baseAmbientNoise.state !== 'started') {
-        baseAmbientNoise.start()
-      }
-      baseAmbientGain.gain.rampTo(0.24, 0.7)
-    } catch {
-      // Ignorar en entornos sin Web Audio completo
-    }
-  }
-
-  // Capa adicional temática desde 'raro' en adelante
-  if (rarity !== 'raro' && rarity !== 'epico' && rarity !== 'legendario') return
-
-  if (style === 'maritimo' && oceanNoise && oceanGain) {
-    try {
-      if (oceanNoise.state !== 'started') {
-        oceanNoise.start()
-      }
-      oceanGain.gain.rampTo(0.28, 0.8)
-    } catch {
-      // Ignorar en entornos sin Web Audio completo
-    }
-  } else if (style === 'espacial' && spaceBgDrone) {
-    try {
-      spaceBgDrone.triggerAttack(['C2', 'G2', 'D3'])
+      spaceBgDrone.triggerAttack(['C3', 'G3', 'D4'])
       spaceBgActive = true
     } catch {
       // Ignorar en entornos sin Web Audio completo
@@ -470,7 +451,7 @@ function stopSecondaryAmbientBed() {
   }
 }
 
-function triggerThereminBass(normValue = 0.5) {
+function triggerThereminBass(normValue = 0.5, { silentAudio = false } = {}) {
   const clamped = Math.max(0, Math.min(1, Number(normValue) || 0))
   const bassIdx = Math.min(
     THEREMIN_BASS_SCALE.length - 1,
@@ -479,22 +460,8 @@ function triggerThereminBass(normValue = 0.5) {
   const bassNote = THEREMIN_BASS_SCALE[bassIdx]
   lastThereminNote = bassNote
 
-  if (audioInitialized && thereminBass) {
-    try {
-      if (!thereminActive) {
-        thereminBass.triggerAttack(bassNote)
-        thereminActive = true
-      } else {
-        thereminBass.setNote(bassNote)
-      }
-    } catch {
-      // Fallback si la versión de Tone/mock requiere triggerAttackRelease
-      try {
-        thereminBass.triggerAttackRelease(bassNote, '8n')
-      } catch {
-        // noop
-      }
-    }
+  if (!silentAudio && audioInitialized && thereminBass) {
+    safeTriggerAttackRelease(thereminBass, bassNote, '8n')
   }
   return bassNote
 }
@@ -522,9 +489,16 @@ function getPixelAt(x, y) {
   }
 }
 
-function applyRarityScaling(rarity, primaryNote, harmonyNote, normValue, mirrorNote) {
-  // Melodía 2: Bajo tipo Theremin con portamento continuo para dar profundidad armónica
-  const thereminNote = triggerThereminBass(normValue)
+function applyRarityScaling(
+  rarity,
+  primaryNote,
+  harmonyNote,
+  normValue,
+  mirrorNote,
+  { skipThereminAudio = false } = {}
+) {
+  // Melodía 2: Nota de bajo armónica (siempre con liberación automática, silenciosa en hover)
+  const thereminNote = triggerThereminBass(normValue, { silentAudio: skipThereminAudio })
 
   if (!audioInitialized || !leadSynth) {
     return thereminNote
@@ -889,10 +863,10 @@ const SONIFICATION_STRATEGIES = {
       const sparkleNote = highScale[Math.min(highScale.length - 1, idx + 2)]
 
       if (audioInitialized && shimmerSynth) {
-        shimmerSynth.triggerAttackRelease(primaryNote, '16n')
+        safeTriggerAttackRelease(shimmerSynth, primaryNote, '16n')
       }
       if (audioInitialized && pluckSynth) {
-        pluckSynth.triggerAttackRelease(sparkleNote, '16n')
+        safeTriggerAttackRelease(pluckSynth, sparkleNote, '16n')
       }
     }
 
@@ -901,7 +875,7 @@ const SONIFICATION_STRATEGIES = {
     const chord = chordPool[colX % chordPool.length]
 
     if (audioInitialized && padPolySynth && colX % 3 === 0) {
-      padPolySynth.triggerAttackRelease(chord, '4n')
+      safeTriggerAttackRelease(padPolySynth, chord, '4n')
     }
 
     const normLuma = Math.min(1, (redEnergy + blueEnergy) / (canvasHeight * 120))
@@ -918,7 +892,7 @@ const SONIFICATION_STRATEGIES = {
     } else {
       thereminNote = triggerThereminBass(normLuma)
       if (starY === -1 && audioInitialized && shimmerSynth && colX % 4 === 0) {
-        shimmerSynth.triggerAttackRelease(shimmerHigh, '16n')
+        safeTriggerAttackRelease(shimmerSynth, shimmerHigh, '16n')
       }
     }
 
@@ -1158,7 +1132,7 @@ export function useSonifier() {
 
   function setHoverActive(active) {
     hoverPausedAutoScan = Boolean(active)
-    if (!active && !isRunning.value) {
+    if (!active) {
       silenceThereminBass()
     }
   }
@@ -1230,7 +1204,8 @@ export function useSonifier() {
         leadMelodicNote,
         chord[2] || primaryNote,
         sum / 765,
-        primaryNote
+        primaryNote,
+        { skipThereminAudio: true }
       )
       if (sum > 480 && audioInitialized && shimmerSynth) {
         safeTriggerAttackRelease(shimmerSynth, primaryNote, '16n')
@@ -1240,7 +1215,7 @@ export function useSonifier() {
         primaryNote,
         thereminNote,
         normValue: Number((sum / 765).toFixed(2)),
-        detail: `8D STELLAR HOVER (${px},${py}) -> ${primaryNote} + ${thereminNote}`,
+        detail: `8D STELLAR HOVER (${px},${py}) -> ${primaryNote}`,
       }
     } else {
       const strategy = SONIFICATION_STRATEGIES[mode] || SONIFICATION_STRATEGIES.maps
@@ -1287,11 +1262,16 @@ export function useSonifier() {
   }
 
   async function start(disc = null) {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {
+        // noop
+      }
+    }
+
     if (disc) {
       await loadDisc(disc)
-      if (disc.rarity === 'legendario') {
-        speakLegendaryMetadata(disc)
-      }
     }
 
     await ensureAudioGraph()
@@ -1305,7 +1285,7 @@ export function useSonifier() {
       update8DOrbitPosition(orbitAngle)
     }, 50)
 
-    // Activar segundo sonido de fondo ('maritimo' o 'espacial') desde rareza 'raro' en adelante
+    // Activar cama armónica suave (sin ruido blanco/marrón ni estática)
     startSecondaryAmbientBed(activeRarity.value, activeAmbientStyle)
 
     const runLoop = () => {
@@ -1315,9 +1295,9 @@ export function useSonifier() {
         result = stepScan()
       }
 
-      let intervalMs = 95
+      let intervalMs = 155
       if (activeMode.value === 'huracan' && result && typeof result.warmRatio === 'number') {
-        intervalMs = Math.max(48, Math.floor(125 - result.warmRatio * 68))
+        intervalMs = Math.max(90, Math.floor(185 - result.warmRatio * 80))
       }
 
       scanTimerId = setTimeout(runLoop, intervalMs)
@@ -1350,6 +1330,13 @@ export function useSonifier() {
     }
     silenceThereminBass()
     stopSecondaryAmbientBed()
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.cancel()
+      } catch {
+        // noop
+      }
+    }
   }
 
   function setScanPosition(newX) {

@@ -4,7 +4,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 </script>
 
 <template>
-  <div class="relative mx-auto w-[calc(100%-1.5rem)] max-w-[1040px] sm:w-[calc(90%-2rem)] md:w-[calc(80%-2rem)]">
+  <div class="relative mx-auto w-[calc(100%-1.5rem)] max-w-[1040px] pt-3 sm:w-[calc(90%-2rem)] sm:pt-4 md:w-[calc(80%-2rem)]">
     <!-- Fluctuating ambient glows behind the glass for refraction -->
     <div
       aria-hidden="true"
@@ -17,7 +17,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
     <header
       aria-label="SpaceAndSound project and SynapseTrinity team identity"
-      class="relative flex items-center justify-between gap-2 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-3 py-2.5 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 sm:gap-4 sm:rounded-full sm:px-8 sm:py-3"
+      class="relative flex flex-col items-center justify-between gap-2.5 overflow-hidden rounded-2xl border border-t-[#E7D5AC]/25 border-r-[#31515A]/70 border-b-[#31515A]/50 border-l-[#E7D5AC]/15 bg-[#1D303B]/45 px-3 py-2.5 text-[#E7D5AC] shadow-[inset_0_1px_1px_rgba(231,213,172,0.22),0_20px_44px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 min-[420px]:flex-row min-[420px]:gap-3 sm:gap-4 sm:rounded-full sm:px-8 sm:py-3"
     >
       <!-- Internal technical micro-grid -->
       <div
@@ -209,8 +209,8 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
           />
         </div>
 
-        <div class="flex flex-col">
-          <div class="flex items-center gap-2">
+        <div class="flex min-w-0 flex-col">
+          <div class="flex min-w-0 items-center gap-2">
             <span class="relative flex h-2.5 w-2.5 items-center justify-center" aria-hidden="true">
               <span
                 class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#D18C39] opacity-60"
@@ -253,7 +253,7 @@ const projectLogoPath = '/images/PATATAIMAGEN.jpeg';
 
       <!-- Right Module: Team Identity (ORIGINAL REDONDEADO) -->
       <div
-        class="relative z-10 flex shrink-0 items-center gap-2 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1 pl-2.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70 sm:gap-2.5 sm:pr-1.5 sm:pl-4"
+        class="relative z-10 flex max-w-full shrink-0 items-center gap-2 rounded-full border border-[#31515A] border-t-[#E7D5AC]/20 bg-[#101820]/75 py-1 pr-1 pl-2.5 shadow-[inset_0_1px_0_rgba(231,213,172,0.12)] backdrop-blur-md transition-colors duration-200 hover:border-[#D18C39]/70 sm:gap-2.5 sm:pr-1.5 sm:pl-4"
       >
         <div class="flex flex-col text-right">
           <span
